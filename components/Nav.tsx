@@ -9,8 +9,7 @@ export default function Nav() {
 
   const links = [
     { href: "/sell", label: "Sell" },
-    { href: "/options", label: "Explore Options" },
-    { href: "/invest", label: "Invest" },
+    { href: "/buy", label: "Buy" },
   ];
 
   return (
@@ -18,10 +17,7 @@ export default function Nav() {
       <nav className="site-nav">
         <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: "24px", color: "var(--black)", letterSpacing: "3px", lineHeight: 1 }}>
-            HIGHLANDER
-          </span>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: "24px", color: "var(--blue)", letterSpacing: "3px", lineHeight: 1, marginLeft: "8px" }}>
-            REI
+            HIGHLANDER REI
           </span>
           <span style={{ fontFamily: "var(--font-display)", fontSize: "28px", color: "var(--blue)", lineHeight: "0.65", marginLeft: "2px" }}>.</span>
         </Link>
@@ -38,8 +34,8 @@ export default function Nav() {
             </Link>
           ))}
           <div style={{ width: "1px", height: "18px", background: "var(--border-mid)" }} />
-          <Link href="/invest" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
-            Start Investing
+          <Link href="/sell" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
+            Get Started
           </Link>
         </div>
 
@@ -73,8 +69,8 @@ export default function Nav() {
               {l.label}
             </Link>
           ))}
-          <Link href="/invest" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
-            Start Investing
+          <Link href="/sell" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
+            Get Started
           </Link>
         </div>
       )}

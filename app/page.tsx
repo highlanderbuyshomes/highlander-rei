@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Highlander REI — Sell, Explore, or Invest in Real Estate",
+  title: "Highlander REI — Real Estate Solutions in Phoenix & Dallas",
   description:
-    "Sell your home for cash, explore your real estate options, or invest in property flips with Highlander REI in Phoenix, AZ and Dallas, TX.",
+    "Sell your home for cash or top dollar, find your next home, or invest in real estate flips with Highlander REI in Phoenix, AZ and Dallas, TX.",
 };
 
 export default function HomePage() {
@@ -13,7 +13,7 @@ export default function HomePage() {
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section style={{ background: "var(--white)", textAlign: "center", padding: "72px 48px 56px" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "20px", padding: "5px 14px", marginBottom: "24px" }}>
-          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--gold)", flexShrink: 0, display: "inline-block" }} />
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--blue)", flexShrink: 0, display: "inline-block" }} />
           <span style={{ fontSize: "11px", color: "var(--mid)", letterSpacing: "0.8px", fontWeight: 500 }}>Phoenix, AZ · Dallas, TX</span>
         </div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 8vw, 96px)", color: "var(--black)", letterSpacing: "2px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "20px" }}>
@@ -24,8 +24,8 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* ── THREE PATH CARDS ──────────────────────────────────── */}
-      <div className="path-grid">
+      {/* ── TWO PATH CARDS ────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: "560px" }}>
 
         {/* SELL — blue */}
         <Link href="/sell" className="path-card" style={{ background: "var(--blue)", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
@@ -37,55 +37,34 @@ export default function HomePage() {
               Sell
             </div>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--white)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "16px" }}>
-              GET A CASH<br />OFFER ON<br />YOUR HOME.
+              SELL YOUR<br />HOME ON<br />YOUR TERMS.
             </h2>
-            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "320px" }}>
-              No repairs, no showings, no agent fees. Get a competitive all-cash offer within 24 hours and close on your timeline.
+            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "340px" }}>
+              Cash offer in as little as 7 days, or let us invest in your property and list it — getting you more without the repairs or stress.
             </p>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "11px 20px", transition: "background 0.15s" }}>
-              Get My Offer →
-            </span>
-          </div>
-        </Link>
-
-        {/* EXPLORE — off-white/charcoal */}
-        <Link href="/options" className="path-card" style={{ background: "var(--off-white)", borderRight: "1px solid var(--border-light)" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--border-mid)" }} />
-          <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(0,0,0,0.04)", lineHeight: 1, userSelect: "none" }}>02</div>
-
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "14px", background: "rgba(0,0,0,0.06)", padding: "4px 10px", borderRadius: "4px" }}>
-              Explore
-            </div>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "16px" }}>
-              NOT SURE<br />WHAT{"'"}S<br />RIGHT?
-            </h2>
-            <p style={{ fontSize: "14px", color: "var(--mid)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "320px" }}>
-              Compare your options side by side — cash offer, traditional listing, or putting your real estate equity to work as an investor.
-            </p>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--black)", background: "var(--white)", border: "1px solid var(--border-mid)", borderRadius: "8px", padding: "11px 20px", transition: "border-color 0.15s" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "11px 20px" }}>
               See My Options →
             </span>
           </div>
         </Link>
 
-        {/* INVEST — black/blue */}
-        <Link href="/invest" className="path-card" style={{ background: "var(--near-black)" }}>
+        {/* BUY — near-black */}
+        <Link href="/buy" className="path-card" style={{ background: "var(--near-black)" }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
-          <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(255,255,255,0.04)", lineHeight: 1, userSelect: "none" }}>03</div>
+          <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(255,255,255,0.04)", lineHeight: 1, userSelect: "none" }}>02</div>
 
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "rgba(100,150,255,0.8)", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "14px", background: "rgba(26,86,219,0.15)", border: "1px solid rgba(26,86,219,0.3)", padding: "4px 10px", borderRadius: "4px" }}>
-              Invest
+              Buy
             </div>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--white)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "16px" }}>
-              FLIP WITH<br />US. EARN<br />RETURNS.
+              FIND A HOME,<br />INVEST, OR<br />BUILD WEALTH.
             </h2>
-            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "320px" }}>
-              Partner with Highlander on real estate flips in Phoenix and Dallas. We run the deal from contract to close — you invest capital and earn a share of the profits.
+            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "340px" }}>
+              Find your next home, source an investment property, or partner with us on a flip and earn a share of the returns.
             </p>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "var(--blue)", borderRadius: "8px", padding: "11px 20px", transition: "background 0.15s" }}>
-              Learn More →
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "var(--blue)", borderRadius: "8px", padding: "11px 20px" }}>
+              Explore Options →
             </span>
           </div>
         </Link>

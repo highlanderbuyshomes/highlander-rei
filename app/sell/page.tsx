@@ -4,104 +4,141 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Sell Your Home | Highlander REI",
   description:
-    "Get a competitive all-cash offer on your home in Phoenix, AZ or Dallas, TX. No repairs, no showings, no fees. Close in as little as 14 days.",
+    "Choose how you sell. Get a fast cash offer in as little as 7 days, or let us invest in your property and get more when it sells — without handling a single repair.",
 };
 
 export default function SellPage() {
   return (
     <>
       {/* ── HEADER ───────────────────────────────────────────── */}
-      <section style={{ background: "var(--blue)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px)" }} />
-        <div className="section" style={{ paddingBottom: "80px", position: "relative", zIndex: 1 }}>
-          <span className="section-label" style={{ color: "rgba(255,255,255,0.4)" }}>Sell Your Home</span>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 80px)", color: "var(--white)", letterSpacing: "3px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "22px" }}>
-            GET A CASH<br />OFFER IN<br />24 HOURS.
+      <section style={{ background: "var(--off-white)", borderBottom: "1px solid var(--border-light)" }}>
+        <div className="section" style={{ paddingBottom: "64px", textAlign: "center" }}>
+          <span className="section-label">How Do You Want to Sell?</span>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(44px, 7vw, 80px)", color: "var(--black)", letterSpacing: "3px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "22px" }}>
+            TWO PATHS.<br />ZERO REPAIRS.
           </h1>
-          <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.65)", maxWidth: "500px", lineHeight: 1.8, fontWeight: 300, marginBottom: "36px" }}>
-            No repairs. No showings. No agent fees. Close on your timeline — as fast as 14 days.
+          <p style={{ fontSize: "17px", color: "var(--mid)", maxWidth: "520px", margin: "0 auto", lineHeight: 1.8, fontWeight: 300 }}>
+            Need to close fast, or want to maximize what you walk away with? {"We've"} got a path for both.
           </p>
-          <a href="https://highlanderbuyshomes.com/sell" className="btn-outline-white" style={{ padding: "15px 32px", fontSize: "15px" }}>
-            Get My Cash Offer →
-          </a>
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ─────────────────────────────────────── */}
+      {/* ── TWO OPTIONS ──────────────────────────────────────── */}
       <section style={{ background: "var(--white)" }}>
         <div className="section">
-          <div style={{ textAlign: "center", marginBottom: "52px" }}>
-            <span className="section-label">The Process</span>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 4vw, 56px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1 }}>
-              Three Steps to Sold
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", maxWidth: "960px", margin: "0 auto" }}>
+
+            {/* Cash Offer */}
+            <div style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", borderRadius: "var(--radius)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ height: "4px", background: "var(--blue)" }} />
+              <div style={{ padding: "36px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>Fast Close</div>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3vw, 40px)", color: "var(--black)", letterSpacing: "1.5px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "18px" }}>
+                  Cash<br />Offer
+                </h2>
+                <p style={{ fontSize: "14px", color: "var(--mid)", lineHeight: 1.8, marginBottom: "24px" }}>
+                  Get a competitive all-cash offer within 24 hours. No repairs, no showings, no agent fees. Close when {"you're"} ready.
+                </p>
+                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px", flex: 1 }}>
+                  {[
+                    "Offer within 24 hours",
+                    "Close in as little as 7 days",
+                    "Typical transaction: 14–21 days",
+                    "No repairs, no cleaning, no staging",
+                    "No agent commissions",
+                    "Guaranteed close — no fall-through risk",
+                  ].map((p) => (
+                    <li key={p} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "13.5px", color: "var(--mid)" }}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
+                        <circle cx="8" cy="8" r="7.5" fill="white" />
+                        <path d="M5 8l2.2 2.2 3.8-3.8" stroke="var(--blue)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ fontSize: "12px", color: "var(--muted)", fontStyle: "italic", marginBottom: "24px", lineHeight: 1.6 }}>
+                  Best if you need speed, certainty, or are selling as-is.
+                </div>
+                <Link href="/sell/cash" className="btn-blue" style={{ justifyContent: "center", padding: "14px 24px" }}>
+                  Get My Cash Offer →
+                </Link>
+              </div>
+            </div>
+
+            {/* Flex Equity Program */}
+            <div style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ height: "4px", background: "var(--black)" }} />
+              <div style={{ padding: "36px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "var(--black)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>Max Value</div>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3vw, 40px)", color: "var(--black)", letterSpacing: "1.5px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "18px" }}>
+                  Flex Equity<br />Program
+                </h2>
+                <p style={{ fontSize: "14px", color: "var(--mid)", lineHeight: 1.8, marginBottom: "24px" }}>
+                  We invest in your property — repairs, updates, staging — then list it on the open market. You get significantly more at closing. You never touch a thing.
+                </p>
+                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px", flex: 1 }}>
+                  {[
+                    "We fund all repairs and updates upfront",
+                    "Professional staging and photography",
+                    "Full MLS exposure and expert listing",
+                    "You pay nothing until closing",
+                    "Walk away with more than a cash offer",
+                    "Timeline: 45–60 days",
+                  ].map((p) => (
+                    <li key={p} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "13.5px", color: "var(--mid)" }}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
+                        <circle cx="8" cy="8" r="7.5" fill="white" />
+                        <path d="M5 8l2.2 2.2 3.8-3.8" stroke="var(--black)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ fontSize: "12px", color: "var(--muted)", fontStyle: "italic", marginBottom: "24px", lineHeight: 1.6 }}>
+                  Best if you want top dollar and {"don't"} mind a 45–60 day timeline.
+                </div>
+                <Link href="/sell/flex" className="btn-black" style={{ justifyContent: "center", padding: "14px 24px" }}>
+                  Learn About Flex Equity →
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── COMPARE BAR ──────────────────────────────────────── */}
+      <section style={{ background: "var(--near-black)" }}>
+        <div className="section">
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+            <span className="section-label" style={{ color: "rgba(255,255,255,0.35)" }}>Side by Side</span>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 48px)", color: "var(--white)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1 }}>
+              Which Is Right for You?
             </h2>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+          <div style={{ maxWidth: "760px", margin: "0 auto", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", background: "rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ padding: "12px 22px" }} />
+              <div style={{ padding: "12px 22px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--blue)", textAlign: "center" }}>Cash Offer</div>
+              <div style={{ padding: "12px 22px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: "rgba(255,255,255,0.6)", textAlign: "center" }}>Flex Equity</div>
+            </div>
             {[
-              { n: "01", title: "Tell Us About Your Home", body: "Enter your address and answer a few quick questions. Takes less than 3 minutes — no commitment required." },
-              { n: "02", title: "Receive Your Offer", body: "Our team reviews your property and sends a competitive, all-cash, no-obligation offer within 24 hours." },
-              { n: "03", title: "Close on Your Timeline", body: "You pick the date. We can close in 14 days or give you 90+ days — entirely on your schedule." },
-            ].map((s) => (
-              <div key={s.n} style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", borderRadius: "var(--radius)", padding: "32px 28px" }}>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "13px", color: "var(--blue)", letterSpacing: "2px", marginBottom: "16px" }}>{s.n}</div>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--black)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>{s.title}</h3>
-                <p style={{ fontSize: "13.5px", color: "var(--mid)", lineHeight: 1.8 }}>{s.body}</p>
+              { label: "Timeline", cash: "7–21 days", flex: "45–60 days" },
+              { label: "Sale price", cash: "Below market", flex: "Full market value" },
+              { label: "Repairs", cash: "None", flex: "We handle everything" },
+              { label: "Showings", cash: "None", flex: "Managed by us" },
+              { label: "Upfront cost to you", cash: "$0", flex: "$0" },
+              { label: "Certainty", cash: "Guaranteed close", flex: "Market dependent" },
+            ].map((row, i) => (
+              <div key={row.label} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", borderBottom: i < 5 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                <div style={{ padding: "15px 22px", fontSize: "13px", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{row.label}</div>
+                <div style={{ padding: "15px 22px", fontSize: "13px", color: "var(--blue)", textAlign: "center", fontWeight: 600 }}>{row.cash}</div>
+                <div style={{ padding: "15px 22px", fontSize: "13px", color: "rgba(255,255,255,0.55)", textAlign: "center" }}>{row.flex}</div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── COMPARE ──────────────────────────────────────────── */}
-      <section style={{ background: "var(--off-white)", borderTop: "1px solid var(--border-light)" }}>
-        <div className="section">
-          <div style={{ maxWidth: "720px", margin: "0 auto" }}>
-            <div style={{ textAlign: "center", marginBottom: "44px" }}>
-              <span className="section-label">Why Cash?</span>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 48px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1 }}>
-                Traditional vs. Cash Offer
-              </h2>
-            </div>
-
-            <div style={{ background: "var(--white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-              {/* Header */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", background: "var(--off-white)", borderBottom: "1px solid var(--border-light)" }}>
-                <div style={{ padding: "12px 22px" }} />
-                <div style={{ padding: "12px 22px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--muted)", textAlign: "center" }}>Traditional</div>
-                <div style={{ padding: "12px 22px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--blue)", textAlign: "center", background: "var(--blue-light)" }}>Highlander</div>
-              </div>
-              {[
-                { label: "Offer timeline", trad: "Weeks to months", ours: "24 hours" },
-                { label: "Repairs needed", trad: "Usually required", ours: "Never" },
-                { label: "Showings", trad: "Many", ours: "None" },
-                { label: "Closing time", trad: "30–60 days", ours: "As fast as 14 days" },
-                { label: "Agent commission", trad: "5–6%", ours: "$0" },
-                { label: "Deal certainty", trad: "May fall through", ours: "Guaranteed cash" },
-              ].map((row, i) => (
-                <div key={row.label} style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", borderBottom: i < 5 ? "1px solid var(--border-light)" : "none", background: i % 2 === 0 ? "var(--white)" : "var(--warm-white)" }}>
-                  <div style={{ padding: "15px 22px", fontSize: "13px", color: "var(--mid)", fontWeight: 500 }}>{row.label}</div>
-                  <div style={{ padding: "15px 22px", fontSize: "13px", color: "var(--muted)", textAlign: "center" }}>{row.trad}</div>
-                  <div style={{ padding: "15px 22px", fontSize: "13px", color: "var(--blue)", textAlign: "center", fontWeight: 600, background: "rgba(26,86,219,0.025)" }}>{row.ours}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ──────────────────────────────────────────────── */}
-      <section style={{ background: "var(--black)" }}>
-        <div className="section" style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 5vw, 64px)", color: "var(--white)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1, marginBottom: "16px" }}>
-            Ready to See<br />Your Number?
-          </h2>
-          <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", maxWidth: "360px", margin: "0 auto 32px", lineHeight: 1.75 }}>
-            Free, no-obligation cash offer within 24 hours.
-          </p>
-          <a href="https://highlanderbuyshomes.com/sell" className="btn-blue" style={{ padding: "15px 36px", fontSize: "15px" }}>
-            Get My Cash Offer →
-          </a>
         </div>
       </section>
     </>

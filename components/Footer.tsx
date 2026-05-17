@@ -6,8 +6,7 @@ export default function Footer() {
       <div style={{ maxWidth: "1160px", margin: "0 auto", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "40px" }}>
         <div style={{ maxWidth: "260px" }}>
           <div style={{ display: "flex", alignItems: "center", marginBottom: "14px" }}>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--white)", letterSpacing: "2.5px" }}>HIGHLANDER</span>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--blue)", letterSpacing: "2.5px", marginLeft: "8px" }}>REI</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--white)", letterSpacing: "2.5px" }}>HIGHLANDER REI</span>
             <span style={{ fontFamily: "var(--font-display)", fontSize: "26px", color: "var(--blue)", lineHeight: "0.65", marginLeft: "2px" }}>.</span>
           </div>
           <p style={{ fontSize: "12.5px", lineHeight: 1.75 }}>
@@ -21,7 +20,9 @@ export default function Footer() {
             <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: "14px" }}>Paths</div>
             {[
               { href: "/sell", label: "Sell Your Home" },
-              { href: "/options", label: "Explore Options" },
+              { href: "/sell/cash", label: "Cash Offer" },
+              { href: "/sell/flex", label: "Flex Equity Program" },
+              { href: "/buy", label: "Buy" },
               { href: "/invest", label: "Invest With Us" },
             ].map((l) => (
               <div key={l.href} style={{ marginBottom: "10px" }}>
