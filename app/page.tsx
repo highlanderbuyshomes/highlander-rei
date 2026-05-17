@@ -56,7 +56,7 @@ export default function HomePage() {
   return (
     <>
       {/* ── HERO ──────────────────────────────────────────────── */}
-      <section style={{ background: "var(--white)", textAlign: "center", padding: "72px 48px 56px" }}>
+      <section style={{ background: "var(--off-white)", textAlign: "center", padding: "72px 48px 56px" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "20px", padding: "5px 14px", marginBottom: "24px" }}>
           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--blue)", flexShrink: 0, display: "inline-block" }} />
           <span style={{ fontSize: "11px", color: "var(--mid)", letterSpacing: "0.8px", fontWeight: 500 }}>{t.badge}</span>

@@ -64,18 +64,18 @@ export default function FindHomePage() {
   return (
     <>
       {/* ── HEADER ───────────────────────────────────────────── */}
-      <section style={{ background: "var(--blue)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px)" }} />
+      <section style={{ background: "var(--off-white)", borderBottom: "1px solid var(--border-light)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
         <div className="section" style={{ paddingBottom: "80px", position: "relative", zIndex: 1 }}>
-          <Link href="/buy" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "rgba(255,255,255,0.5)", textDecoration: "none", marginBottom: "28px" }}>
+          <Link href="/buy" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--muted)", textDecoration: "none", marginBottom: "28px" }}>
             {c.back}
           </Link>
-          <span className="section-label" style={{ color: "rgba(255,255,255,0.4)" }}>{c.label}</span>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 80px)", color: "var(--white)", letterSpacing: "3px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "22px" }}>
+          <span className="section-label" style={{ color: "var(--blue)" }}>{c.label}</span>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 80px)", color: "var(--black)", letterSpacing: "3px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "22px" }}>
             {c.h1a}<br />{c.h1b}<br />{c.h1c}
           </h1>
-          <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.65)", maxWidth: "500px", lineHeight: 1.8, fontWeight: 300, marginBottom: "36px" }}>{c.sub}</p>
-          <a href="https://highlanderbuyshomes.com/contact" className="btn-outline-white" style={{ padding: "15px 32px", fontSize: "15px" }}>{c.cta}</a>
+          <p style={{ fontSize: "17px", color: "var(--mid)", maxWidth: "500px", lineHeight: 1.8, fontWeight: 300, marginBottom: "36px" }}>{c.sub}</p>
+          <a href="https://highlanderbuyshomes.com/contact" className="btn-blue" style={{ padding: "15px 32px", fontSize: "15px" }}>{c.cta}</a>
         </div>
       </section>
 
