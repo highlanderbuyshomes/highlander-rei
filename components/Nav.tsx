@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const sellItems = [
   {
@@ -110,9 +110,16 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const [sellOpen, setSellOpen] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
+  const sellTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const buyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const sellActive = pathname.startsWith("/sell");
   const buyActive = pathname.startsWith("/buy") || pathname.startsWith("/invest");
+
+  const openSell = () => { clearTimeout(sellTimer.current); setSellOpen(true); };
+  const closeSell = () => { sellTimer.current = setTimeout(() => setSellOpen(false), 200); };
+  const openBuy = () => { clearTimeout(buyTimer.current); setBuyOpen(true); };
+  const closeBuy = () => { buyTimer.current = setTimeout(() => setBuyOpen(false), 200); };
 
   const chevron = (isOpen: boolean) => (
     <svg
@@ -137,8 +144,8 @@ export default function Nav() {
           {/* Sell dropdown */}
           <div
             className="nav-dropdown-wrapper"
-            onMouseEnter={() => setSellOpen(true)}
-            onMouseLeave={() => setSellOpen(false)}
+            onMouseEnter={openSell}
+            onMouseLeave={closeSell}
           >
             <Link
               href="/sell"
@@ -156,8 +163,8 @@ export default function Nav() {
           {/* Buy dropdown */}
           <div
             className="nav-dropdown-wrapper"
-            onMouseEnter={() => setBuyOpen(true)}
-            onMouseLeave={() => setBuyOpen(false)}
+            onMouseEnter={openBuy}
+            onMouseLeave={closeBuy}
           >
             <Link
               href="/buy"
