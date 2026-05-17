@@ -34,7 +34,7 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: var(--font-body), "DM Sans", system-ui, sans-serif;
+  font-family: var(--font-body), "Inter", system-ui, sans-serif;
   background: var(--white);
   color: var(--near-black);
   line-height: 1.6;
