@@ -3,6 +3,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+const sellItems = [
+  {
+    href: "/sell/cash",
+    label: "Cash Offer",
+    desc: "Close in as little as 7 days — no repairs, no fees",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="6.5" stroke="var(--blue)" strokeWidth="1.5" />
+        <path d="M8 4.5v7M5.5 6.5C5.5 5.4 6.6 5 8 5s2.5.8 2.5 1.8c0 2.2-5 1.8-5 4 0 1.1 1.1 1.7 2.5 1.7s2.5-.6 2.5-1.7" stroke="var(--blue)" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    href: "/sell/flex",
+    label: "Flex Equity Program",
+    desc: "We repair, stage & list — you keep the upside",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 13l4-4 3 2 5-7" stroke="var(--blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M11 3h3v3" stroke="var(--blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+];
+
 const buyItems = [
   {
     href: "/invest",
@@ -38,13 +63,65 @@ const buyItems = [
   },
 ];
 
+function DropdownItems({ items, onClose }: { items: typeof sellItems; onClose: () => void }) {
+  return (
+    <>
+      {items.map((item, i) => (
+        <div key={item.href}>
+          <Link href={item.href} className="nav-dropdown-item" onClick={onClose}>
+            <div className="nav-dropdown-icon">{item.icon}</div>
+            <div>
+              <span className="nav-dropdown-label">{item.label}</span>
+              <span className="nav-dropdown-desc">{item.desc}</span>
+            </div>
+          </Link>
+          {i < items.length - 1 && <div className="nav-dropdown-divider" />}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function MobileSubItems({ items, pathname, onClose }: { items: typeof sellItems; pathname: string; onClose: () => void }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "12px" }}>
+      {items.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={onClose}
+          style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "8px", textDecoration: "none", background: pathname === item.href ? "var(--blue-light)" : "transparent" }}
+        >
+          <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "var(--blue-light)", border: "1px solid var(--blue-border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {item.icon}
+          </div>
+          <div>
+            <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--near-black)" }}>{item.label}</div>
+            <div style={{ fontSize: "11.5px", color: "var(--muted)" }}>{item.desc}</div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [sellOpen, setSellOpen] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
 
   const sellActive = pathname.startsWith("/sell");
   const buyActive = pathname.startsWith("/buy") || pathname.startsWith("/invest");
+
+  const chevron = (isOpen: boolean) => (
+    <svg
+      width="12" height="12" viewBox="0 0 12 12" fill="none"
+      style={{ marginTop: "1px", transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+    >
+      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 
   return (
     <>
@@ -57,15 +134,26 @@ export default function Nav() {
         </Link>
 
         <div className="nav-links">
-          <Link
-            href="/sell"
-            className="nav-link"
-            data-active={sellActive ? "true" : undefined}
+          {/* Sell dropdown */}
+          <div
+            className="nav-dropdown-wrapper"
+            onMouseEnter={() => setSellOpen(true)}
+            onMouseLeave={() => setSellOpen(false)}
           >
-            Sell
-          </Link>
+            <Link
+              href="/sell"
+              className="nav-link"
+              data-active={sellActive ? "true" : undefined}
+              style={{ display: "flex", alignItems: "center", gap: "4px" }}
+            >
+              Sell {chevron(sellOpen)}
+            </Link>
+            <div className="nav-dropdown" style={{ opacity: sellOpen ? 1 : 0, pointerEvents: sellOpen ? "auto" : "none", transform: sellOpen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-6px)" }}>
+              <DropdownItems items={sellItems} onClose={() => setSellOpen(false)} />
+            </div>
+          </div>
 
-          {/* Buy with dropdown */}
+          {/* Buy dropdown */}
           <div
             className="nav-dropdown-wrapper"
             onMouseEnter={() => setBuyOpen(true)}
@@ -77,36 +165,15 @@ export default function Nav() {
               data-active={buyActive ? "true" : undefined}
               style={{ display: "flex", alignItems: "center", gap: "4px" }}
             >
-              Buy
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-                style={{ marginTop: "1px", transition: "transform 0.15s", transform: buyOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-              >
-                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              Buy {chevron(buyOpen)}
             </Link>
-
             <div className="nav-dropdown" style={{ opacity: buyOpen ? 1 : 0, pointerEvents: buyOpen ? "auto" : "none", transform: buyOpen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-6px)" }}>
-              {buyItems.map((item, i) => (
-                <div key={item.href}>
-                  <Link href={item.href} className="nav-dropdown-item" onClick={() => setBuyOpen(false)}>
-                    <div className="nav-dropdown-icon">{item.icon}</div>
-                    <div>
-                      <span className="nav-dropdown-label">{item.label}</span>
-                      <span className="nav-dropdown-desc">{item.desc}</span>
-                    </div>
-                  </Link>
-                  {i < buyItems.length - 1 && <div className="nav-dropdown-divider" />}
-                </div>
-              ))}
+              <DropdownItems items={buyItems} onClose={() => setBuyOpen(false)} />
             </div>
           </div>
 
           <div style={{ width: "1px", height: "18px", background: "var(--border-mid)" }} />
-          <Link href="/sell" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
+          <Link href="/sell/cash" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
             Get Started
           </Link>
         </div>
@@ -132,40 +199,23 @@ export default function Nav() {
       {/* Mobile menu */}
       {open && (
         <div style={{ background: "var(--white)", borderBottom: "1px solid var(--border-light)", padding: "8px 20px 20px", display: "flex", flexDirection: "column", position: "sticky", top: "68px", zIndex: 99 }}>
-          <Link
-            href="/sell"
-            onClick={() => setOpen(false)}
-            style={{ fontSize: "15px", fontWeight: sellActive ? 600 : 400, color: sellActive ? "var(--black)" : "var(--mid)", padding: "13px 0", textDecoration: "none", borderBottom: "1px solid var(--border-light)" }}
-          >
-            Sell
-          </Link>
+          {/* Sell sub-items */}
+          <div style={{ borderBottom: "1px solid var(--border-light)" }}>
+            <div style={{ fontSize: "15px", fontWeight: sellActive ? 600 : 400, color: sellActive ? "var(--black)" : "var(--mid)", padding: "13px 0 8px" }}>
+              Sell
+            </div>
+            <MobileSubItems items={sellItems} pathname={pathname} onClose={() => setOpen(false)} />
+          </div>
 
-          {/* Buy section with sub-items */}
+          {/* Buy sub-items */}
           <div style={{ borderBottom: "1px solid var(--border-light)" }}>
             <div style={{ fontSize: "15px", fontWeight: buyActive ? 600 : 400, color: buyActive ? "var(--black)" : "var(--mid)", padding: "13px 0 8px" }}>
               Buy
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "12px" }}>
-              {buyItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "8px", textDecoration: "none", background: pathname === item.href ? "var(--blue-light)" : "transparent" }}
-                >
-                  <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "var(--blue-light)", border: "1px solid var(--blue-border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    {item.icon}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--near-black)" }}>{item.label}</div>
-                    <div style={{ fontSize: "11.5px", color: "var(--muted)" }}>{item.desc}</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <MobileSubItems items={buyItems} pathname={pathname} onClose={() => setOpen(false)} />
           </div>
 
-          <Link href="/sell" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
+          <Link href="/sell/cash" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
             Get Started
           </Link>
         </div>
