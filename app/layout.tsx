@@ -3,6 +3,7 @@ import { Bebas_Neue, DM_Sans } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { LanguageProvider } from "@/lib/LanguageContext";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -33,9 +34,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${bebasNeue.variable} ${dmSans.variable}`}>
       <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        <Nav />
-        <main style={{ flex: 1 }}>{children}</main>
-        <Footer />
+        <LanguageProvider>
+          <Nav />
+          <main style={{ flex: 1 }}>{children}</main>
+          <Footer />
+        </LanguageProvider>
       </body>
     </html>
   );

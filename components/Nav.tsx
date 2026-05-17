@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef } from "react";
+import LangToggle from "@/components/LangToggle";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const sellItems = [
   {
@@ -107,6 +109,7 @@ function MobileSubItems({ items, pathname, onClose }: { items: typeof sellItems;
 
 export default function Nav() {
   const pathname = usePathname();
+  const { lang } = useLanguage();
   const [open, setOpen] = useState(false);
   const [sellOpen, setSellOpen] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
@@ -154,7 +157,7 @@ export default function Nav() {
               data-active={sellActive ? "true" : undefined}
               style={{ display: "flex", alignItems: "center", gap: "4px" }}
             >
-              Sell {chevron(sellOpen)}
+              {lang === "es" ? "Vender" : "Sell"} {chevron(sellOpen)}
             </Link>
             <div className="nav-dropdown" style={{ opacity: sellOpen ? 1 : 0, pointerEvents: sellOpen ? "auto" : "none", transform: sellOpen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-6px)" }}>
               <DropdownItems items={sellItems} onClose={() => setSellOpen(false)} />
@@ -173,7 +176,7 @@ export default function Nav() {
               data-active={buyActive ? "true" : undefined}
               style={{ display: "flex", alignItems: "center", gap: "4px" }}
             >
-              Buy {chevron(buyOpen)}
+              {lang === "es" ? "Comprar" : "Buy"} {chevron(buyOpen)}
             </Link>
             <div className="nav-dropdown" style={{ opacity: buyOpen ? 1 : 0, pointerEvents: buyOpen ? "auto" : "none", transform: buyOpen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-6px)" }}>
               <DropdownItems items={buyItems} onClose={() => setBuyOpen(false)} />
@@ -181,11 +184,9 @@ export default function Nav() {
           </div>
         </div>
 
-        {/* Right-side CTA */}
+        {/* Right-side language toggle */}
         <div className="nav-right">
-          <Link href="/get-started" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
-            Get Started
-          </Link>
+          <LangToggle />
         </div>
 
         <button className="mobile-menu-btn" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu">
@@ -212,7 +213,7 @@ export default function Nav() {
           {/* Sell sub-items */}
           <div style={{ borderBottom: "1px solid var(--border-light)" }}>
             <div style={{ fontSize: "15px", fontWeight: sellActive ? 600 : 400, color: sellActive ? "var(--black)" : "var(--mid)", padding: "13px 0 8px" }}>
-              Sell
+              {lang === "es" ? "Vender" : "Sell"}
             </div>
             <MobileSubItems items={sellItems} pathname={pathname} onClose={() => setOpen(false)} />
           </div>
@@ -220,14 +221,14 @@ export default function Nav() {
           {/* Buy sub-items */}
           <div style={{ borderBottom: "1px solid var(--border-light)" }}>
             <div style={{ fontSize: "15px", fontWeight: buyActive ? 600 : 400, color: buyActive ? "var(--black)" : "var(--mid)", padding: "13px 0 8px" }}>
-              Buy
+              {lang === "es" ? "Comprar" : "Buy"}
             </div>
             <MobileSubItems items={buyItems} pathname={pathname} onClose={() => setOpen(false)} />
           </div>
 
-          <Link href="/get-started" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
-            Get Started
-          </Link>
+          <div style={{ marginTop: "16px", display: "flex", justifyContent: "center" }}>
+            <LangToggle />
+          </div>
         </div>
       )}
     </>
