@@ -1,13 +1,10 @@
-import type { Metadata } from "next";
+"use client";
 import Link from "next/link";
-
-export const metadata: Metadata = {
-  title: "Sell Your Home | Highlander REI",
-  description:
-    "Choose how you sell. Get a fast cash offer in as little as 7 days, or let us invest in your property and get more when it sells — without handling a single repair.",
-};
+import { useState } from "react";
 
 export default function SellPage() {
+  const [hovered, setHovered] = useState<"cash" | "flex" | null>(null);
+
   return (
     <>
       {/* ── HEADER ───────────────────────────────────────────── */}
@@ -26,10 +23,17 @@ export default function SellPage() {
       {/* ── TWO OPTIONS ──────────────────────────────────────── */}
       <section style={{ background: "var(--white)" }}>
         <div className="section">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", maxWidth: "960px", margin: "0 auto" }}>
-
+          <div
+            className={`sell-chooser-grid${hovered === "cash" ? " hover-cash" : hovered === "flex" ? " hover-flex" : ""}`}
+          >
             {/* Cash Offer */}
-            <div style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", borderRadius: "var(--radius)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <Link
+              href="/sell/cash"
+              className="sell-option-card"
+              style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", textDecoration: "none" }}
+              onMouseEnter={() => setHovered("cash")}
+              onMouseLeave={() => setHovered(null)}
+            >
               <div style={{ height: "4px", background: "var(--blue)" }} />
               <div style={{ padding: "36px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>Fast Close</div>
@@ -60,14 +64,20 @@ export default function SellPage() {
                 <div style={{ fontSize: "12px", color: "var(--muted)", fontStyle: "italic", marginBottom: "24px", lineHeight: 1.6 }}>
                   Best if you need speed, certainty, or are selling as-is.
                 </div>
-                <Link href="/sell/cash" className="btn-blue" style={{ justifyContent: "center", padding: "14px 24px" }}>
+                <span className="btn-blue" style={{ justifyContent: "center", padding: "14px 24px" }}>
                   Get My Cash Offer →
-                </Link>
+                </span>
               </div>
-            </div>
+            </Link>
 
             {/* Flex Equity Program */}
-            <div style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <Link
+              href="/sell/flex"
+              className="sell-option-card"
+              style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", textDecoration: "none" }}
+              onMouseEnter={() => setHovered("flex")}
+              onMouseLeave={() => setHovered(null)}
+            >
               <div style={{ height: "4px", background: "var(--black)" }} />
               <div style={{ padding: "36px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "var(--black)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>Max Value</div>
@@ -75,16 +85,16 @@ export default function SellPage() {
                   Flex Equity<br />Program
                 </h2>
                 <p style={{ fontSize: "14px", color: "var(--mid)", lineHeight: 1.8, marginBottom: "24px" }}>
-                  We invest in your property — repairs, updates, staging — then list it on the open market. You get significantly more at closing. You never touch a thing.
+                  We invest in your property — repairs done within 7 days, professional staging, then listed on the open market. You get significantly more at closing without touching a thing.
                 </p>
                 <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px", flex: 1 }}>
                   {[
-                    "We fund all repairs and updates upfront",
+                    "Repairs completed within 7 days",
+                    "First offer typically accepted in 7–10 days",
+                    "We fund all work — zero upfront cost to you",
                     "Professional staging and photography",
                     "Full MLS exposure and expert listing",
-                    "You pay nothing until closing",
                     "Walk away with more than a cash offer",
-                    "Timeline: 45–60 days",
                   ].map((p) => (
                     <li key={p} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "13.5px", color: "var(--mid)" }}>
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
@@ -96,19 +106,18 @@ export default function SellPage() {
                   ))}
                 </ul>
                 <div style={{ fontSize: "12px", color: "var(--muted)", fontStyle: "italic", marginBottom: "24px", lineHeight: 1.6 }}>
-                  Best if you want top dollar and {"don't"} mind a 45–60 day timeline.
+                  Best if you want top dollar and {"don't"} mind a 45–60 day total timeline.
                 </div>
-                <Link href="/sell/flex" className="btn-black" style={{ justifyContent: "center", padding: "14px 24px" }}>
+                <span className="btn-black" style={{ justifyContent: "center", padding: "14px 24px" }}>
                   Learn About Flex Equity →
-                </Link>
+                </span>
               </div>
-            </div>
-
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── COMPARE BAR ──────────────────────────────────────── */}
+      {/* ── COMPARE TABLE ────────────────────────────────────── */}
       <section style={{ background: "var(--near-black)" }}>
         <div className="section">
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
@@ -126,9 +135,9 @@ export default function SellPage() {
             </div>
             {[
               { label: "Timeline", cash: "7–21 days", flex: "45–60 days" },
-              { label: "Sale price", cash: "Below market", flex: "Full market value" },
-              { label: "Repairs", cash: "None", flex: "We handle everything" },
-              { label: "Showings", cash: "None", flex: "Managed by us" },
+              { label: "Sale price", cash: "Fair market value", flex: "Priced strategically" },
+              { label: "Repairs", cash: "None", flex: "Done within 7 days" },
+              { label: "First offer", cash: "N/A — direct to you", flex: "Typically 7–10 days" },
               { label: "Upfront cost to you", cash: "$0", flex: "$0" },
               { label: "Certainty", cash: "Guaranteed close", flex: "Market dependent" },
             ].map((row, i) => (

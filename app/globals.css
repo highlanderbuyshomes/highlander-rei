@@ -41,6 +41,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── GLOBAL TEXT HOVER TRANSITIONS ───────────────────────── */
+p, h1, h2, h3, li, span { transition: color 0.18s; }
+
 /* ── NAV ──────────────────────────────────────────────────── */
 .site-nav {
   position: sticky;
@@ -82,6 +85,98 @@ body {
   cursor: pointer;
   padding: 4px;
   color: var(--black);
+}
+
+/* ── BUY DROPDOWN ─────────────────────────────────────────── */
+.nav-dropdown-wrapper {
+  position: relative;
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 8px;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.nav-dropdown-wrapper:hover .nav-dropdown,
+.nav-dropdown:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Arrow */
+.nav-dropdown::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: var(--white);
+  border-left: 1px solid var(--border-light);
+  border-top: 1px solid var(--border-light);
+  rotate: 45deg;
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.12s;
+}
+
+.nav-dropdown-item:hover { background: var(--off-white); }
+
+.nav-dropdown-item:hover .nav-dropdown-label { color: var(--black); }
+
+.nav-dropdown-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--near-black);
+  transition: color 0.15s;
+  display: block;
+  margin-bottom: 1px;
+}
+
+.nav-dropdown-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.nav-dropdown-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--blue-light);
+  border: 1px solid var(--blue-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nav-dropdown-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 4px 14px;
 }
 
 /* ── BUTTONS ──────────────────────────────────────────────── */
@@ -127,7 +222,6 @@ body {
 }
 .btn-blue:hover { background: var(--blue-hover); }
 
-
 .btn-outline-white {
   display: inline-flex;
   align-items: center;
@@ -172,7 +266,7 @@ body {
 /* ── PATH CARDS (homepage) ────────────────────────────────── */
 .path-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr;
   min-height: 560px;
 }
 
@@ -186,6 +280,44 @@ body {
   overflow: hidden;
   transition: flex-grow 0.35s ease;
 }
+
+.path-card p { transition: color 0.2s; }
+.path-card:hover p { color: rgba(255, 255, 255, 0.8); }
+
+/* ── SELL CHOOSER CARDS ───────────────────────────────────── */
+.sell-chooser-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+  transition: grid-template-columns 0.35s ease;
+}
+
+.sell-chooser-grid.hover-cash { grid-template-columns: 1.35fr 0.65fr; }
+.sell-chooser-grid.hover-flex { grid-template-columns: 0.65fr 1.35fr; }
+
+.sell-option-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.sell-option-card:hover { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1); }
+
+.sell-option-card p { transition: color 0.18s; }
+.sell-option-card h2 { transition: color 0.18s; }
+.sell-option-card:hover p { color: var(--charcoal); }
+.sell-option-card:hover h2 { color: var(--black); }
+
+/* ── RESPONSIVE GRIDS ─────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.grid-2-content { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; max-width: 960px; margin: 0 auto; }
 
 /* ── FOOTER ───────────────────────────────────────────────── */
 .site-footer {
@@ -203,4 +335,17 @@ body {
   .path-grid { grid-template-columns: 1fr; min-height: auto; }
   .path-card { min-height: 280px; }
   .site-footer { padding: 40px 20px 32px; }
+
+  .sell-chooser-grid,
+  .sell-chooser-grid.hover-cash,
+  .sell-chooser-grid.hover-flex { grid-template-columns: 1fr !important; }
+
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-2-content { grid-template-columns: 1fr; gap: 40px; }
+}
+
+@media (max-width: 600px) {
+  .grid-4 { grid-template-columns: 1fr; }
 }
