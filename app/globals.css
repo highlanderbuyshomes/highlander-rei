@@ -1,26 +1,230 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --black: #111110;
+  --near-black: #1c1c1b;
+  --charcoal: #2e2e2c;
+  --white: #ffffff;
+  --off-white: #f8f7f4;
+  --warm-white: #fafaf8;
+  --mid: #5a5a54;
+  --muted: #8a8a84;
+  --border-light: #e8e7e2;
+  --border-mid: #d0cfc8;
+
+  /* Blue — sell path */
+  --blue: #1a56db;
+  --blue-hover: #1544bf;
+  --blue-light: #eef3fd;
+  --blue-border: #c7d8f8;
+
+  /* Gold — invest path */
+  --gold: #b8962e;
+  --gold-hover: #a07828;
+  --gold-light: #faf6ec;
+  --gold-border: #e8d9a0;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), "DM Sans", system-ui, sans-serif;
+  background: var(--white);
+  color: var(--near-black);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NAV ──────────────────────────────────────────────────── */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48px;
+  height: 68px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+}
+
+.nav-link {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--mid);
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  transition: color 0.15s;
+}
+
+.nav-link:hover,
+.nav-link[data-active="true"] { color: var(--black); }
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--black);
+}
+
+/* ── BUTTONS ──────────────────────────────────────────────── */
+.btn-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--white);
+  background: var(--black);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: background 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-black:hover { background: var(--charcoal); }
+
+.btn-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--white);
+  background: var(--blue);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: background 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-blue:hover { background: var(--blue-hover); }
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--white);
+  background: var(--gold);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: background 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-gold:hover { background: var(--gold-hover); }
+
+.btn-outline-white {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 26px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--white);
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: border-color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+.btn-outline-white:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── LAYOUT ───────────────────────────────────────────────── */
+.section {
+  padding: 96px 48px;
+  max-width: 1160px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.section-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* ── PATH CARDS (homepage) ────────────────────────────────── */
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  min-height: 560px;
+}
+
+.path-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 40px 36px;
+  text-decoration: none;
+  overflow: hidden;
+  transition: flex-grow 0.35s ease;
+}
+
+/* ── FOOTER ───────────────────────────────────────────────── */
+.site-footer {
+  background: var(--black);
+  color: rgba(255, 255, 255, 0.45);
+  padding: 56px 48px 40px;
+}
+
+/* ── RESPONSIVE ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .site-nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .mobile-menu-btn { display: block; }
+  .section { padding: 64px 20px; }
+  .path-grid { grid-template-columns: 1fr; min-height: auto; }
+  .path-card { min-height: 280px; }
+  .site-footer { padding: 40px 20px 32px; }
 }
