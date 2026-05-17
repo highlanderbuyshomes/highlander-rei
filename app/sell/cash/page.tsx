@@ -11,13 +11,14 @@ export default function CashOfferPage() {
   return (
     <>
       {/* ── HEADER ───────────────────────────────────────────── */}
-      <section style={{ background: "var(--blue)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px)" }} />
+      <section style={{ background: "var(--near-black)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.012) 59px,rgba(255,255,255,0.012) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.012) 59px,rgba(255,255,255,0.012) 60px)" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
         <div className="section" style={{ paddingBottom: "80px", position: "relative", zIndex: 1 }}>
-          <Link href="/sell" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "rgba(255,255,255,0.5)", textDecoration: "none", marginBottom: "28px" }}>
+          <Link href="/sell" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "rgba(255,255,255,0.4)", textDecoration: "none", marginBottom: "28px" }}>
             ← Back to Sell Options
           </Link>
-          <span className="section-label" style={{ color: "rgba(255,255,255,0.4)" }}>Cash Offer</span>
+          <span className="section-label" style={{ color: "rgba(100,150,255,0.7)" }}>Cash Offer</span>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 80px)", color: "var(--white)", letterSpacing: "3px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "22px" }}>
             SELL YOUR<br />HOUSE FOR<br />CASH. FAST.
           </h1>
@@ -37,7 +38,7 @@ export default function CashOfferPage() {
               </div>
             ))}
           </div>
-          <a href="https://highlanderbuyshomes.com/sell" className="btn-outline-white" style={{ padding: "15px 32px", fontSize: "15px" }}>
+          <a href="https://highlanderbuyshomes.com/sell" className="btn-blue" style={{ padding: "15px 32px", fontSize: "15px" }}>
             Get My Cash Offer →
           </a>
         </div>
