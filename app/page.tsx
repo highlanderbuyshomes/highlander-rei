@@ -11,15 +11,15 @@ export default function HomePage() {
   return (
     <>
       {/* ── HERO ──────────────────────────────────────────────── */}
-      <section style={{ background: "var(--white)", textAlign: "center", padding: "72px 48px 56px" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "20px", padding: "5px 14px", marginBottom: "24px" }}>
+      <section style={{ background: "var(--black)", textAlign: "center", padding: "72px 48px 56px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "5px 14px", marginBottom: "24px" }}>
           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--blue)", flexShrink: 0, display: "inline-block" }} />
-          <span style={{ fontSize: "11px", color: "var(--mid)", letterSpacing: "0.8px", fontWeight: 500 }}>Phoenix, AZ · Dallas, TX</span>
+          <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.8px", fontWeight: 500 }}>Phoenix, AZ · Dallas, TX</span>
         </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 8vw, 96px)", color: "var(--black)", letterSpacing: "2px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "20px" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 8vw, 96px)", color: "var(--white)", letterSpacing: "2px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "20px" }}>
           REAL ESTATE,<br />YOUR WAY.
         </h1>
-        <p style={{ fontSize: "17px", color: "var(--mid)", maxWidth: "480px", margin: "0 auto", lineHeight: 1.75, fontWeight: 300 }}>
+        <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.5)", maxWidth: "480px", margin: "0 auto", lineHeight: 1.75, fontWeight: 300 }}>
           Tell us what you{"'"}re trying to do. {"We'll"} show you the path.
         </p>
       </section>
@@ -27,22 +27,22 @@ export default function HomePage() {
       {/* ── TWO PATH CARDS ────────────────────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: "560px" }}>
 
-        {/* SELL — blue */}
-        <Link href="/sell" className="path-card" style={{ background: "var(--blue)", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "rgba(255,255,255,0.3)" }} />
-          <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(255,255,255,0.06)", lineHeight: 1, userSelect: "none" }}>01</div>
+        {/* SELL — white */}
+        <Link href="/sell" className="path-card" style={{ background: "var(--white)", borderRight: "1px solid var(--border-light)" }}>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
+          <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(0,0,0,0.04)", lineHeight: 1, userSelect: "none" }}>01</div>
 
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "14px", background: "rgba(255,255,255,0.1)", padding: "4px 10px", borderRadius: "4px" }}>
+            <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "14px", background: "var(--blue-light)", border: "1px solid var(--blue-border)", padding: "4px 10px", borderRadius: "4px" }}>
               Sell
             </div>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--white)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "16px" }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--near-black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "16px" }}>
               SELL YOUR<br />HOME ON<br />YOUR TERMS.
             </h2>
-            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "340px" }}>
+            <p style={{ fontSize: "14px", color: "var(--mid)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "340px" }}>
               Cash offer in as little as 7 days, or let us invest in your property and list it — getting you more without the repairs or stress.
             </p>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "11px 20px" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "var(--blue)", borderRadius: "8px", padding: "11px 20px" }}>
               See My Options →
             </span>
           </div>
