@@ -140,7 +140,8 @@ export default function Nav() {
           <span style={{ fontFamily: "var(--font-display)", fontSize: "28px", color: "var(--blue)", lineHeight: "0.65", marginLeft: "2px" }}>.</span>
         </Link>
 
-        <div className="nav-links">
+        {/* Centered nav links */}
+        <div className="nav-center">
           {/* Sell dropdown */}
           <div
             className="nav-dropdown-wrapper"
@@ -178,9 +179,11 @@ export default function Nav() {
               <DropdownItems items={buyItems} onClose={() => setBuyOpen(false)} />
             </div>
           </div>
+        </div>
 
-          <div style={{ width: "1px", height: "18px", background: "var(--border-mid)" }} />
-          <Link href="/sell/cash" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
+        {/* Right-side CTA */}
+        <div className="nav-right">
+          <Link href="/get-started" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
             Get Started
           </Link>
         </div>
@@ -222,7 +225,7 @@ export default function Nav() {
             <MobileSubItems items={buyItems} pathname={pathname} onClose={() => setOpen(false)} />
           </div>
 
-          <Link href="/sell/cash" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
+          <Link href="/get-started" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
             Get Started
           </Link>
         </div>
