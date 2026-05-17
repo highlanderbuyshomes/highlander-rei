@@ -12,17 +12,13 @@
   --border-light: #e8e7e2;
   --border-mid: #d0cfc8;
 
-  /* Blue — sell path */
+  /* Blue */
   --blue: #1a56db;
   --blue-hover: #1544bf;
   --blue-light: #eef3fd;
   --blue-border: #c7d8f8;
-
-  /* Gold — invest path */
-  --gold: #b8962e;
-  --gold-hover: #a07828;
-  --gold-light: #faf6ec;
-  --gold-border: #e8d9a0;
+  --blue-deep: #0f3a9e;
+  --blue-mid: #2563eb;
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -131,26 +127,6 @@ body {
 }
 .btn-blue:hover { background: var(--blue-hover); }
 
-.btn-gold {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 13px 28px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--white);
-  background: var(--gold);
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  letter-spacing: 0.2px;
-  transition: background 0.15s;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.btn-gold:hover { background: var(--gold-hover); }
 
 .btn-outline-white {
   display: inline-flex;

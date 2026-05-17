@@ -19,17 +19,17 @@ export default function InvestPage() {
       {/* ── HEADER ───────────────────────────────────────────── */}
       <section style={{ background: "var(--near-black)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.012) 59px,rgba(255,255,255,0.012) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.012) 59px,rgba(255,255,255,0.012) 60px)" }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--gold)" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
         <div className="section" style={{ paddingBottom: "80px", position: "relative", zIndex: 1 }}>
-          <span className="section-label" style={{ color: "rgba(184,150,46,0.6)" }}>Flip With Highlander</span>
+          <span className="section-label" style={{ color: "rgba(100,150,255,0.7)" }}>Flip With Highlander</span>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 80px)", color: "var(--white)", letterSpacing: "3px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "22px" }}>
-            INVEST IN<br />REAL ESTATE<br /><span style={{ color: "var(--gold)" }}>WITHOUT THE<br />WORK.</span>
+            INVEST IN<br />REAL ESTATE<br /><span style={{ color: "var(--blue)" }}>WITHOUT THE<br />WORK.</span>
           </h1>
           <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.5)", maxWidth: "520px", lineHeight: 1.8, fontWeight: 300, marginBottom: "36px" }}>
             Partner with Highlander on property flips in Phoenix, AZ and Dallas, TX. We source the deal, run the rehab, and manage the sale — you put in the capital and earn a share of the profits.
           </p>
           <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
-            <a href="https://flipwithhighlander.com/contact" className="btn-gold" style={{ padding: "15px 32px", fontSize: "15px" }}>
+            <a href="https://flipwithhighlander.com/contact" className="btn-blue" style={{ padding: "15px 32px", fontSize: "15px" }}>
               Become a Partner
             </a>
             <a href="https://flipwithhighlander.com" className="btn-outline-white" style={{ padding: "14px 28px", fontSize: "14px" }}>
@@ -51,8 +51,8 @@ export default function InvestPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
             {steps.map((s) => (
-              <div key={s.n} style={{ background: "var(--gold-light)", border: "1px solid var(--gold-border)", borderRadius: "var(--radius)", padding: "32px 28px" }}>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "13px", color: "var(--gold)", letterSpacing: "2px", marginBottom: "16px" }}>{s.n}</div>
+              <div key={s.n} style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", borderRadius: "var(--radius)", padding: "32px 28px" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "13px", color: "var(--blue)", letterSpacing: "2px", marginBottom: "16px" }}>{s.n}</div>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--black)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>{s.title}</h3>
                 <p style={{ fontSize: "13.5px", color: "var(--mid)", lineHeight: 1.8 }}>{s.body}</p>
               </div>
@@ -74,7 +74,7 @@ export default function InvestPage() {
                 Every investor gets access to a private portal where you can track milestones, view every expense, review documents, and follow the deal from acquisition through closing — in real time.
               </p>
               <div style={{ marginTop: "28px" }}>
-                <a href="https://flipwithhighlander.com" style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--gold)", textDecoration: "none" }}>
+                <a href="https://flipwithhighlander.com" style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--blue)", textDecoration: "none" }}>
                   See the Investor Portal →
                 </a>
               </div>
@@ -88,7 +88,7 @@ export default function InvestPage() {
                 { title: "Live Expense Tracking", body: "Every dollar is logged, categorized, and visible in your dashboard in real time." },
               ].map((item, i) => (
                 <div key={item.title} style={{ paddingTop: "22px", paddingBottom: "22px", borderBottom: i < 3 ? "1px solid var(--border-light)" : "none", display: "flex", gap: "14px" }}>
-                  <div style={{ width: "3px", background: "var(--gold)", borderRadius: "2px", flexShrink: 0, alignSelf: "stretch", minHeight: "36px" }} />
+                  <div style={{ width: "3px", background: "var(--blue)", borderRadius: "2px", flexShrink: 0, alignSelf: "stretch", minHeight: "36px" }} />
                   <div>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "16px", color: "var(--black)", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "6px" }}>{item.title}</div>
                     <p style={{ fontSize: "13px", color: "var(--mid)", lineHeight: 1.75 }}>{item.body}</p>
@@ -117,7 +117,7 @@ export default function InvestPage() {
               <div key={m.city} style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "28px" }}>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", marginBottom: "12px" }}>
                   <span style={{ fontFamily: "var(--font-display)", fontSize: "44px", color: "var(--black)", letterSpacing: "2px", lineHeight: 1 }}>{m.city}</span>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--gold)", letterSpacing: "2px", lineHeight: 1.3 }}>{m.state}</span>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--blue)", letterSpacing: "2px", lineHeight: 1.3 }}>{m.state}</span>
                 </div>
                 <p style={{ fontSize: "13.5px", color: "var(--mid)", lineHeight: 1.8 }}>{m.body}</p>
               </div>
@@ -136,7 +136,7 @@ export default function InvestPage() {
           <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", maxWidth: "380px", margin: "0 auto 32px", lineHeight: 1.75 }}>
             We take on a limited number of partners per year. Reach out and {"let's"} talk about your first deal.
           </p>
-          <a href="https://flipwithhighlander.com/contact" className="btn-gold" style={{ padding: "15px 36px", fontSize: "15px" }}>
+          <a href="https://flipwithhighlander.com/contact" className="btn-blue" style={{ padding: "15px 36px", fontSize: "15px" }}>
             Start a Conversation →
           </a>
         </div>

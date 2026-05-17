@@ -7,8 +7,8 @@ export default function Footer() {
         <div style={{ maxWidth: "260px" }}>
           <div style={{ display: "flex", alignItems: "center", marginBottom: "14px" }}>
             <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--white)", letterSpacing: "2.5px" }}>HIGHLANDER</span>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--gold)", letterSpacing: "2.5px", marginLeft: "8px" }}>REI</span>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "26px", color: "var(--gold)", lineHeight: "0.65", marginLeft: "2px" }}>.</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--blue)", letterSpacing: "2.5px", marginLeft: "8px" }}>REI</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "26px", color: "var(--blue)", lineHeight: "0.65", marginLeft: "2px" }}>.</span>
           </div>
           <p style={{ fontSize: "12.5px", lineHeight: 1.75 }}>
             Real estate solutions in Phoenix, AZ and Dallas, TX — whether you{"'"}re selling, exploring options, or investing.

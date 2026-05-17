@@ -45,9 +45,9 @@ const scenarios = [
   {
     tag: "I want my money working",
     title: "Invest with Highlander",
-    color: "var(--gold)",
-    colorLight: "var(--gold-light)",
-    colorBorder: "var(--gold-border)",
+    color: "var(--blue)",
+    colorLight: "var(--blue-light)",
+    colorBorder: "var(--blue-border)",
     points: [
       "Deploy capital into real estate flips",
       "We source, manage, and close every deal",
@@ -131,7 +131,7 @@ export default function OptionsPage() {
                   <div style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--white)", marginBottom: "6px" }}>{item.q}</div>
                   <div style={{ fontSize: "13.5px", color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>{item.a}</div>
                 </div>
-                <Link href={item.path} style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--gold)", textDecoration: "none", whiteSpace: "nowrap" }}>
+                <Link href={item.path} style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--blue)", textDecoration: "none", whiteSpace: "nowrap" }}>
                   {item.label} →
                 </Link>
               </div>

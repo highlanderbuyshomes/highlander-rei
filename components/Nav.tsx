@@ -20,10 +20,10 @@ export default function Nav() {
           <span style={{ fontFamily: "var(--font-display)", fontSize: "24px", color: "var(--black)", letterSpacing: "3px", lineHeight: 1 }}>
             HIGHLANDER
           </span>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: "24px", color: "var(--gold)", letterSpacing: "3px", lineHeight: 1, marginLeft: "8px" }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "24px", color: "var(--blue)", letterSpacing: "3px", lineHeight: 1, marginLeft: "8px" }}>
             REI
           </span>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: "28px", color: "var(--gold)", lineHeight: "0.65", marginLeft: "2px" }}>.</span>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "28px", color: "var(--blue)", lineHeight: "0.65", marginLeft: "2px" }}>.</span>
         </Link>
 
         <div className="nav-links">
@@ -38,7 +38,7 @@ export default function Nav() {
             </Link>
           ))}
           <div style={{ width: "1px", height: "18px", background: "var(--border-mid)" }} />
-          <Link href="/invest" className="btn-gold" style={{ padding: "8px 18px", fontSize: "13px" }}>
+          <Link href="/invest" className="btn-blue" style={{ padding: "8px 18px", fontSize: "13px" }}>
             Start Investing
           </Link>
         </div>
@@ -73,7 +73,7 @@ export default function Nav() {
               {l.label}
             </Link>
           ))}
-          <Link href="/invest" onClick={() => setOpen(false)} className="btn-gold" style={{ marginTop: "12px", justifyContent: "center" }}>
+          <Link href="/invest" onClick={() => setOpen(false)} className="btn-blue" style={{ marginTop: "12px", justifyContent: "center" }}>
             Start Investing
           </Link>
         </div>

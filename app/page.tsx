@@ -69,13 +69,13 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* INVEST — near-black/gold */}
+        {/* INVEST — black/blue */}
         <Link href="/invest" className="path-card" style={{ background: "var(--near-black)" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--gold)" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
           <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(255,255,255,0.04)", lineHeight: 1, userSelect: "none" }}>03</div>
 
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "rgba(184,150,46,0.7)", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "14px", background: "rgba(184,150,46,0.12)", border: "1px solid rgba(184,150,46,0.2)", padding: "4px 10px", borderRadius: "4px" }}>
+            <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, color: "rgba(100,150,255,0.8)", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "14px", background: "rgba(26,86,219,0.15)", border: "1px solid rgba(26,86,219,0.3)", padding: "4px 10px", borderRadius: "4px" }}>
               Invest
             </div>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--white)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 0.95, marginBottom: "16px" }}>
@@ -84,7 +84,7 @@ export default function HomePage() {
             <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "320px" }}>
               Partner with Highlander on real estate flips in Phoenix and Dallas. We run the deal from contract to close — you invest capital and earn a share of the profits.
             </p>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--black)", background: "var(--gold)", borderRadius: "8px", padding: "11px 20px", transition: "background 0.15s" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "var(--blue)", borderRadius: "8px", padding: "11px 20px", transition: "background 0.15s" }}>
               Learn More →
             </span>
           </div>
@@ -102,7 +102,7 @@ export default function HomePage() {
           ].map((s) => (
             <div key={s.label}>
               <div style={{ fontFamily: "var(--font-display)", fontSize: "40px", color: "var(--black)", letterSpacing: "1.5px", lineHeight: 1, marginBottom: "6px" }}>{s.val}</div>
-              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "10px" }}>{s.label}</div>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "10px" }}>{s.label}</div>
               <p style={{ fontSize: "13.5px", color: "var(--mid)", lineHeight: 1.75 }}>{s.body}</p>
             </div>
           ))}
