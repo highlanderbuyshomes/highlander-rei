@@ -337,6 +337,64 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .grid-2-content { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; max-width: 960px; margin: 0 auto; }
 
+/* ── FORM WITH SIDEBAR LAYOUT ─────────────────────────────── */
+.form-with-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 64px;
+  align-items: start;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ── FORM FIELDS ──────────────────────────────────────────── */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--near-black);
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 13px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--near-black);
+  background: var(--white);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-xs);
+  outline: none;
+  transition: border-color 0.15s;
+  appearance: auto;
+}
+
+.form-input:focus { border-color: var(--blue); }
+.form-input::placeholder { color: var(--muted); }
+
+/* ── BUTTON SIZES ─────────────────────────────────────────── */
+.btn-blue-lg {
+  padding: 14px 28px;
+  font-size: 14.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ── FOOTER ───────────────────────────────────────────────── */
 .site-footer {
   background: var(--black);
@@ -350,7 +408,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   .nav-center { display: none; }
   .nav-right { display: none; }
   .mobile-menu-btn { display: block; }
-  .section { padding: 64px 20px; }
+  .section { padding: 56px 20px; }
   .path-grid { grid-template-columns: 1fr; min-height: auto; }
   .path-card { min-height: 280px; }
   .site-footer { padding: 40px 20px 32px; }
@@ -363,8 +421,26 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   .grid-3 { grid-template-columns: 1fr; }
   .grid-4 { grid-template-columns: 1fr 1fr; }
   .grid-2-content { grid-template-columns: 1fr; gap: 40px; }
+
+  .form-with-sidebar { grid-template-columns: 1fr; gap: 36px; }
+  .form-row-2 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px) {
+  .section { padding: 44px 16px; }
   .grid-4 { grid-template-columns: 1fr; }
+  .site-footer { padding: 32px 16px 28px; }
+
+  .btn-blue, .btn-black, .btn-outline-white {
+    white-space: normal;
+    text-align: center;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Shrink large hero text on small phones */
+  h1 { word-break: break-word; }
+
+  /* Form card padding on small screens */
+  form[style] { padding: 24px 16px !important; }
 }

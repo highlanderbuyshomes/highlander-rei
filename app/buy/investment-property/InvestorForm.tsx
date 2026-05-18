@@ -166,24 +166,24 @@ export default function InvestorForm() {
     <form onSubmit={handleSubmit} style={{ background: "var(--white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "40px" }}>
 
       {/* Name */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div className="form-row-2">
+        <div className="form-field">
           <label className="form-label" htmlFor="firstName">{c.firstName}</label>
           <input id="firstName" name="firstName" type="text" required className="form-input" placeholder="John" />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className="form-field">
           <label className="form-label" htmlFor="lastName">{c.lastName}</label>
           <input id="lastName" name="lastName" type="text" required className="form-input" placeholder="Smith" />
         </div>
       </div>
 
       {/* Contact */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div className="form-row-2">
+        <div className="form-field">
           <label className="form-label" htmlFor="email">{c.email}</label>
           <input id="email" name="email" type="email" required className="form-input" placeholder="john@email.com" />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className="form-field">
           <label className="form-label" htmlFor="phone">{c.phone}</label>
           <input id="phone" name="phone" type="tel" required className="form-input" placeholder="(602) 555-0100" />
         </div>

@@ -134,7 +134,7 @@ export default function FindHomePage() {
       {/* ── BUYER FORM ───────────────────────────────────────── */}
       <section id="buyer-form" style={{ background: "var(--off-white)", borderTop: "1px solid var(--border-light)" }}>
         <div className="section">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "64px", alignItems: "start", maxWidth: "1000px", margin: "0 auto" }}>
+          <div className="form-with-sidebar">
             <div style={{ paddingTop: "8px" }}>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1, marginBottom: "16px" }}>
                 {c.ctaH2a}<br />{c.ctaH2b}

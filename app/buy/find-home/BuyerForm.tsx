@@ -201,31 +201,31 @@ export default function BuyerForm() {
     <form onSubmit={handleSubmit} style={{ background: "var(--white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "40px" }}>
 
       {/* Name */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div className="form-row-2">
+        <div className="form-field">
           <label className="form-label" htmlFor="firstName">{c.firstName}</label>
           <input id="firstName" name="firstName" type="text" required className="form-input" placeholder="Jane" />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className="form-field">
           <label className="form-label" htmlFor="lastName">{c.lastName}</label>
           <input id="lastName" name="lastName" type="text" required className="form-input" placeholder="Smith" />
         </div>
       </div>
 
       {/* Contact */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div className="form-row-2">
+        <div className="form-field">
           <label className="form-label" htmlFor="email">{c.email}</label>
           <input id="email" name="email" type="email" required className="form-input" placeholder="jane@email.com" />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className="form-field">
           <label className="form-label" htmlFor="phone">{c.phone}</label>
           <input id="phone" name="phone" type="tel" required className="form-input" placeholder="(602) 555-0100" />
         </div>
       </div>
 
       {/* Market */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "14px" }}>
+      <div className="form-field" style={{ marginBottom: "14px" }}>
         <label className="form-label" htmlFor="market">{c.market}</label>
         <select id="market" name="market" required className="form-input">
           {c.marketOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -233,14 +233,14 @@ export default function BuyerForm() {
       </div>
 
       {/* Beds / Baths */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div className="form-row-2">
+        <div className="form-field">
           <label className="form-label" htmlFor="beds">{c.beds}</label>
           <select id="beds" name="beds" className="form-input">
             {c.bedsOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className="form-field">
           <label className="form-label" htmlFor="baths">{c.baths}</label>
           <select id="baths" name="baths" className="form-input">
             {c.bathsOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -249,14 +249,14 @@ export default function BuyerForm() {
       </div>
 
       {/* Sqft / Price */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div className="form-row-2">
+        <div className="form-field">
           <label className="form-label" htmlFor="sqft">{c.sqft}</label>
           <select id="sqft" name="sqft" className="form-input">
             {c.sqftOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className="form-field">
           <label className="form-label" htmlFor="price">{c.price}</label>
           <select id="price" name="price" required className="form-input">
             {c.priceOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -265,34 +265,19 @@ export default function BuyerForm() {
       </div>
 
       {/* Timeline */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "14px" }}>
+      <div className="form-field" style={{ marginBottom: "14px" }}>
         <label className="form-label" htmlFor="timeline">{c.timeline}</label>
         <select id="timeline" name="timeline" required className="form-input">
           {c.timelineOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
 
-      {/* Financing checkboxes */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "14px" }}>
+      {/* Financing */}
+      <div className="form-field" style={{ marginBottom: "14px" }}>
         <label className="form-label">{c.financing}</label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "2px" }}>
           {c.financingOptions.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => toggleFinancing(o.value)}
-              style={{
-                padding: "8px 18px",
-                borderRadius: "6px",
-                fontSize: "13px",
-                fontWeight: 500,
-                cursor: "pointer",
-                border: financing.includes(o.value) ? "1.5px solid var(--blue)" : "1.5px solid var(--border-light)",
-                background: financing.includes(o.value) ? "var(--blue-light)" : "var(--white)",
-                color: financing.includes(o.value) ? "var(--blue)" : "var(--mid)",
-                transition: "all 0.12s",
-              }}
-            >
+            <button key={o.value} type="button" onClick={() => toggleFinancing(o.value)} style={{ padding: "8px 18px", borderRadius: "6px", fontSize: "13px", fontWeight: 500, cursor: "pointer", border: financing.includes(o.value) ? "1.5px solid var(--blue)" : "1.5px solid var(--border-light)", background: financing.includes(o.value) ? "var(--blue-light)" : "var(--white)", color: financing.includes(o.value) ? "var(--blue)" : "var(--mid)", transition: "all 0.12s" }}>
               {o.label}
             </button>
           ))}
@@ -300,7 +285,7 @@ export default function BuyerForm() {
       </div>
 
       {/* Notes */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "28px" }}>
+      <div className="form-field" style={{ marginBottom: "28px" }}>
         <label className="form-label" htmlFor="notes">
           {c.notes}{" "}
           <span style={{ color: "var(--muted)", fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: "11px" }}>{c.notesOptional}</span>
