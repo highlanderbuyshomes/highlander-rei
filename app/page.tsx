@@ -74,7 +74,6 @@ export default function HomePage() {
 
         {/* SELL — white */}
         <Link href="/sell" className="path-card" style={{ background: "var(--off-white)", borderRight: "1px solid var(--border-light)" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
           <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(0,0,0,0.04)", lineHeight: 1, userSelect: "none" }}>01</div>
 
           <div style={{ position: "relative", zIndex: 1 }}>
@@ -95,7 +94,6 @@ export default function HomePage() {
 
         {/* BUY — white with blue accent */}
         <Link href="/buy" className="path-card" style={{ background: "var(--white)", borderLeft: "1px solid var(--border-light)" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
           <div style={{ position: "absolute", top: "36px", left: "36px", fontFamily: "var(--font-display)", fontSize: "120px", color: "rgba(26,86,219,0.05)", lineHeight: 1, userSelect: "none" }}>02</div>
 
           <div style={{ position: "relative", zIndex: 1 }}>
