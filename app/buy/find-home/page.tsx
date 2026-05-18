@@ -88,7 +88,7 @@ export default function FindHomePage() {
               {c.marketsH2a}<br />{c.marketsH2b}
             </h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", maxWidth: "860px", margin: "0 auto" }}>
+          <div className="grid-2" style={{ maxWidth: "860px", margin: "0 auto" }}>
             {c.markets.map((m) => (
               <div key={m.city} style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "32px 28px" }}>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", marginBottom: "20px" }}>
@@ -119,7 +119,7 @@ export default function FindHomePage() {
             <span className="section-label">{c.howLabel}</span>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 48px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1 }}>{c.howH2}</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+          <div className="grid-3">
             {c.how.map((s) => (
               <div key={s.n} style={{ background: "var(--white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "28px 24px" }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "13px", color: "var(--blue)", letterSpacing: "2px", marginBottom: "14px" }}>{s.n}</div>

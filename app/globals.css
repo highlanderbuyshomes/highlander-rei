@@ -395,6 +395,9 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   gap: 8px;
 }
 
+/* ── FORM SUCCESS STATE ───────────────────────────────────── */
+.form-success-card { padding: 52px 40px; }
+
 /* ── FOOTER ───────────────────────────────────────────────── */
 .site-footer {
   background: var(--black);
@@ -443,4 +446,5 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
 
   /* Form card padding on small screens */
   form[style] { padding: 24px 16px !important; }
+  .form-success-card { padding: 36px 20px; }
 }

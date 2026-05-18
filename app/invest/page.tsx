@@ -91,7 +91,6 @@ export default function InvestPage() {
       {/* ── HEADER ───────────────────────────────────────────── */}
       <section style={{ background: "var(--near-black)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.012) 59px,rgba(255,255,255,0.012) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.012) 59px,rgba(255,255,255,0.012) 60px)" }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
         <div className="section" style={{ paddingBottom: "80px", position: "relative", zIndex: 1 }}>
           <span className="section-label" style={{ color: "rgba(100,150,255,0.7)" }}>{c.label}</span>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 80px)", color: "var(--white)", letterSpacing: "3px", lineHeight: 0.95, textTransform: "uppercase", marginBottom: "22px" }}>
@@ -112,7 +111,7 @@ export default function InvestPage() {
             <span className="section-label">{c.modelLabel}</span>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 4vw, 56px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1 }}>{c.modelH2}</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+          <div className="grid-3">
             {c.steps.map((s) => (
               <div key={s.n} style={{ background: "var(--blue-light)", border: "1px solid var(--blue-border)", borderRadius: "var(--radius)", padding: "32px 28px" }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "13px", color: "var(--blue)", letterSpacing: "2px", marginBottom: "16px" }}>{s.n}</div>
@@ -127,7 +126,7 @@ export default function InvestPage() {
       {/* ── WHAT YOU GET ─────────────────────────────────────── */}
       <section style={{ background: "var(--off-white)", borderTop: "1px solid var(--border-light)" }}>
         <div className="section">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "64px", alignItems: "start", maxWidth: "960px", margin: "0 auto" }}>
+          <div className="grid-2-content">
             <div>
               <span className="section-label">{c.getLabel}</span>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.5vw, 44px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1.05, marginBottom: "18px" }}>
@@ -160,7 +159,7 @@ export default function InvestPage() {
             <span className="section-label">{c.marketsLabel}</span>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 48px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1 }}>{c.marketsH2}</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", maxWidth: "760px", margin: "0 auto" }}>
+          <div className="grid-2" style={{ maxWidth: "760px", margin: "0 auto" }}>
             {c.markets.map((m) => (
               <div key={m.city} style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "28px" }}>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", marginBottom: "12px" }}>

@@ -93,7 +93,7 @@ export default function InvestmentPropertyPage() {
             <span className="section-label">{c.typesLabel}</span>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 4vw, 52px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1 }}>{c.typesH2}</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+          <div className="grid-3">
             {c.types.map((s) => (
               <div key={s.title} style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "28px 24px" }}>
                 <div style={{ width: "3px", height: "28px", background: "var(--blue)", borderRadius: "2px", marginBottom: "16px" }} />

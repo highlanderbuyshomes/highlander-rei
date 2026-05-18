@@ -185,7 +185,7 @@ export default function BuyerForm() {
 
   if (submitted) {
     return (
-      <div style={{ background: "var(--white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "52px 40px", textAlign: "center" }}>
+      <div className="form-success-card" style={{ background: "var(--white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", textAlign: "center" }}>
         <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: "var(--blue-light)", border: "2px solid var(--blue-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 22px" }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M5 12l4.5 4.5L19 7" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
