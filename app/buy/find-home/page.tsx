@@ -75,7 +75,7 @@ export default function FindHomePage() {
             {c.h1a}<br />{c.h1b}<br />{c.h1c}
           </h1>
           <p style={{ fontSize: "17px", color: "var(--mid)", maxWidth: "500px", lineHeight: 1.8, fontWeight: 300, marginBottom: "36px" }}>{c.sub}</p>
-          <a href="https://highlanderbuyshomes.com/contact" className="btn-blue" style={{ padding: "15px 32px", fontSize: "15px" }}>{c.cta}</a>
+          <a href="#buyer-form" className="btn-blue" style={{ padding: "15px 32px", fontSize: "15px" }}>{c.cta}</a>
         </div>
       </section>
 
@@ -132,7 +132,7 @@ export default function FindHomePage() {
       </section>
 
       {/* ── BUYER FORM ───────────────────────────────────────── */}
-      <section style={{ background: "var(--off-white)", borderTop: "1px solid var(--border-light)" }}>
+      <section id="buyer-form" style={{ background: "var(--off-white)", borderTop: "1px solid var(--border-light)" }}>
         <div className="section">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "64px", alignItems: "start", maxWidth: "1000px", margin: "0 auto" }}>
             <div style={{ paddingTop: "8px" }}>
