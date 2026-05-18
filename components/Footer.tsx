@@ -66,6 +66,9 @@ export default function Footer() {
           <div>
             <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: "14px" }}>{c.brandsLabel}</div>
             <div style={{ marginBottom: "10px" }}>
+              <a href="https://highlanderrei.com" style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Highlander REI</a>
+            </div>
+            <div style={{ marginBottom: "10px" }}>
               <a href="https://highlanderbuyshomes.com" style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Highlander Buys Homes</a>
             </div>
             <div style={{ marginBottom: "10px" }}>
