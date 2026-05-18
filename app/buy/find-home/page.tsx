@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useLanguage } from "@/lib/LanguageContext";
+import BuyerForm from "./BuyerForm";
 
 const t = {
   en: {
@@ -64,9 +65,8 @@ export default function FindHomePage() {
   return (
     <>
       {/* ── HEADER ───────────────────────────────────────────── */}
-      <section style={{ background: "var(--off-white)", borderBottom: "1px solid var(--border-light)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "var(--blue)" }} />
-        <div className="section" style={{ paddingBottom: "80px", position: "relative", zIndex: 1 }}>
+      <section style={{ background: "var(--off-white)", borderBottom: "1px solid var(--border-light)" }}>
+        <div className="section" style={{ paddingBottom: "80px" }}>
           <Link href="/buy" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--muted)", textDecoration: "none", marginBottom: "28px" }}>
             {c.back}
           </Link>
@@ -131,14 +131,18 @@ export default function FindHomePage() {
         </div>
       </section>
 
-      {/* ── CTA ──────────────────────────────────────────────── */}
-      <section style={{ background: "var(--black)" }}>
-        <div className="section" style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 5vw, 64px)", color: "var(--white)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1, marginBottom: "16px" }}>
-            {c.ctaH2a}<br />{c.ctaH2b}
-          </h2>
-          <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", maxWidth: "380px", margin: "0 auto 32px", lineHeight: 1.75 }}>{c.ctaSub}</p>
-          <a href="https://highlanderbuyshomes.com/contact" className="btn-blue" style={{ padding: "15px 36px", fontSize: "15px" }}>{c.cta}</a>
+      {/* ── BUYER FORM ───────────────────────────────────────── */}
+      <section style={{ background: "var(--off-white)", borderTop: "1px solid var(--border-light)" }}>
+        <div className="section">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "64px", alignItems: "start", maxWidth: "1000px", margin: "0 auto" }}>
+            <div style={{ paddingTop: "8px" }}>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 56px)", color: "var(--black)", letterSpacing: "2px", textTransform: "uppercase", lineHeight: 1, marginBottom: "16px" }}>
+                {c.ctaH2a}<br />{c.ctaH2b}
+              </h2>
+              <p style={{ fontSize: "15px", color: "var(--mid)", lineHeight: 1.8 }}>{c.ctaSub}</p>
+            </div>
+            <BuyerForm />
+          </div>
         </div>
       </section>
     </>
