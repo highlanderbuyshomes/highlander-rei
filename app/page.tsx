@@ -7,17 +7,15 @@ const OFFER_URL = "https://highlanderbuyshomes.com/get-my-cash-offer";
 const GMAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // ── Google Places loader ───────────────────────────────────────
-declare global {
-  interface Window {
-    _gplInit?: () => void;
-  }
-}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const w = () => (typeof window !== "undefined" ? (window as any) : null);
 
 function loadPlaces(cb: () => void) {
-  if (typeof window === "undefined") return;
-  if (window.google?.maps?.places) { cb(); return; }
-  if (document.getElementById("gpl-script")) { window._gplInit = cb; return; }
-  window._gplInit = cb;
+  const win = w(); if (!win) return;
+  if (win.google?.maps?.places) { cb(); return; }
+  if (document.getElementById("gpl-script")) { win._gplInit = cb; return; }
+  win._gplInit = cb;
   const s = document.createElement("script");
   s.id = "gpl-script";
   s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places&callback=_gplInit`;
@@ -29,24 +27,26 @@ function loadPlaces(cb: () => void) {
 function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: string; style?: React.CSSProperties }) {
   const [addr, setAddr] = useState("");
   const ref = useRef<HTMLInputElement>(null);
-  const ac = useRef<google.maps.places.Autocomplete | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ac = useRef<any>(null);
 
   useEffect(() => {
     if (!GMAPS_KEY || !ref.current) return;
     loadPlaces(() => {
-      if (!ref.current || ac.current) return;
-      ac.current = new window.google.maps.places.Autocomplete(ref.current, {
+      const win = w(); if (!ref.current || ac.current || !win) return;
+      ac.current = new win.google.maps.places.Autocomplete(ref.current, {
         types: ["address"],
         componentRestrictions: { country: "us" },
         fields: ["formatted_address"],
       });
       ac.current.addListener("place_changed", () => {
-        const p = ac.current!.getPlace();
+        const p = ac.current.getPlace();
         if (p.formatted_address) setAddr(p.formatted_address);
       });
     });
     return () => {
-      if (ac.current) { window.google?.maps?.event?.clearInstanceListeners(ac.current); ac.current = null; }
+      const win = w();
+      if (ac.current) { win?.google?.maps?.event?.clearInstanceListeners(ac.current); ac.current = null; }
     };
   }, []);
 
