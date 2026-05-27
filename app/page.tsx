@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 const OFFER_URL = "https://highlanderbuyshomes.com/get-my-cash-offer";
@@ -25,7 +25,6 @@ function loadPlaces(cb: () => void) {
 
 // ── Address form with Places autocomplete ─────────────────────
 function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: string; style?: React.CSSProperties }) {
-  const [addr, setAddr] = useState("");
   const ref = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ac = useRef<any>(null);
@@ -39,10 +38,6 @@ function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: st
         componentRestrictions: { country: "us" },
         fields: ["formatted_address"],
       });
-      ac.current.addListener("place_changed", () => {
-        const p = ac.current.getPlace();
-        if (p.formatted_address) setAddr(p.formatted_address);
-      });
     });
     return () => {
       const win = w();
@@ -50,18 +45,13 @@ function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: st
     };
   }, []);
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    window.location.href = addr.trim() ? `${OFFER_URL}?address=${encodeURIComponent(addr.trim())}` : OFFER_URL;
-  }
-
+  // Native GET form submission — ?address=<value> appended to OFFER_URL automatically
   return (
-    <form onSubmit={onSubmit} style={{ display: "flex", borderRadius: "var(--radius-sm)", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.28)", ...style }}>
+    <form action={OFFER_URL} method="GET" style={{ display: "flex", borderRadius: "var(--radius-sm)", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.28)", ...style }}>
       <input
         ref={ref}
         type="text"
-        value={addr}
-        onChange={(e) => setAddr(e.target.value)}
+        name="address"
         placeholder={placeholder}
         autoComplete="off"
         style={{ flex: 1, minWidth: 0, padding: "17px 20px", fontSize: "15px", border: "none", outline: "none", background: "#fff", color: "var(--near-black)", fontFamily: "var(--font-body), system-ui, sans-serif" }}
