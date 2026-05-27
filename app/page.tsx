@@ -1,53 +1,110 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 const OFFER_URL = "https://highlanderbuyshomes.com/get-my-cash-offer";
+const GMAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+// ── Google Places loader ───────────────────────────────────────
+declare global {
+  interface Window {
+    _gplInit?: () => void;
+  }
+}
+
+function loadPlaces(cb: () => void) {
+  if (typeof window === "undefined") return;
+  if (window.google?.maps?.places) { cb(); return; }
+  if (document.getElementById("gpl-script")) { window._gplInit = cb; return; }
+  window._gplInit = cb;
+  const s = document.createElement("script");
+  s.id = "gpl-script";
+  s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places&callback=_gplInit`;
+  s.async = true; s.defer = true;
+  document.head.appendChild(s);
+}
+
+// ── Address form with Places autocomplete ─────────────────────
+function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: string; style?: React.CSSProperties }) {
+  const [addr, setAddr] = useState("");
+  const ref = useRef<HTMLInputElement>(null);
+  const ac = useRef<google.maps.places.Autocomplete | null>(null);
+
+  useEffect(() => {
+    if (!GMAPS_KEY || !ref.current) return;
+    loadPlaces(() => {
+      if (!ref.current || ac.current) return;
+      ac.current = new window.google.maps.places.Autocomplete(ref.current, {
+        types: ["address"],
+        componentRestrictions: { country: "us" },
+        fields: ["formatted_address"],
+      });
+      ac.current.addListener("place_changed", () => {
+        const p = ac.current!.getPlace();
+        if (p.formatted_address) setAddr(p.formatted_address);
+      });
+    });
+    return () => {
+      if (ac.current) { window.google?.maps?.event?.clearInstanceListeners(ac.current); ac.current = null; }
+    };
+  }, []);
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    window.location.href = addr.trim() ? `${OFFER_URL}?address=${encodeURIComponent(addr.trim())}` : OFFER_URL;
+  }
+
+  return (
+    <form onSubmit={onSubmit} style={{ display: "flex", borderRadius: "var(--radius-sm)", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.28)", ...style }}>
+      <input
+        ref={ref}
+        type="text"
+        value={addr}
+        onChange={(e) => setAddr(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="off"
+        style={{ flex: 1, minWidth: 0, padding: "17px 20px", fontSize: "15px", border: "none", outline: "none", background: "#fff", color: "var(--near-black)", fontFamily: "var(--font-body), system-ui, sans-serif" }}
+      />
+      <button type="submit" style={{ padding: "17px 24px", background: "var(--near-black)", color: "#fff", border: "none", cursor: "pointer", fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", fontFamily: "var(--font-body), system-ui, sans-serif", flexShrink: 0, transition: "background 0.15s" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--black)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--near-black)")}
+      >
+        {cta}
+      </button>
+    </form>
+  );
+}
 
 // ── SVG icons (no emojis) ──────────────────────────────────────
-const iconProps = { width: "20", height: "20", viewBox: "0 0 20 20", fill: "none", stroke: "var(--blue)", strokeWidth: "1.5", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-
+const ip = { width: "20", height: "20", viewBox: "0 0 20 20", fill: "none", stroke: "var(--blue)", strokeWidth: "1.5", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 const BenefitIcons = [
-  // Sell As-Is: house
-  <svg key="house" {...iconProps}><path d="M2 9l8-6 8 6v9a1 1 0 01-1 1H3a1 1 0 01-1-1V9z" /><path d="M7 19V11h6v8" /></svg>,
-  // Zero Fees: dollar circle
-  <svg key="dollar" {...iconProps}><circle cx="10" cy="10" r="8" /><path d="M10 5.5v9M7.5 7.5C7.5 6.4 8.6 6 10 6s2.5.8 2.5 1.8c0 2.2-5 1.8-5 4 0 1.1 1.1 1.7 2.5 1.7s2.5-.6 2.5-1.7" /></svg>,
-  // Close When Ready: calendar
-  <svg key="cal" {...iconProps}><rect x="2" y="4" width="16" height="15" rx="2" /><path d="M2 9h16M6 2v4M14 2v4" /></svg>,
-  // Paperwork: file
-  <svg key="file" {...iconProps}><path d="M4 2h8l4 4v13a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" /><path d="M12 2v4h4M7 10h6M7 14h4" /></svg>,
-  // Any Situation: shield check
-  <svg key="shield" {...iconProps}><path d="M10 2L3 5v5c0 4.4 3 7.5 7 8.5 4-1 7-4.1 7-8.5V5L10 2z" /><path d="M7 10l2 2 4-4" /></svg>,
-  // Local Team: pin
-  <svg key="pin" {...iconProps}><path d="M10 2C7.2 2 5 4.2 5 7c0 4 5 11 5 11s5-7 5-11c0-2.8-2.2-5-5-5z" /><circle cx="10" cy="7" r="1.8" /></svg>,
+  <svg key="h" {...ip}><path d="M2 9l8-6 8 6v9a1 1 0 01-1 1H3a1 1 0 01-1-1V9z" /><path d="M7 19V11h6v8" /></svg>,
+  <svg key="d" {...ip}><circle cx="10" cy="10" r="8" /><path d="M10 5.5v9M7.5 7.5C7.5 6.4 8.6 6 10 6s2.5.8 2.5 1.8c0 2.2-5 1.8-5 4 0 1.1 1.1 1.7 2.5 1.7s2.5-.6 2.5-1.7" /></svg>,
+  <svg key="c" {...ip}><rect x="2" y="4" width="16" height="15" rx="2" /><path d="M2 9h16M6 2v4M14 2v4" /></svg>,
+  <svg key="f" {...ip}><path d="M4 2h8l4 4v13a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" /><path d="M12 2v4h4M7 10h6M7 14h4" /></svg>,
+  <svg key="s" {...ip}><path d="M10 2L3 5v5c0 4.4 3 7.5 7 8.5 4-1 7-4.1 7-8.5V5L10 2z" /><path d="M7 10l2 2 4-4" /></svg>,
+  <svg key="p" {...ip}><path d="M10 2C7.2 2 5 4.2 5 7c0 4 5 11 5 11s5-7 5-11c0-2.8-2.2-5-5-5z" /><circle cx="10" cy="7" r="1.8" /></svg>,
 ];
-
 const CredIcons = [
-  // Licensed: badge/ribbon
-  <svg key="badge" {...iconProps}><circle cx="10" cy="9" r="5" /><path d="M7 9l2 2 4-4" /><path d="M7 14.5l-2 4 5-1.5 5 1.5-2-4" /></svg>,
-  // No Fees: lock
-  <svg key="lock" {...iconProps}><rect x="4" y="9" width="12" height="9" rx="2" /><path d="M7 9V7a3 3 0 016 0v2" /><circle cx="10" cy="13.5" r="1.5" /></svg>,
-  // Local: map
-  <svg key="map" {...iconProps}><path d="M1 4l6 2 6-2 6 2v12l-6-2-6 2-6-2V4z" /><path d="M7 6v12M13 4v12" /></svg>,
+  // Seller-first: heart/person
+  <svg key="heart" {...ip}><path d="M10 17s-8-5-8-10a5 5 0 0110 0 5 5 0 0110 0c0 5-8 10-8 10z" /></svg>,
+  // No hidden fees: lock
+  <svg key="lock" {...ip}><rect x="4" y="9" width="12" height="9" rx="2" /><path d="M7 9V7a3 3 0 016 0v2" /><circle cx="10" cy="13.5" r="1.5" /></svg>,
+  // Local knowledge: map pin
+  <svg key="map" {...ip}><path d="M10 2C7.2 2 5 4.2 5 7c0 4 5 11 5 11s5-7 5-11c0-2.8-2.2-5-5-5z" /><circle cx="10" cy="7" r="2" /></svg>,
 ];
 
+// ── Content ────────────────────────────────────────────────────
 const content = {
   en: {
     hero: {
       badge: "Phoenix, AZ · Dallas, TX",
       h1: ["GET A FAIR", "CASH OFFER", "IN 24 HOURS."],
       sub: "We buy houses in any condition — no repairs, no agent fees, no stress. Close in as little as 7 days.",
+      addressPlaceholder: "Enter your home address...",
       cta: "Get My Cash Offer",
       trust: "No obligation · Free offer · Close on your timeline",
-    },
-    estimate: {
-      label: "Free Home Estimate",
-      h2: "WHAT'S YOUR HOME WORTH?",
-      sub: "Enter your address and we'll send you a free, no-obligation cash offer within 24 hours. No repairs, no fees, no pressure.",
-      placeholder: "Enter your home address...",
-      cta: "Get My Free Estimate",
-      chips: ["100% Free", "No Obligation", "Within 24 Hours", "Any Condition"],
     },
     stats: [
       { val: "50+", label: "Homes Purchased" },
@@ -60,16 +117,25 @@ const content = {
       h2: "LOCAL INVESTORS. REAL RESULTS.",
       sub: "We're not a national call center or an algorithm. Highlander REI is a local real estate investment company operating in Phoenix and Dallas since 2018. Every offer is reviewed by our team — people who know your neighborhood.",
       pillars: [
-        { title: "Licensed & Insured", body: "Highlander REI is a licensed real estate company operating in compliance with AZ and TX regulations. Every transaction is handled by experienced professionals." },
-        { title: "No Hidden Fees — Ever", body: "The number on your offer is the number you walk away with. We cover all closing costs. No commissions, no inspection fees, no deductions at the table." },
-        { title: "Deep Local Market Knowledge", body: "We actively invest in Phoenix and Dallas. We know the submarkets, the comps, and the neighborhoods — which means our offers are grounded in real data." },
+        {
+          title: "Seller-First, Always",
+          body: "We start by listening, not selling. Our goal is to understand your situation and find a path that works for you — whether that's closing in 7 days or waiting 90. No pressure, no manufactured urgency, ever.",
+        },
+        {
+          title: "No Hidden Fees — Ever",
+          body: "The number on your offer is the number you walk away with. We cover all closing costs. No agent commissions, no inspection fees, no deductions at the table.",
+        },
+        {
+          title: "Deep Local Market Knowledge",
+          body: "We actively invest in Phoenix and Dallas. We know the submarkets, the comps, and the neighborhoods — which means our offers are grounded in real data, not algorithms.",
+        },
       ],
     },
     how: {
       label: "How It Works",
       h2: ["THREE STEPS.", "ZERO HASSLE."],
       steps: [
-        { n: "01", title: "Tell Us About Your Home", body: "Fill out a quick form or give us a call. No commitment, no pressure — just a conversation about your property and timeline." },
+        { n: "01", title: "Tell Us About Your Home", body: "Enter your address or give us a call. No commitment, no pressure — just a conversation about your property and timeline." },
         { n: "02", title: "Get Your Cash Offer", body: "We review your property and send a competitive, all-cash, no-obligation offer within 24 hours — based on real market comps." },
         { n: "03", title: "Close On Your Terms", body: "You pick the closing date. We handle all the paperwork. Walk away with cash in as little as 7 days, or take up to 90 if you need more time." },
       ],
@@ -80,7 +146,7 @@ const content = {
       items: [
         { title: "Sell As-Is", body: "Don't spend a dollar on repairs. We buy homes in any condition — from move-in ready to major fixer-upper." },
         { title: "Zero Agent Fees", body: "No commissions, no closing costs on your end. The offer we make is the amount you receive at closing." },
-        { title: "Close When You're Ready", body: "Need to close in 7 days? We can do it. Need 60 days to find your next place? We'll wait." },
+        { title: "Close When You're Ready", body: "Need 7 days? We can do it. Need 60 days to find your next place? We'll wait." },
         { title: "We Handle the Paperwork", body: "Our team manages every document from contract to closing. No surprises, no confusion at the table." },
         { title: "Any Situation", body: "Foreclosure, divorce, inherited home, problem tenants — we've seen it all and know how to help." },
         { title: "Local Team, Not a Call Center", body: "You talk to us directly. We're Phoenix and Dallas locals who know your streets and your market." },
@@ -120,7 +186,6 @@ const content = {
       ],
     },
     paths: {
-      label: "Two Ways We Can Help",
       sell: { badge: "Sell", h2: ["SELL YOUR", "HOME ON", "YOUR TERMS."], body: "Cash offer in as little as 7 days, or let us repair and list your home for more.", cta: "See Sell Options" },
       invest: { badge: "Invest", h2: ["EARN RETURNS", "ON REAL", "ESTATE FLIPS."], body: "Partner with us on fix-and-flip deals and earn a share of the profits.", cta: "Explore Investing" },
     },
@@ -130,17 +195,10 @@ const content = {
     hero: {
       badge: "Phoenix, AZ · Dallas, TX · Hablamos Español",
       h1: ["RECIBE UNA OFERTA", "EN EFECTIVO", "EN 24 HORAS."],
-      sub: "Compramos casas en cualquier condición — sin reparaciones, sin comisiones, sin estrés. Cierre en tan solo 7 días.",
+      sub: "Compramos casas en cualquier condición — sin reparaciones, sin comisiones, sin estrés.",
+      addressPlaceholder: "Ingresa la dirección de tu casa...",
       cta: "Obtener Mi Oferta",
       trust: "Sin obligación · Oferta gratuita · Cierre a tu ritmo",
-    },
-    estimate: {
-      label: "Estimado Gratuito",
-      h2: "¿CUÁNTO VALE TU CASA?",
-      sub: "Ingresa tu dirección y te enviaremos una oferta gratuita sin obligación en 24 horas. Sin reparaciones, sin comisiones, sin presión.",
-      placeholder: "Ingresa la dirección de tu casa...",
-      cta: "Obtener Mi Estimado Gratis",
-      chips: ["100% Gratis", "Sin Obligación", "En 24 Horas", "Cualquier Condición"],
     },
     stats: [
       { val: "50+", label: "Casas Compradas" },
@@ -151,71 +209,79 @@ const content = {
     credibility: {
       label: "Quiénes Somos",
       h2: "INVERSORES LOCALES. RESULTADOS REALES.",
-      sub: "No somos un centro de llamadas ni un algoritmo. Highlander REI es una empresa local de inversión inmobiliaria que opera en Phoenix y Dallas desde 2018. Cada oferta es revisada por nuestro equipo.",
+      sub: "No somos un centro de llamadas ni un algoritmo. Highlander REI opera en Phoenix y Dallas desde 2018. Cada oferta es revisada por nuestro equipo.",
       pillars: [
-        { title: "Con Licencia y Asegurados", body: "Highlander REI opera con licencia y cumple con las regulaciones de AZ y TX. Cada transacción es manejada por profesionales con experiencia." },
-        { title: "Sin Cargos Ocultos — Nunca", body: "El número en tu oferta es el número que recibes. Cubrimos todos los costos de cierre. Sin comisiones, sin deducciones en la mesa." },
-        { title: "Conocemos Tu Mercado Local", body: "Invertimos activamente en Phoenix y Dallas. Conocemos los submercados, los comparables y los vecindarios — nuestras ofertas se basan en datos reales." },
+        {
+          title: "El Vendedor Primero",
+          body: "Comenzamos escuchando, no vendiendo. Nuestro objetivo es entender tu situación y encontrar el camino que funcione para ti — sin presión, sin urgencia fabricada, nunca.",
+        },
+        {
+          title: "Sin Cargos Ocultos — Nunca",
+          body: "El número en tu oferta es el que recibes. Cubrimos todos los costos de cierre. Sin comisiones, sin deducciones en la mesa.",
+        },
+        {
+          title: "Conocemos Tu Mercado Local",
+          body: "Invertimos activamente en Phoenix y Dallas. Conocemos los submercados y los comparables — nuestras ofertas se basan en datos reales.",
+        },
       ],
     },
     how: {
       label: "Cómo Funciona",
       h2: ["TRES PASOS.", "CERO ESTRÉS."],
       steps: [
-        { n: "01", title: "Cuéntanos Sobre Tu Casa", body: "Llena un formulario rápido o llámanos. Sin compromiso, sin presión — solo una conversación sobre tu propiedad." },
-        { n: "02", title: "Recibe Tu Oferta en Efectivo", body: "Evaluamos tu propiedad y te enviamos una oferta competitiva en 24 horas, basada en comparables reales." },
-        { n: "03", title: "Cierra Cuando Quieras", body: "Elige la fecha de cierre. Manejamos todo el papeleo. Recibes el dinero en 7 días o hasta 90 si necesitas más tiempo." },
+        { n: "01", title: "Cuéntanos Sobre Tu Casa", body: "Ingresa tu dirección o llámanos. Sin compromiso, sin presión — solo una conversación." },
+        { n: "02", title: "Recibe Tu Oferta", body: "Evaluamos tu propiedad y enviamos una oferta competitiva en 24 horas, basada en datos reales." },
+        { n: "03", title: "Cierra Cuando Quieras", body: "Tú eliges la fecha. Manejamos el papeleo. Recibes el dinero en 7 días o hasta 90." },
       ],
     },
     benefits: {
       label: "Por Qué Nos Eligen",
       h2: ["SIN COMISIONES.", "SIN REPARACIONES.", "SIN ESPERAS."],
       items: [
-        { title: "Vende Como Está", body: "No gastes un centavo en reparaciones. Compramos casas en cualquier condición." },
-        { title: "Sin Comisiones", body: "Sin cargos de agente, sin costos de cierre. La oferta que hacemos es lo que recibes." },
-        { title: "Cierra Cuando Estés Listo", body: "¿Necesitas cerrar en 7 días? Podemos hacerlo. ¿Necesitas 60 días? Nos adaptamos." },
-        { title: "Nosotros Manejamos el Papeleo", body: "Nuestro equipo gestiona cada documento. Sin sorpresas en la mesa de cierre." },
-        { title: "Cualquier Situación", body: "Ejecución hipotecaria, divorcio, herencia, inquilinos — hemos visto todo y sabemos ayudar." },
-        { title: "Equipo Local, No un Call Center", body: "Hablas directamente con nosotros. Somos locales de Phoenix y Dallas." },
+        { title: "Vende Como Está", body: "Sin reparaciones. Compramos en cualquier condición." },
+        { title: "Sin Comisiones", body: "Sin cargos de agente. La oferta que hacemos es lo que recibes." },
+        { title: "Cierra Cuando Estés Listo", body: "7 días o 60, nos adaptamos a ti." },
+        { title: "Nosotros Manejamos el Papeleo", body: "Sin sorpresas en la mesa de cierre." },
+        { title: "Cualquier Situación", body: "Ejecución, divorcio, herencia — hemos visto todo." },
+        { title: "Equipo Local", body: "Hablamos directo contigo. Somos locales de PHX y DFW." },
       ],
     },
     situations: {
       label: "Ayudamos a Propietarios en Toda Situación",
       h2: "COMPRAMOS CASAS A PROPIETARIOS EN:",
       items: [
-        { title: "Ejecución Hipotecaria", body: "Detén el proceso antes de que dañe tu crédito. Actuamos rápido." },
+        { title: "Ejecución Hipotecaria", body: "Detén el proceso antes de dañar tu crédito." },
         { title: "Divorcio", body: "Una venta rápida elimina el estrés de un activo compartido." },
-        { title: "Propiedad Heredada", body: "No pagues por mantener una casa que no planeabas tener." },
-        { title: "Reubicación", body: "¿Mudándote? Vende sin esperar meses en el mercado." },
-        { title: "Pagos Atrasados", body: "Libérate de una hipoteca que ya no funciona para ti." },
-        { title: "Inquilinos Problemáticos", body: "¿Cansado de ser arrendador? Compramos tal como está." },
+        { title: "Propiedad Heredada", body: "No pagues por una casa que no planeabas tener." },
+        { title: "Reubicación", body: "Vende sin esperar meses en el mercado." },
+        { title: "Pagos Atrasados", body: "Libérate de una hipoteca que ya no funciona." },
+        { title: "Inquilinos Problemáticos", body: "Compramos propiedades de alquiler tal como están." },
       ],
     },
     testimonials: {
       label: "Lo Que Dicen Los Propietarios",
       h2: "HISTORIAS REALES DE VENDEDORES REALES.",
       items: [
-        { quote: "Necesitaba vender rápido después de un divorcio. Me dieron una oferta justa al día siguiente y cerramos en 10 días. Sin drama, sin retrasos.", name: "Maria T.", location: "Phoenix, AZ", situation: "Divorcio" },
-        { quote: "Heredé la casa de mis padres y no sabía qué hacer. Me guiaron en cada paso y fue completamente sin complicaciones. Precio justo, sin esfuerzo.", name: "James R.", location: "Dallas, TX", situation: "Casa Heredada" },
-        { quote: "Estaba a punto de perder mi casa con 3 semanas de margen. Vinieron con una oferta y salvaron mi crédito. Eternamente agradecida.", name: "Sandra K.", location: "Phoenix, AZ", situation: "Ejecución Hipotecaria" },
+        { quote: "Necesitaba vender rápido después de un divorcio. Me dieron una oferta justa al día siguiente y cerramos en 10 días.", name: "Maria T.", location: "Phoenix, AZ", situation: "Divorcio" },
+        { quote: "Heredé la casa de mis padres y no sabía qué hacer. Me guiaron en cada paso y fue completamente sin complicaciones.", name: "James R.", location: "Dallas, TX", situation: "Casa Heredada" },
+        { quote: "Estaba a punto de perder mi casa. Vinieron con una oferta y salvaron mi crédito. Eternamente agradecida.", name: "Sandra K.", location: "Phoenix, AZ", situation: "Ejecución Hipotecaria" },
       ],
     },
     faq: {
       label: "Preguntas Frecuentes",
       h2: "RESPUESTAS ANTES DE QUE PREGUNTES.",
       items: [
-        { q: "¿Obtendré un precio justo?", a: "Basamos cada oferta en ventas comparables recientes, ajustadas por condición. Verás nuestro razonamiento — nunca estás obligado a aceptar." },
-        { q: "¿Hay algún cargo oculto?", a: "Ninguno. Cubrimos todos los costos de cierre. Sin comisiones, sin tarifas, sin deducciones. Lo que ofrecemos es lo que recibes." },
-        { q: "¿Necesito reparar o limpiar algo?", a: "Nada. Déjala tal como está. Nosotros manejamos limpieza y reparaciones después del cierre." },
-        { q: "¿Qué tan rápido podemos cerrar?", a: "Una vez que aceptas, cerramos en 7–14 días hábiles. Si necesitas más tiempo, podemos extender hasta 90 días." },
-        { q: "¿Qué pasa si tengo gravámenes o impuestos atrasados?", a: "Ya lo hemos manejado. Dínos desde el principio y nuestro equipo lo resuelve como parte del proceso de cierre." },
-        { q: "¿Qué tipos de casas compran?", a: "Casas unifamiliares, multifamiliares, condominios, terrenos y rentals en Phoenix y Dallas-Fort Worth. Cualquier condición, cualquier precio." },
+        { q: "¿Obtendré un precio justo?", a: "Basamos cada oferta en ventas comparables recientes. Nunca estás obligado a aceptar." },
+        { q: "¿Hay algún cargo oculto?", a: "Ninguno. Cubrimos todos los costos de cierre." },
+        { q: "¿Necesito reparar o limpiar algo?", a: "Nada. Déjala tal como está." },
+        { q: "¿Qué tan rápido podemos cerrar?", a: "7–14 días hábiles, o hasta 90 si necesitas más tiempo." },
+        { q: "¿Qué pasa si tengo gravámenes?", a: "Ya lo hemos manejado. Dínos y lo resolvemos en el cierre." },
+        { q: "¿Qué tipos de casas compran?", a: "Casas, condos, terrenos y rentals en Phoenix y Dallas. Cualquier condición." },
       ],
     },
     paths: {
-      label: "Dos Formas en que Podemos Ayudar",
-      sell: { badge: "Vender", h2: ["VENDE TU", "CASA EN TUS", "TÉRMINOS."], body: "Oferta en efectivo en 7 días, o déjanos reparar y listar tu casa para más.", cta: "Ver Opciones de Venta" },
-      invest: { badge: "Invertir", h2: ["GANA RETORNOS", "EN FLIPS DE", "BIENES RAÍCES."], body: "Asóciate con nosotros y gana parte de las ganancias en cada proyecto.", cta: "Explorar Inversiones" },
+      sell: { badge: "Vender", h2: ["VENDE TU", "CASA EN TUS", "TÉRMINOS."], body: "Oferta en efectivo en 7 días, o déjanos reparar y listar tu casa para más.", cta: "Ver Opciones" },
+      invest: { badge: "Invertir", h2: ["GANA RETORNOS", "EN FLIPS DE", "BIENES RAÍCES."], body: "Asóciate con nosotros y gana parte de las ganancias.", cta: "Explorar" },
     },
     cta: { h2: ["¿LISTO PARA", "TU OFERTA?"], sub: "Toma 2 minutos. Sin compromiso. Sin costo." },
   },
@@ -224,81 +290,51 @@ const content = {
 export default function HomePage() {
   const { lang } = useLanguage();
   const t = content[lang];
-  const [address, setAddress] = useState("");
-
-  function handleEstimate(e: React.FormEvent) {
-    e.preventDefault();
-    const dest = address.trim()
-      ? `${OFFER_URL}?address=${encodeURIComponent(address.trim())}`
-      : OFFER_URL;
-    window.location.href = dest;
-  }
 
   return (
     <>
       <style>{`
-        /* ── HERO ───────────────────────── */
+        /* ── BASE TRANSITIONS ───────────────────── */
+        .hover-card {
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+        .hover-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 28px rgba(0,0,0,0.09);
+          border-color: var(--blue-border) !important;
+        }
+        .hover-card-dark {
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .hover-card-dark:hover {
+          background: rgba(255,255,255,0.09) !important;
+          border-color: rgba(255,255,255,0.2) !important;
+        }
+        .hover-stat {
+          transition: transform 0.18s ease;
+          cursor: default;
+        }
+        .hover-stat:hover { transform: scale(1.05); }
+        .hover-faq {
+          transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .hover-faq:hover {
+          border-color: var(--blue-border) !important;
+          background: var(--blue-light) !important;
+        }
+
+        /* ── HERO ──────────────────────────────── */
         .hero-section {
           background: var(--near-black);
-          padding: 80px 48px 72px;
+          padding: 80px 48px 80px;
           text-align: center;
         }
-        /* ── ESTIMATE BAND ──────────────── */
-        .estimate-section {
-          background: var(--blue);
-          padding: 72px 48px;
-          text-align: center;
+        .hero-address-wrap {
+          max-width: 600px;
+          margin: 0 auto;
         }
-        .estimate-form {
-          max-width: 640px;
-          margin: 32px auto 0;
-          display: flex;
-          border-radius: var(--radius-sm);
-          overflow: hidden;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-        }
-        .estimate-input {
-          flex: 1;
-          min-width: 0;
-          padding: 18px 20px;
-          font-size: 15px;
-          border: none;
-          outline: none;
-          background: var(--white);
-          color: var(--near-black);
-          font-family: var(--font-body), system-ui, sans-serif;
-        }
-        .estimate-input::placeholder { color: var(--muted); }
-        .estimate-btn {
-          padding: 18px 24px;
-          background: var(--near-black);
-          color: var(--white);
-          border: none;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 700;
-          white-space: nowrap;
-          font-family: var(--font-body), system-ui, sans-serif;
-          transition: background 0.15s;
-          flex-shrink: 0;
-        }
-        .estimate-btn:hover { background: var(--black); }
-        .estimate-chips {
-          display: flex;
-          justify-content: center;
-          gap: 10px;
-          margin-top: 20px;
-          flex-wrap: wrap;
-        }
-        .estimate-chip {
-          font-size: 11px;
-          color: rgba(255,255,255,0.75);
-          background: rgba(255,255,255,0.12);
-          border: 1px solid rgba(255,255,255,0.2);
-          padding: 5px 12px;
-          border-radius: 20px;
-        }
-        /* ── STATS BAR ──────────────────── */
+
+        /* ── STATS BAR ─────────────────────────── */
         .trust-bar {
           background: var(--off-white);
           border-top: 1px solid var(--border-light);
@@ -317,7 +353,8 @@ export default function HomePage() {
           border-right: 1px solid var(--border-light);
         }
         .stat-cell:last-child { border-right: none; }
-        /* ── CREDIBILITY ────────────────── */
+
+        /* ── CREDIBILITY ───────────────────────── */
         .credibility-section {
           background: var(--white);
           padding: 88px 48px;
@@ -329,13 +366,8 @@ export default function HomePage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 20px;
         }
-        .credibility-card {
-          background: var(--off-white);
-          border: 1px solid var(--border-light);
-          border-radius: var(--radius);
-          padding: 28px 24px;
-        }
-        /* ── HOW IT WORKS ───────────────── */
+
+        /* ── HOW IT WORKS ──────────────────────── */
         .how-section {
           background: var(--off-white);
           padding: 88px 48px;
@@ -348,7 +380,19 @@ export default function HomePage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 40px;
         }
-        /* ── BENEFITS ───────────────────── */
+        .how-step {
+          transition: transform 0.2s ease;
+        }
+        .how-step:hover { transform: translateY(-2px); }
+        .how-step:hover .step-circle {
+          background: var(--blue-hover) !important;
+          box-shadow: 0 0 0 6px rgba(26,86,219,0.12);
+        }
+        .step-circle {
+          transition: background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* ── BENEFITS ──────────────────────────── */
         .benefits-section {
           background: var(--white);
           padding: 88px 48px;
@@ -361,13 +405,8 @@ export default function HomePage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 20px;
         }
-        .benefit-card {
-          background: var(--off-white);
-          border: 1px solid var(--border-light);
-          border-radius: var(--radius);
-          padding: 24px 22px;
-        }
-        /* ── SITUATIONS ─────────────────── */
+
+        /* ── SITUATIONS ────────────────────────── */
         .situations-section {
           background: var(--black);
           padding: 88px 48px;
@@ -379,13 +418,8 @@ export default function HomePage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 16px;
         }
-        .situation-card {
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: var(--radius-sm);
-          padding: 20px 22px;
-        }
-        /* ── TESTIMONIALS ───────────────── */
+
+        /* ── TESTIMONIALS ──────────────────────── */
         .testimonials-section {
           background: var(--off-white);
           padding: 88px 48px;
@@ -398,16 +432,8 @@ export default function HomePage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 20px;
         }
-        .testimonial-card {
-          background: var(--white);
-          border: 1px solid var(--border-light);
-          border-radius: var(--radius);
-          padding: 28px 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        /* ── FAQ ────────────────────────── */
+
+        /* ── FAQ ───────────────────────────────── */
         .faq-section {
           background: var(--white);
           padding: 88px 48px;
@@ -420,13 +446,8 @@ export default function HomePage() {
           grid-template-columns: repeat(2, 1fr);
           gap: 16px;
         }
-        .faq-card {
-          background: var(--off-white);
-          border: 1px solid var(--border-light);
-          border-radius: var(--radius-sm);
-          padding: 24px 22px;
-        }
-        /* ── PATH CARDS ─────────────────── */
+
+        /* ── PATH CARDS ────────────────────────── */
         .paths-section {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -439,38 +460,47 @@ export default function HomePage() {
           flex-direction: column;
           text-decoration: none;
           overflow: hidden;
-          transition: background 0.2s;
+          transition: background 0.2s ease;
         }
         .path-card-light { background: var(--off-white); }
-        .path-card-light:hover { background: #f0efea; }
+        .path-card-light:hover { background: #eeede8; }
         .path-card-dark { background: var(--near-black); }
         .path-card-dark:hover { background: var(--black); }
-        /* ── BOTTOM CTA ─────────────────── */
+        .path-card .path-btn {
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .path-card:hover .path-btn {
+          transform: translateX(4px);
+        }
+
+        /* ── BOTTOM CTA ────────────────────────── */
         .bottom-cta {
           background: var(--near-black);
           padding: 88px 48px;
           text-align: center;
         }
-        /* ── SECTION ICON BUBBLE ────────── */
+
+        /* ── SHARED ICON BUBBLE ────────────────── */
         .icon-bubble {
-          width: 44px;
-          height: 44px;
+          width: 44px; height: 44px;
           border-radius: 12px;
           background: var(--blue-light);
           border: 1px solid var(--blue-border);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           margin-bottom: 16px;
-          flex-shrink: 0;
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .hover-card:hover .icon-bubble {
+          background: var(--blue);
+          border-color: var(--blue);
+        }
+        .hover-card:hover .icon-bubble svg {
+          stroke: white;
         }
 
         /* ══ RESPONSIVE ════════════════════════════════════════ */
         @media (max-width: 900px) {
-          .hero-section { padding: 56px 24px 52px; }
-          .estimate-section { padding: 52px 24px; }
-          .estimate-form { flex-direction: column; }
-          .estimate-btn { width: 100%; padding: 16px; font-size: 15px; }
+          .hero-section { padding: 56px 24px 56px; }
           .trust-bar-inner { padding: 0 24px; grid-template-columns: repeat(2, 1fr); }
           .stat-cell { border-right: none; border-bottom: 1px solid var(--border-light); }
           .stat-cell:nth-child(odd) { border-right: 1px solid var(--border-light); }
@@ -493,8 +523,9 @@ export default function HomePage() {
           .bottom-cta { padding: 60px 24px; }
         }
         @media (max-width: 600px) {
-          .hero-section { padding: 44px 16px 44px; }
-          .estimate-section { padding: 44px 16px; }
+          .hero-section { padding: 44px 16px 48px; }
+          .hero-address-wrap form { flex-direction: column; }
+          .hero-address-wrap form button { width: 100%; padding: 16px; }
           .trust-bar-inner { padding: 0 16px; }
           .credibility-section { padding: 48px 16px; }
           .how-section { padding: 48px 16px; }
@@ -505,6 +536,8 @@ export default function HomePage() {
           .testimonials-section { padding: 48px 16px; }
           .faq-section { padding: 48px 16px; }
           .bottom-cta { padding: 48px 16px; }
+          .bottom-cta form { flex-direction: column; }
+          .bottom-cta form button { width: 100%; padding: 16px; }
           .path-card { padding: 36px 16px; }
         }
       `}</style>
@@ -516,49 +549,21 @@ export default function HomePage() {
           <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.65)", letterSpacing: "0.8px", fontWeight: 500 }}>{t.hero.badge}</span>
         </div>
 
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(44px, 9vw, 100px)", color: "var(--white)", letterSpacing: "2px", lineHeight: 0.92, textTransform: "uppercase", marginBottom: "24px" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(44px, 9vw, 100px)", color: "var(--white)", letterSpacing: "2px", lineHeight: 0.92, textTransform: "uppercase", marginBottom: "22px" }}>
           {t.hero.h1[0]}<br />
           <span style={{ color: "var(--blue-mid)" }}>{t.hero.h1[1]}</span><br />
           {t.hero.h1[2]}
         </h1>
 
-        <p style={{ fontSize: "clamp(14px, 2.5vw, 18px)", color: "rgba(255,255,255,0.65)", maxWidth: "520px", margin: "0 auto 36px", lineHeight: 1.75, fontWeight: 300 }}>
+        <p style={{ fontSize: "clamp(14px, 2.5vw, 17px)", color: "rgba(255,255,255,0.6)", maxWidth: "500px", margin: "0 auto 32px", lineHeight: 1.75, fontWeight: 300 }}>
           {t.hero.sub}
         </p>
 
-        <a href={OFFER_URL} className="btn-blue" style={{ fontSize: "15px", padding: "15px 36px", display: "inline-block" }}>
-          {t.hero.cta}
-        </a>
-
-        <div style={{ marginTop: "28px", fontSize: "11.5px", color: "rgba(255,255,255,0.35)", letterSpacing: "0.5px" }}>
-          {t.hero.trust}
-        </div>
-      </section>
-
-      {/* ── ESTIMATE (OPENDOOR-STYLE) ──────────────────────────── */}
-      <section className="estimate-section">
-        <span style={{ display: "block", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "2px", color: "rgba(255,255,255,0.6)", marginBottom: "12px" }}>{t.estimate.label}</span>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 5vw, 60px)", color: "var(--white)", letterSpacing: "2px", lineHeight: 1, textTransform: "uppercase" }}>
-          {t.estimate.h2}
-        </h2>
-        <p style={{ fontSize: "clamp(13px, 2vw, 16px)", color: "rgba(255,255,255,0.65)", maxWidth: "520px", margin: "14px auto 0", lineHeight: 1.75 }}>
-          {t.estimate.sub}
-        </p>
-        <form className="estimate-form" onSubmit={handleEstimate}>
-          <input
-            className="estimate-input"
-            type="text"
-            placeholder={t.estimate.placeholder}
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            autoComplete="street-address"
-          />
-          <button type="submit" className="estimate-btn">{t.estimate.cta}</button>
-        </form>
-        <div className="estimate-chips">
-          {t.estimate.chips.map((chip) => (
-            <span key={chip} className="estimate-chip">{chip}</span>
-          ))}
+        <div className="hero-address-wrap">
+          <AddressForm placeholder={t.hero.addressPlaceholder} cta={t.hero.cta} />
+          <div style={{ marginTop: "16px", fontSize: "11.5px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.5px" }}>
+            {t.hero.trust}
+          </div>
         </div>
       </section>
 
@@ -566,7 +571,7 @@ export default function HomePage() {
       <div className="trust-bar">
         <div className="trust-bar-inner">
           {t.stats.map((s) => (
-            <div key={s.label} className="stat-cell">
+            <div key={s.label} className="stat-cell hover-stat">
               <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 4vw, 36px)", color: "var(--black)", letterSpacing: "1px", lineHeight: 1 }}>{s.val}</div>
               <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginTop: "4px" }}>{s.label}</div>
             </div>
@@ -574,7 +579,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── CREDIBILITY / WHO WE ARE ──────────────────────────── */}
+      {/* ── CREDIBILITY ───────────────────────────────────────── */}
       <section className="credibility-section">
         <div style={{ maxWidth: "820px", margin: "0 auto", textAlign: "center" }}>
           <span style={{ display: "block", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "2px", color: "var(--blue)", marginBottom: "12px" }}>{t.credibility.label}</span>
@@ -585,7 +590,7 @@ export default function HomePage() {
         </div>
         <div className="credibility-pillars">
           {t.credibility.pillars.map((p, i) => (
-            <div key={i} className="credibility-card">
+            <div key={i} className="hover-card" style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "28px 24px" }}>
               <div className="icon-bubble">{CredIcons[i]}</div>
               <h3 style={{ fontFamily: "var(--font-display)", fontSize: "20px", color: "var(--black)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "10px" }}>{p.title}</h3>
               <p style={{ fontSize: "13.5px", color: "var(--mid)", lineHeight: 1.75 }}>{p.body}</p>
@@ -604,9 +609,9 @@ export default function HomePage() {
         </div>
         <div className="how-steps">
           {t.how.steps.map((step, i) => (
-            <div key={i}>
+            <div key={i} className="how-step">
               <div style={{ fontFamily: "var(--font-display)", fontSize: "64px", color: "rgba(0,0,0,0.04)", lineHeight: 1, marginBottom: "-10px" }}>{step.n}</div>
-              <div style={{ width: "40px", height: "40px", background: "var(--blue)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
+              <div className="step-circle" style={{ width: "40px", height: "40px", background: "var(--blue)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
                 <span style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--white)" }}>{i + 1}</span>
               </div>
               <h3 style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--black)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>{step.title}</h3>
@@ -629,7 +634,7 @@ export default function HomePage() {
         </div>
         <div className="benefits-grid">
           {t.benefits.items.map((item, i) => (
-            <div key={i} className="benefit-card">
+            <div key={i} className="hover-card" style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "24px 22px" }}>
               <div className="icon-bubble">{BenefitIcons[i]}</div>
               <h3 style={{ fontFamily: "var(--font-display)", fontSize: "20px", color: "var(--black)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "8px" }}>{item.title}</h3>
               <p style={{ fontSize: "13.5px", color: "var(--mid)", lineHeight: 1.7 }}>{item.body}</p>
@@ -648,7 +653,7 @@ export default function HomePage() {
         </div>
         <div className="situations-grid">
           {t.situations.items.map((item, i) => (
-            <div key={i} className="situation-card">
+            <div key={i} className="hover-card-dark" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "var(--radius-sm)", padding: "22px 22px" }}>
               <h3 style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--white)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "8px" }}>{item.title}</h3>
               <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", lineHeight: 1.65 }}>{item.body}</p>
             </div>
@@ -669,9 +674,9 @@ export default function HomePage() {
         </div>
         <div className="testimonials-grid">
           {t.testimonials.items.map((item, i) => (
-            <div key={i} className="testimonial-card">
+            <div key={i} className="hover-card" style={{ background: "var(--white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius)", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", gap: "2px" }}>
+                <div style={{ display: "flex", gap: "3px" }}>
                   {[...Array(5)].map((_, j) => (
                     <svg key={j} width="13" height="13" viewBox="0 0 13 13" fill="#f59e0b"><path d="M6.5 1l1.6 3.3 3.6.5-2.6 2.6.6 3.6-3.2-1.7L3.3 11l.6-3.6L1.3 4.8l3.6-.5z" /></svg>
                   ))}
@@ -700,7 +705,7 @@ export default function HomePage() {
         </div>
         <div className="faq-grid">
           {t.faq.items.map((item, i) => (
-            <div key={i} className="faq-card">
+            <div key={i} className="hover-faq" style={{ background: "var(--off-white)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)", padding: "24px 22px" }}>
               <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "10px" }}>
                 <span style={{ width: "22px", height: "22px", borderRadius: "50%", background: "var(--blue-light)", border: "1px solid var(--blue-border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "1px" }}>
                   <span style={{ fontFamily: "var(--font-display)", fontSize: "10px", color: "var(--blue)" }}>Q</span>
@@ -725,7 +730,7 @@ export default function HomePage() {
               {t.paths.sell.h2[0]}<br />{t.paths.sell.h2[1]}<br />{t.paths.sell.h2[2]}
             </h2>
             <p style={{ fontSize: "14px", color: "var(--mid)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "340px" }}>{t.paths.sell.body}</p>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "var(--blue)", borderRadius: "8px", padding: "11px 20px" }}>
+            <span className="path-btn" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "var(--blue)", borderRadius: "8px", padding: "11px 20px" }}>
               {t.paths.sell.cta}
             </span>
           </div>
@@ -741,7 +746,7 @@ export default function HomePage() {
               {t.paths.invest.h2[0]}<br />{t.paths.invest.h2[1]}<br />{t.paths.invest.h2[2]}
             </h2>
             <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)", lineHeight: 1.75, marginBottom: "28px", maxWidth: "340px" }}>{t.paths.invest.body}</p>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "11px 20px" }}>
+            <span className="path-btn" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "var(--white)", background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "11px 20px" }}>
               {t.paths.invest.cta}
             </span>
           </div>
@@ -756,20 +761,10 @@ export default function HomePage() {
         <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.45)", maxWidth: "400px", margin: "0 auto 32px", lineHeight: 1.65 }}>
           {t.cta.sub}
         </p>
-        <form style={{ maxWidth: "560px", margin: "0 auto", display: "flex", borderRadius: "var(--radius-sm)", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }} onSubmit={handleEstimate}>
-          <input
-            className="estimate-input"
-            type="text"
-            placeholder={t.estimate.placeholder}
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            autoComplete="street-address"
-          />
-          <button type="submit" className="estimate-btn" style={{ background: "var(--blue)", minWidth: "140px" }}>
-            {t.estimate.cta}
-          </button>
-        </form>
-        <div style={{ marginTop: "18px", fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
+        <div style={{ maxWidth: "560px", margin: "0 auto" }}>
+          <AddressForm placeholder={t.hero.addressPlaceholder} cta={t.hero.cta} style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }} />
+        </div>
+        <div style={{ marginTop: "16px", fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
           {t.hero.trust}
         </div>
       </section>
