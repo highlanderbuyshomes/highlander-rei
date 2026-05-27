@@ -156,7 +156,7 @@ export default function CashOfferPage() {
               </div>
             ))}
           </div>
-          <a href="https://highlanderbuyshomes.com/sell" className="btn-blue" style={{ padding: "15px 32px", fontSize: "15px" }}>
+          <a href="https://highlanderbuyshomes.com/get-my-cash-offer" className="btn-blue" style={{ padding: "15px 32px", fontSize: "15px" }}>
             {c.cta}
           </a>
         </div>
@@ -295,7 +295,7 @@ export default function CashOfferPage() {
           <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", maxWidth: "380px", margin: "0 auto 32px", lineHeight: 1.75 }}>
             {c.ctaSub}
           </p>
-          <a href="https://highlanderbuyshomes.com/sell" className="btn-blue" style={{ padding: "15px 36px", fontSize: "15px" }}>
+          <a href="https://highlanderbuyshomes.com/get-my-cash-offer" className="btn-blue" style={{ padding: "15px 36px", fontSize: "15px" }}>
             {c.cta}
           </a>
         </div>
