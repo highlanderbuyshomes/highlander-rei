@@ -175,6 +175,16 @@ export default function Nav() {
               <DropdownItems items={buyItems} onClose={() => setBuyOpen(false)} />
             </div>
           </div>
+          {/* Agents — external link */}
+          <a
+            href="https://highlanderbuyshomes.com/for-agents-and-wholesalers"
+            target="_blank"
+            rel="noreferrer"
+            className="nav-link"
+            style={{ display: "flex", alignItems: "center", gap: "4px" }}
+          >
+            {lang === "es" ? "Agentes" : "Agents"}
+          </a>
         </div>
 
         {/* Right-side language toggle */}
@@ -207,6 +217,17 @@ export default function Nav() {
               {lang === "es" ? "Comprar" : "Buy"}
             </div>
             <MobileSubItems items={buyItems} pathname={pathname} onClose={() => setOpen(false)} />
+          </div>
+          <div style={{ borderBottom: "1px solid var(--border-light)" }}>
+            <a
+              href="https://highlanderbuyshomes.com/for-agents-and-wholesalers"
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: "block", fontSize: "15px", fontWeight: 400, color: "var(--mid)", padding: "13px 0", textDecoration: "none" }}
+              onClick={() => setOpen(false)}
+            >
+              {lang === "es" ? "Agentes" : "Agents"}
+            </a>
           </div>
           <div style={{ marginTop: "16px", display: "flex", justifyContent: "center" }}>
             <LangToggle />
