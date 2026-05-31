@@ -111,8 +111,10 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const [sellOpen, setSellOpen] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
+  const [agentsOpen, setAgentsOpen] = useState(false);
   const sellTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const buyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const agentsTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const sellItems = getSellItems(lang);
   const buyItems = getBuyItems(lang);
@@ -124,6 +126,8 @@ export default function Nav() {
   const closeSell = () => { sellTimer.current = setTimeout(() => setSellOpen(false), 200); };
   const openBuy = () => { clearTimeout(buyTimer.current); setBuyOpen(true); };
   const closeBuy = () => { buyTimer.current = setTimeout(() => setBuyOpen(false), 200); };
+  const openAgents = () => { clearTimeout(agentsTimer.current); setAgentsOpen(true); };
+  const closeAgents = () => { agentsTimer.current = setTimeout(() => setAgentsOpen(false), 200); };
 
   const chevron = (isOpen: boolean) => (
     <svg
@@ -175,16 +179,34 @@ export default function Nav() {
               <DropdownItems items={buyItems} onClose={() => setBuyOpen(false)} />
             </div>
           </div>
-          {/* Agents — external link */}
-          <a
-            href="https://highlanderbuyshomes.com/for-agents-and-wholesalers"
-            target="_blank"
-            rel="noreferrer"
-            className="nav-link"
-            style={{ display: "flex", alignItems: "center", gap: "4px" }}
-          >
-            {lang === "es" ? "Agentes" : "Agents"}
-          </a>
+          {/* Agents dropdown */}
+          <div className="nav-dropdown-wrapper" onMouseEnter={openAgents} onMouseLeave={closeAgents}>
+            <button
+              className="nav-link"
+              style={{ display: "flex", alignItems: "center", gap: "4px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+            >
+              {lang === "es" ? "Agentes" : "Agents"} {chevron(agentsOpen)}
+            </button>
+            <div className="nav-dropdown" style={{ opacity: agentsOpen ? 1 : 0, pointerEvents: agentsOpen ? "auto" : "none", transform: agentsOpen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-6px)" }}>
+              <a
+                href="https://highlanderbuyshomes.com/for-agents-and-wholesalers"
+                target="_blank"
+                rel="noreferrer"
+                className="nav-dropdown-item"
+                onClick={() => setAgentsOpen(false)}
+              >
+                <div className="nav-dropdown-icon">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 13h12M8 3v7M5 6l3-3 3 3" stroke="var(--blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="nav-dropdown-label">{lang === "es" ? "Enviar un Trato" : "Submit a Deal"}</span>
+                  <span className="nav-dropdown-desc">{lang === "es" ? "Agentes y mayoristas — obtengan una oferta en efectivo" : "Agents & wholesalers — get a cash offer fast"}</span>
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* Right-side language toggle */}
@@ -219,15 +241,28 @@ export default function Nav() {
             <MobileSubItems items={buyItems} pathname={pathname} onClose={() => setOpen(false)} />
           </div>
           <div style={{ borderBottom: "1px solid var(--border-light)" }}>
-            <a
-              href="https://highlanderbuyshomes.com/for-agents-and-wholesalers"
-              target="_blank"
-              rel="noreferrer"
-              style={{ display: "block", fontSize: "15px", fontWeight: 400, color: "var(--mid)", padding: "13px 0", textDecoration: "none" }}
-              onClick={() => setOpen(false)}
-            >
+            <div style={{ fontSize: "15px", fontWeight: 400, color: "var(--mid)", padding: "13px 0 8px" }}>
               {lang === "es" ? "Agentes" : "Agents"}
-            </a>
+            </div>
+            <div style={{ paddingBottom: "12px" }}>
+              <a
+                href="https://highlanderbuyshomes.com/for-agents-and-wholesalers"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setOpen(false)}
+                style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "8px", textDecoration: "none" }}
+              >
+                <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "var(--blue-light)", border: "1px solid var(--blue-border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 13h12M8 3v7M5 6l3-3 3 3" stroke="var(--blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--near-black)" }}>{lang === "es" ? "Enviar un Trato" : "Submit a Deal"}</div>
+                  <div style={{ fontSize: "11.5px", color: "var(--muted)" }}>{lang === "es" ? "Agentes y mayoristas — oferta rápida" : "Agents & wholesalers — get a cash offer fast"}</div>
+                </div>
+              </a>
+            </div>
           </div>
           <div style={{ marginTop: "16px", display: "flex", justifyContent: "center" }}>
             <LangToggle />
