@@ -4,6 +4,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/lib/LanguageContext";
+import Script from "next/script";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -39,6 +40,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main style={{ flex: 1 }}>{children}</main>
           <Footer />
         </LanguageProvider>
+        <Script
+          src="https://beta.leadconnectorhq.com/loader.js"
+          data-resources-url="https://beta.leadconnectorhq.com/chat-widget/loader.js"
+          data-widget-id="6a1d8016b2d4c061bc2c2164"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
