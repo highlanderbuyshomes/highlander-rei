@@ -398,6 +398,67 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
 /* ── FORM SUCCESS STATE ───────────────────────────────────── */
 .form-success-card { padding: 52px 40px; }
 
+/* ── GOOGLE PLACES AUTOCOMPLETE ──────────────────────────── */
+.pac-container {
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+  font-family: var(--font-body), "Inter", system-ui, sans-serif;
+  padding: 6px;
+  margin-top: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.pac-item {
+  display: flex;
+  align-items: center;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--near-black);
+  line-height: 1.4;
+  transition: background 0.12s;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background: var(--off-white);
+}
+
+.pac-icon,
+.pac-icon-markerOpen {
+  display: none;
+}
+
+.pac-item-query {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--near-black);
+  padding-right: 4px;
+}
+
+.pac-matched {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.pac-secondary-text {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.pac-container::after {
+  background-image: none !important;
+  height: 0;
+  padding: 0;
+  margin: 4px 14px 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* ── FOOTER ───────────────────────────────────────────────── */
 .site-footer {
   background: var(--black);

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 const OFFER_URL = "https://highlanderbuyshomes.com/get-my-cash-offer";
@@ -14,8 +14,10 @@ const w = () => (typeof window !== "undefined" ? (window as any) : null);
 function loadPlaces(cb: () => void) {
   const win = w(); if (!win) return;
   if (win.google?.maps?.places) { cb(); return; }
-  if (document.getElementById("gpl-script")) { win._gplInit = cb; return; }
-  win._gplInit = cb;
+  if (!win._gplQueue) win._gplQueue = [];
+  win._gplQueue.push(cb);
+  if (document.getElementById("gpl-script")) return;
+  win._gplInit = () => { (win._gplQueue as (() => void)[]).forEach((fn) => fn()); };
   const s = document.createElement("script");
   s.id = "gpl-script";
   s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places&callback=_gplInit`;
@@ -25,6 +27,7 @@ function loadPlaces(cb: () => void) {
 
 // ── Address form with Places autocomplete ─────────────────────
 function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: string; style?: React.CSSProperties }) {
+  const [address, setAddress] = useState("");
   const ref = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ac = useRef<any>(null);
@@ -38,6 +41,10 @@ function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: st
         componentRestrictions: { country: "us" },
         fields: ["formatted_address"],
       });
+      ac.current.addListener("place_changed", () => {
+        const place = ac.current.getPlace();
+        if (place?.formatted_address) setAddress(place.formatted_address);
+      });
     });
     return () => {
       const win = w();
@@ -45,24 +52,36 @@ function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: st
     };
   }, []);
 
-  // Native GET form submission — ?address=<value> appended to OFFER_URL automatically
+  const dest = address.trim()
+    ? `${OFFER_URL}?address=${encodeURIComponent(address.trim())}`
+    : OFFER_URL;
+
   return (
-    <form action={OFFER_URL} method="GET" style={{ display: "flex", borderRadius: "var(--radius-sm)", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.28)", ...style }}>
-      <input
-        ref={ref}
-        type="text"
-        name="address"
-        placeholder={placeholder}
-        autoComplete="off"
-        style={{ flex: 1, minWidth: 0, padding: "17px 20px", fontSize: "15px", border: "none", outline: "none", background: "#fff", color: "var(--near-black)", fontFamily: "var(--font-body), system-ui, sans-serif" }}
-      />
-      <button type="submit" style={{ padding: "17px 24px", background: "var(--near-black)", color: "#fff", border: "none", cursor: "pointer", fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", fontFamily: "var(--font-body), system-ui, sans-serif", flexShrink: 0, transition: "background 0.15s" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--black)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--near-black)")}
+    <div style={{ display: "flex", borderRadius: "50px", overflow: "visible", background: "#fff", boxShadow: "0 4px 32px rgba(0,0,0,0.22)", border: "1.5px solid rgba(255,255,255,0.2)", ...style }}>
+      <div style={{ position: "relative", flex: 1, minWidth: 0, display: "flex", alignItems: "center" }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "20px", flexShrink: 0, pointerEvents: "none" }}>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+          <circle cx="12" cy="9" r="2.5" />
+        </svg>
+        <input
+          ref={ref}
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder={placeholder}
+          autoComplete="off"
+          style={{ width: "100%", padding: "18px 16px 18px 48px", fontSize: "15px", border: "none", outline: "none", background: "transparent", color: "var(--near-black)", fontFamily: "var(--font-body), system-ui, sans-serif", borderRadius: "50px 0 0 50px" }}
+        />
+      </div>
+      <a
+        href={dest}
+        style={{ padding: "14px 28px", background: "var(--blue)", color: "#fff", cursor: "pointer", fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", fontFamily: "var(--font-body), system-ui, sans-serif", flexShrink: 0, transition: "background 0.15s", textDecoration: "none", display: "flex", alignItems: "center", borderRadius: "50px", margin: "5px" }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = "var(--blue-hover)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = "var(--blue)")}
       >
         {cta}
-      </button>
-    </form>
+      </a>
+    </div>
   );
 }
 
