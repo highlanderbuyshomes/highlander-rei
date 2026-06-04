@@ -2,42 +2,43 @@
 
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomUUID } from "crypto";
 
 export async function createAgreement(formData: FormData) {
   await requireAdmin();
 
-  const type = String(formData.get("type") ?? "");
+  const type    = String(formData.get("type")    ?? "");
   const address = String(formData.get("address") ?? "").trim();
   const sellers = String(formData.get("sellers") ?? "").trim();
-
   if (!type || !address || !sellers) throw new Error("Missing required fields");
 
-  const data = {
-    type,
-    address,
-    sellers,
-    companyBuyer:       formData.get("companyBuyer")       ? String(formData.get("companyBuyer")) : null,
-    offerPrice:         formData.get("offerPrice")         ? String(formData.get("offerPrice"))   : null,
-    closingDate:        formData.get("closingDate")        ? String(formData.get("closingDate"))  : null,
-    earnestMoney:       formData.get("earnestMoney")       ? String(formData.get("earnestMoney")) : null,
-    equityPct:          formData.get("equityPct")          ? String(formData.get("equityPct"))    : null,
-    termLength:         formData.get("termLength")         ? String(formData.get("termLength"))   : null,
-    agentName:          formData.get("agentName")          ? String(formData.get("agentName"))    : null,
-    agentEmail:         formData.get("agentEmail")         ? String(formData.get("agentEmail"))   : null,
-    agentPhone:         formData.get("agentPhone")         ? String(formData.get("agentPhone"))   : null,
-    agentLicense:       formData.get("agentLicense")       ? String(formData.get("agentLicense")) : null,
-    brokerageName:      formData.get("brokerageName")      ? String(formData.get("brokerageName")): null,
-    listPrice:          formData.get("listPrice")          ? String(formData.get("listPrice"))    : null,
-    agencyRelationship: formData.get("agencyRelationship") ? String(formData.get("agencyRelationship")) : null,
-    brokerComp:         formData.get("brokerComp")         ? String(formData.get("brokerComp"))   : null,
-    listingStart:       formData.get("listingStart")       ? String(formData.get("listingStart")) : null,
-    listingEnd:         formData.get("listingEnd")         ? String(formData.get("listingEnd"))   : null,
-    notes:              formData.get("notes")              ? String(formData.get("notes"))        : null,
-  };
+  // Upload PDF if provided
+  let pdfUrl: string | null = null;
+  const file = formData.get("pdfFile") as File | null;
+  if (file && file.size > 0) {
+    const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
+    pdfUrl = blob.url;
+  }
 
-  const agreement = await prisma.agreement.create({ data });
+  const signerToken = randomUUID();
+
+  const agreement = await prisma.agreement.create({
+    data: {
+      type,
+      address,
+      sellers,
+      signerName:  formData.get("signerName")  ? String(formData.get("signerName"))  : null,
+      signerEmail: formData.get("signerEmail") ? String(formData.get("signerEmail")) : null,
+      notes:       formData.get("notes")       ? String(formData.get("notes"))       : null,
+      pdfUrl,
+      signerToken,
+      status: "draft",
+    },
+  });
+
   revalidatePath("/admin/agreements");
   redirect(`/admin/agreements/${agreement.id}`);
 }
@@ -54,28 +55,23 @@ export async function updateAgreementStatus(id: string, formData: FormData) {
 export async function updateAgreement(id: string, formData: FormData) {
   await requireAdmin();
 
+  // Handle optional new PDF upload
+  const file = formData.get("pdfFile") as File | null;
+  let pdfUrl: string | undefined;
+  if (file && file.size > 0) {
+    const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
+    pdfUrl = blob.url;
+  }
+
   await prisma.agreement.update({
     where: { id },
     data: {
-      address:            String(formData.get("address") ?? "").trim(),
-      sellers:            String(formData.get("sellers") ?? "").trim(),
-      companyBuyer:       formData.get("companyBuyer")       ? String(formData.get("companyBuyer"))        : null,
-      offerPrice:         formData.get("offerPrice")         ? String(formData.get("offerPrice"))          : null,
-      closingDate:        formData.get("closingDate")        ? String(formData.get("closingDate"))         : null,
-      earnestMoney:       formData.get("earnestMoney")       ? String(formData.get("earnestMoney"))        : null,
-      equityPct:          formData.get("equityPct")          ? String(formData.get("equityPct"))           : null,
-      termLength:         formData.get("termLength")         ? String(formData.get("termLength"))          : null,
-      agentName:          formData.get("agentName")          ? String(formData.get("agentName"))           : null,
-      agentEmail:         formData.get("agentEmail")         ? String(formData.get("agentEmail"))          : null,
-      agentPhone:         formData.get("agentPhone")         ? String(formData.get("agentPhone"))          : null,
-      agentLicense:       formData.get("agentLicense")       ? String(formData.get("agentLicense"))        : null,
-      brokerageName:      formData.get("brokerageName")      ? String(formData.get("brokerageName"))       : null,
-      listPrice:          formData.get("listPrice")          ? String(formData.get("listPrice"))           : null,
-      agencyRelationship: formData.get("agencyRelationship") ? String(formData.get("agencyRelationship"))  : null,
-      brokerComp:         formData.get("brokerComp")         ? String(formData.get("brokerComp"))          : null,
-      listingStart:       formData.get("listingStart")       ? String(formData.get("listingStart"))        : null,
-      listingEnd:         formData.get("listingEnd")         ? String(formData.get("listingEnd"))          : null,
-      notes:              formData.get("notes")              ? String(formData.get("notes"))               : null,
+      address:     String(formData.get("address") ?? "").trim(),
+      sellers:     String(formData.get("sellers") ?? "").trim(),
+      signerName:  formData.get("signerName")  ? String(formData.get("signerName"))  : null,
+      signerEmail: formData.get("signerEmail") ? String(formData.get("signerEmail")) : null,
+      notes:       formData.get("notes")       ? String(formData.get("notes"))       : null,
+      ...(pdfUrl ? { pdfUrl } : {}),
     },
   });
 

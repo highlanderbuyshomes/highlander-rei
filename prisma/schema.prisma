@@ -7,9 +7,9 @@ datasource db {
 }
 
 model Agreement {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   type               String
-  status             String   @default("draft")
+  status             String    @default("draft")
 
   address            String
   sellers            String
@@ -18,10 +18,8 @@ model Agreement {
   offerPrice         String?
   closingDate        String?
   earnestMoney       String?
-
   equityPct          String?
   termLength         String?
-
   agentName          String?
   agentEmail         String?
   agentPhone         String?
@@ -36,9 +34,34 @@ model Agreement {
   notes              String?
   pdfUrl             String?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  // Signing
+  signerName         String?
+  signerEmail        String?
+  signerToken        String?   @unique
+  signedAt           DateTime?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([type])
   @@index([status])
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String?
+  type      String?
+  company   String?
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model AdminConfig {
+  id           String  @id @default("singleton")
+  passwordHash String?
 }
