@@ -12,9 +12,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
-  draft:     { label: "Draft",     bg: "#f0efeb",                color: "#5a5a54",       border: "#d0cfc8" },
-  sent:      { label: "Sent",      bg: "rgba(26,86,219,0.08)",   color: "#1a56db",       border: "rgba(26,86,219,0.25)" },
-  signed:    { label: "Signed",    bg: "rgba(107,70,193,0.08)",  color: "#6b46c1",       border: "rgba(107,70,193,0.25)" },
+  draft:     { label: "New",       bg: "#f0efeb",                color: "#5a5a54",       border: "#d0cfc8" },
+  sent:      { label: "Pending",   bg: "rgba(26,86,219,0.08)",   color: "#1a56db",       border: "rgba(26,86,219,0.25)" },
+  signed:    { label: "Completed", bg: "#eaf6f0",                color: "#3a7a50",       border: "#b8dfc8" },
   completed: { label: "Completed", bg: "#eaf6f0",                color: "#3a7a50",       border: "#b8dfc8" },
   void:      { label: "Void",      bg: "rgba(192,57,43,0.06)",   color: "#c0392b",       border: "rgba(192,57,43,0.2)" },
 };
@@ -51,7 +51,11 @@ export default async function AgreementsPage({
 
   const agreements = await prisma.agreement.findMany({
     where: {
-      ...(filterStatus && filterStatus !== "all" ? { status: filterStatus } : {}),
+      ...(filterStatus === "completed"
+        ? { status: { in: ["completed", "signed"] } }
+        : filterStatus && filterStatus !== "all"
+        ? { status: filterStatus }
+        : {}),
       ...(q ? {
         OR: [
           { address: { contains: q, mode: "insensitive" } },
@@ -75,12 +79,12 @@ export default async function AgreementsPage({
     fontFamily: "inherit", outline: "none",
   };
 
+  const completedCount = (byStatus.completed ?? 0) + (byStatus.signed ?? 0);
   const TAB_FILTERS = [
     { key: "all",       label: "All",       count: total },
-    { key: "draft",     label: "Draft",     count: byStatus.draft ?? 0 },
-    { key: "sent",      label: "Sent",      count: byStatus.sent ?? 0 },
-    { key: "signed",    label: "Signed",    count: byStatus.signed ?? 0 },
-    { key: "completed", label: "Completed", count: byStatus.completed ?? 0 },
+    { key: "draft",     label: "New",       count: byStatus.draft ?? 0 },
+    { key: "sent",      label: "Pending",   count: byStatus.sent ?? 0 },
+    { key: "completed", label: "Completed", count: completedCount },
   ];
 
   return (

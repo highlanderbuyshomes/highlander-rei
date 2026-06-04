@@ -11,11 +11,11 @@ const TYPE_LABELS: Record<string, string> = {
   listing:     "Listing Agreement",
 };
 
-const STATUS_FLOW = ["draft", "sent", "signed", "completed"] as const;
+const STATUS_FLOW = ["draft", "sent", "completed"] as const;
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  draft:     { label: "Draft",     color: "#5a5a54", bg: "#f0efeb",               border: "#d0cfc8" },
-  sent:      { label: "Sent",      color: "#1a56db", bg: "rgba(26,86,219,0.08)",   border: "rgba(26,86,219,0.25)" },
-  signed:    { label: "Signed",    color: "#6b46c1", bg: "rgba(107,70,193,0.08)",  border: "rgba(107,70,193,0.25)" },
+  draft:     { label: "New",       color: "#5a5a54", bg: "#f0efeb",               border: "#d0cfc8" },
+  sent:      { label: "Pending",   color: "#1a56db", bg: "rgba(26,86,219,0.08)",   border: "rgba(26,86,219,0.25)" },
+  signed:    { label: "Completed", color: "#3a7a50", bg: "#eaf6f0",               border: "#b8dfc8" },
   completed: { label: "Completed", color: "#3a7a50", bg: "#eaf6f0",               border: "#b8dfc8" },
   void:      { label: "Void",      color: "#c0392b", bg: "rgba(192,57,43,0.06)",   border: "rgba(192,57,43,0.2)" },
 };
@@ -30,7 +30,7 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
   if (!a) notFound();
 
   const statusCfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.draft;
-  const currentFlowIdx = STATUS_FLOW.indexOf(a.status as typeof STATUS_FLOW[number]);
+  const currentFlowIdx = a.status === "signed" ? 2 : STATUS_FLOW.indexOf(a.status as typeof STATUS_FLOW[number]);
   const updateStatusWithId = updateAgreementStatus.bind(null, a.id);
   const deleteWithId = deleteAgreement.bind(null, a.id);
   const updateWithId = updateAgreement.bind(null, a.id);
