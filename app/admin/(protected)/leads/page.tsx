@@ -62,7 +62,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
       {/* Filters */}
       <form method="GET" style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
-        <select name="source" defaultValue={source ?? ""} style={{ ...inp, minWidth: "200px" }} onChange={(e) => (e.currentTarget.form as HTMLFormElement)?.requestSubmit()}>
+        <select name="source" defaultValue={source ?? ""} style={{ ...inp, minWidth: "200px" }}>
           <option value="">All sources</option>
           <option value="highlander-rei">highlanderrei.com</option>
           <option value="highlander-buys-homes">highlanderbuyshomes.com</option>

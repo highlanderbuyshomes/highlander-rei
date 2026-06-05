@@ -2,8 +2,9 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { updateAgreementStatus, deleteAgreement, updateAgreement } from "../actions";
+import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, removeSigner, sendSigningLinks } from "../actions";
 import CopyButton from "../CopyButton";
+import SignerSection from "./SignerSection";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:  "Cash Offer",
@@ -26,16 +27,26 @@ const lbl: React.CSSProperties = { fontSize: "11px", color: "#5a5a54", textTrans
 export default async function AgreementDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
   const { id } = await params;
-  const a = await prisma.agreement.findUnique({ where: { id } });
+
+  const [a, contacts] = await Promise.all([
+    prisma.agreement.findUnique({
+      where: { id },
+      include: { signers: { orderBy: { order: "asc" } } },
+    }),
+    prisma.contact.findMany({ orderBy: { name: "asc" } }),
+  ]);
   if (!a) notFound();
 
   const statusCfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.draft;
   const currentFlowIdx = a.status === "signed" ? 2 : STATUS_FLOW.indexOf(a.status as typeof STATUS_FLOW[number]);
   const updateStatusWithId = updateAgreementStatus.bind(null, a.id);
-  const deleteWithId = deleteAgreement.bind(null, a.id);
-  const updateWithId = updateAgreement.bind(null, a.id);
+  const deleteWithId       = deleteAgreement.bind(null, a.id);
+  const updateWithId       = updateAgreement.bind(null, a.id);
+  const addSignerWithId    = addSigner.bind(null, a.id);
+  const sendLinksWithId    = sendSigningLinks.bind(null, a.id);
 
   const signingUrl = a.signerToken ? `https://highlanderrei.com/sign/${a.signerToken}` : null;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
 
   return (
     <div style={{ maxWidth: "820px" }}>
@@ -105,10 +116,24 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
         </div>
       )}
 
-      {/* Signing Link */}
-      {signingUrl && (
+      {/* Signers */}
+      <SignerSection
+        agreementId={a.id}
+        signers={a.signers.map(s => ({
+          id: s.id, name: s.name, email: s.email, order: s.order,
+          emailedAt: s.emailedAt, signedAt: s.signedAt, token: s.token,
+        }))}
+        contacts={contacts.map(c => ({ id: c.id, name: c.name, email: c.email, phone: c.phone, company: c.company }))}
+        addSignerAction={addSignerWithId}
+        removeSignerAction={removeSigner}
+        sendLinksAction={sendLinksWithId}
+        baseUrl={baseUrl}
+      />
+
+      {/* Legacy signing link (for old single-signer agreements) */}
+      {signingUrl && a.signers.length === 0 && (
         <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px" }}>
-          <div style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600, marginBottom: "12px" }}>Signing Link</div>
+          <div style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600, marginBottom: "12px" }}>Legacy Signing Link</div>
           {a.signedAt ? (
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <span style={{ fontSize: "20px" }}>✅</span>
@@ -120,12 +145,9 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <input readOnly value={signingUrl} style={{ flex: 1, padding: "9px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#f5f4f0", color: "#5a5a54", fontFamily: "monospace", outline: "none" }} />
-                <CopyButton text={signingUrl} />
-              </div>
-              <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>Share this link with {a.signerName ?? "the signer"}. They can sign directly from their browser — no account needed.</div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <input readOnly value={signingUrl} style={{ flex: 1, padding: "9px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#f5f4f0", color: "#5a5a54", fontFamily: "monospace", outline: "none" }} />
+              <CopyButton text={signingUrl} />
             </div>
           )}
         </div>
@@ -139,10 +161,6 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
             <div style={{ display: "grid", gap: "14px" }}>
               <div><label style={lbl}>Property Address *</label><input name="address" required defaultValue={a.address} style={inp} /></div>
               <div><label style={lbl}>Seller(s)</label><input name="sellers" required defaultValue={a.sellers} style={inp} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
-                <div><label style={lbl}>Signer Name</label><input name="signerName" defaultValue={a.signerName ?? ""} style={inp} /></div>
-                <div><label style={lbl}>Signer Email</label><input name="signerEmail" type="email" defaultValue={a.signerEmail ?? ""} style={inp} /></div>
-              </div>
               <div><label style={lbl}>Replace PDF (optional)</label><input name="pdfFile" type="file" accept="application/pdf" style={{ ...inp, padding: "8px 12px" }} /></div>
               <div><label style={lbl}>Notes (internal)</label><textarea name="notes" rows={2} defaultValue={a.notes ?? ""} style={{ ...inp, resize: "vertical" }} /></div>
             </div>
@@ -177,4 +195,3 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
     </div>
   );
 }
-

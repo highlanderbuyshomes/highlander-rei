@@ -2,14 +2,49 @@
 
 import { useState } from "react";
 
-export default function SignatureForm({ token, signerName }: { token: string; signerName: string }) {
-  const [name, setName] = useState(signerName);
+type Field = {
+  id: string;
+  type: string;
+  label: string;
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+const FIELD_COLORS: Record<string, string> = {
+  signature: "#1a56db",
+  initials:  "#6b46c1",
+  date:      "#3a7a50",
+  text:      "#B8962E",
+};
+
+export default function SignatureForm({
+  token,
+  signerName,
+  fields,
+}: {
+  token: string;
+  signerName: string;
+  fields: Field[];
+}) {
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+  const [name, setName]     = useState(signerName);
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState("");
+  const [done, setDone]     = useState(false);
+  const [error, setError]   = useState("");
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    fields.forEach(f => {
+      if (f.type === "date") init[f.id] = today;
+    });
+    return init;
+  });
 
-  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const hasCustomFields = fields.length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,9 +55,13 @@ export default function SignatureForm({ token, signerName }: { token: string; si
       const res = await fetch("/api/agreements/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, signerName: name.trim() }),
+        body: JSON.stringify({
+          token,
+          signerName: name.trim(),
+          fieldData: hasCustomFields ? fieldValues : undefined,
+        }),
       });
-      if (!res.ok) throw new Error("Failed to submit");
+      if (!res.ok) throw new Error("Failed");
       setDone(true);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -48,23 +87,48 @@ export default function SignatureForm({ token, signerName }: { token: string; si
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+
+        {/* Signature field — always shown */}
         <div>
           <label style={{ fontSize: "11px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 500 }}>
-            Full Legal Name *
+            Full Legal Name / Signature *
           </label>
           <input
             type="text" required value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Type your full name"
-            style={{ width: "100%", padding: "12px 14px", fontSize: "15px", color: "#111110", background: "#fafaf8", border: "1px solid #d0cfc8", borderRadius: "8px", outline: "none", fontFamily: "inherit", boxSizing: "border-box", fontStyle: "italic" }}
+            placeholder="Type your full name to sign"
+            style={{ width: "100%", padding: "12px 14px", fontSize: "16px", color: "#111110", background: "#fafaf8", border: "1px solid #d0cfc8", borderRadius: "8px", outline: "none", fontFamily: "Georgia, serif", boxSizing: "border-box", fontStyle: "italic" }}
           />
           <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "4px" }}>Typing your name acts as your electronic signature.</div>
         </div>
 
+        {/* Custom fields from template */}
+        {fields.filter(f => f.type !== "signature").map(field => {
+          const color = FIELD_COLORS[field.type] ?? "#5a5a54";
+          const isDate = field.type === "date";
+          return (
+            <div key={field.id}>
+              <label style={{ fontSize: "11px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "flex", alignItems: "center", gap: "6px", fontWeight: 500 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                {field.label} {isDate ? "" : "*"}
+              </label>
+              <input
+                type={isDate ? "text" : "text"}
+                required={!isDate}
+                value={fieldValues[field.id] ?? ""}
+                readOnly={isDate}
+                onChange={(e) => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                style={{ width: "100%", padding: "10px 14px", fontSize: "14px", color: "#111110", background: isDate ? "#f5f4f0" : "#fafaf8", border: `1px solid ${color}40`, borderRadius: "6px", outline: "none", fontFamily: isDate ? "inherit" : "Georgia, serif", boxSizing: "border-box", fontStyle: field.type === "initials" ? "italic" : "normal" }}
+              />
+            </div>
+          );
+        })}
+
+        {/* Preview box */}
         <div style={{ background: "#f5f4f0", borderRadius: "8px", padding: "16px 18px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12px" }}>
             <div>
               <div style={{ color: "#8a8a84", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.5px", fontSize: "10px" }}>Signature</div>
-              <div style={{ color: "#111110", fontStyle: "italic", fontSize: "16px", fontWeight: 500 }}>{name || "_____________________"}</div>
+              <div style={{ color: "#111110", fontStyle: "italic", fontSize: "16px", fontWeight: 500, fontFamily: "Georgia, serif" }}>{name || "_____________________"}</div>
             </div>
             <div>
               <div style={{ color: "#8a8a84", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.5px", fontSize: "10px" }}>Date</div>

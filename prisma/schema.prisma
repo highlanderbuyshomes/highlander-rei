@@ -10,10 +10,8 @@ model Agreement {
   id                 String    @id @default(cuid())
   type               String
   status             String    @default("draft")
-
   address            String
   sellers            String
-
   companyBuyer       String?
   offerPrice         String?
   closingDate        String?
@@ -30,21 +28,48 @@ model Agreement {
   brokerComp         String?
   listingStart       String?
   listingEnd         String?
-
   notes              String?
   pdfUrl             String?
-
-  // Signing
   signerName         String?
   signerEmail        String?
   signerToken        String?   @unique
   signedAt           DateTime?
-
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  signers            AgreementSigner[]
 
   @@index([type])
   @@index([status])
+}
+
+model AgreementSigner {
+  id          String    @id @default(cuid())
+  agreementId String
+  agreement   Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  name        String
+  email       String
+  token       String    @unique @default(cuid())
+  order       Int       @default(0)
+  fieldData   Json?
+  emailedAt   DateTime?
+  signedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([agreementId])
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  company   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  signers   AgreementSigner[]
 }
 
 model Lead {
@@ -67,11 +92,31 @@ model AdminConfig {
 }
 
 model AgreementTemplate {
-  id          String   @id @default(cuid())
-  type        String   @unique
+  id          String          @id @default(cuid())
+  type        String          @unique
   name        String
   pdfUrl      String?
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  signerCount Int             @default(1)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  fields      TemplateField[]
+}
+
+model TemplateField {
+  id          String            @id @default(cuid())
+  templateId  String
+  template    AgreementTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  type        String
+  label       String?
+  page        Int               @default(1)
+  x           Float
+  y           Float
+  width       Float
+  height      Float
+  signerIndex Int               @default(0)
+  required    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+
+  @@index([templateId])
 }

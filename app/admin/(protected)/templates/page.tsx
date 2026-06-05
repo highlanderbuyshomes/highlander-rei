@@ -100,8 +100,11 @@ export default async function TemplatesPage() {
                   <button type="submit" style={{ padding: "8px 18px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                     Save
                   </button>
-                  <Link href={`/admin/agreements/new?template=${type}`} style={{ padding: "8px 16px", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12.5px", color: "#111110", textDecoration: "none", fontWeight: 500 }}>
-                    + New Agreement
+                  <Link href={`/admin/templates/${type}`} style={{ padding: "8px 14px", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12.5px", color: "#111110", textDecoration: "none", fontWeight: 500 }}>
+                    Edit Fields
+                  </Link>
+                  <Link href={`/admin/agreements/new?template=${type}`} style={{ padding: "8px 14px", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12.5px", color: "#111110", textDecoration: "none", fontWeight: 500 }}>
+                    + Agreement
                   </Link>
                 </div>
               </form>

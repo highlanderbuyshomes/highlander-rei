@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {[
               { href: "/admin/agreements", label: "Agreements" },
               { href: "/admin/templates", label: "Templates" },
+              { href: "/admin/contacts", label: "Contacts" },
               { href: "/admin/leads", label: "Leads" },
             ].map(({ href, label }) => (
               <Link key={href} href={href} style={{
