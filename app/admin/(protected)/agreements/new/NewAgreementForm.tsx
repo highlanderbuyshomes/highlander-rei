@@ -4,13 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { createAgreement } from "../actions";
 
-const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: "13px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", outline: "none", fontFamily: "inherit" };
+const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: "13px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
 const lbl: React.CSSProperties = { fontSize: "11px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 500 };
 const grid2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" };
+const secHead: React.CSSProperties = { fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#111110", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e8e7e2" };
 
 export default function NewAgreementForm({ defaultType }: { defaultType: string }) {
-  const [pending, setPending] = useState(false);
+  const [pending, setPending]   = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [type, setType]         = useState(defaultType);
+  const [hasSeller2, setHasSeller2] = useState(false);
+
+  const isFlexEquity = type === "flex_equity";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,7 +27,7 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
   }
 
   return (
-    <div style={{ maxWidth: "620px" }}>
+    <div style={{ maxWidth: "640px" }}>
       <div style={{ marginBottom: "20px" }}>
         <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Agreements</Link>
       </div>
@@ -31,31 +36,19 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
       <form onSubmit={handleSubmit}>
         <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "18px" }}>
 
-          {/* PDF Upload */}
+          {/* Agreement type — always shown */}
           <div>
-            <div style={{ fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#111110", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e8e7e2" }}>DOCUMENT</div>
-            <label style={lbl}>Upload Agreement PDF</label>
-            <label style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-              border: `2px dashed ${fileName ? "#3a7a50" : "#d0cfc8"}`,
-              borderRadius: "8px", padding: "20px", cursor: "pointer",
-              background: fileName ? "#eaf6f0" : "#fafaf8", transition: "all 0.15s",
-            }}>
-              <input name="pdfFile" type="file" accept="application/pdf" style={{ display: "none" }} onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fileName ? "#3a7a50" : "#d0cfc8"} strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-              <span style={{ fontSize: "13px", color: fileName ? "#3a7a50" : "#8a8a84", fontWeight: fileName ? 500 : 400 }}>
-                {fileName ?? "Click to upload PDF"}
-              </span>
-            </label>
-          </div>
-
-          {/* Agreement Info */}
-          <div>
-            <div style={{ fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#111110", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e8e7e2" }}>AGREEMENT INFO</div>
+            <div style={secHead}>AGREEMENT INFO</div>
             <div style={{ display: "grid", gap: "14px" }}>
               <div>
                 <label style={lbl}>Agreement Type *</label>
-                <select name="type" required defaultValue={defaultType} style={inp}>
+                <select
+                  name="type"
+                  required
+                  value={type}
+                  onChange={(e) => { setType(e.target.value); setHasSeller2(false); }}
+                  style={inp}
+                >
                   <option value="">Select type…</option>
                   <option value="cash_offer">Cash Offer</option>
                   <option value="flex_equity">Flex Equity Program</option>
@@ -66,42 +59,152 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
                 <label style={lbl}>Property Address *</label>
                 <input name="address" required placeholder="1234 W Camelback Rd, Phoenix, AZ 85013" style={inp} />
               </div>
-              <div>
-                <label style={lbl}>Seller(s) *</label>
-                <input name="sellers" required placeholder="John Smith, Jane Smith" style={inp} />
-              </div>
             </div>
           </div>
 
-          {/* Signer Info */}
-          <div>
-            <div style={{ fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#111110", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e8e7e2" }}>SIGNER</div>
-            <div style={grid2}>
+          {/* ── FLEX EQUITY fields ── */}
+          {isFlexEquity && (
+            <>
               <div>
-                <label style={lbl}>Signer Full Name</label>
-                <input name="signerName" placeholder="John Smith" style={inp} />
+                <div style={secHead}>AGREEMENT DATE</div>
+                <div>
+                  <label style={lbl}>Agreement Date</label>
+                  <input
+                    name="agreementDate"
+                    placeholder={new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                    style={inp}
+                  />
+                  <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "4px" }}>Leave blank to use today&apos;s date.</div>
+                </div>
               </div>
-              <div>
-                <label style={lbl}>Signer Email</label>
-                <input name="signerEmail" type="email" placeholder="john@example.com" style={inp} />
-              </div>
-            </div>
-          </div>
 
-          {/* Notes */}
+              <div>
+                <div style={secHead}>PARTIES</div>
+                <div style={{ display: "grid", gap: "14px" }}>
+                  <div>
+                    <label style={lbl}>Seller 1 Full Legal Name *</label>
+                    <input name="seller1Name" required placeholder="John Smith" style={inp} />
+                  </div>
+
+                  {hasSeller2 ? (
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "5px" }}>
+                        <label style={{ ...lbl, marginBottom: 0 }}>Seller 2 Full Legal Name</label>
+                        <button
+                          type="button"
+                          onClick={() => setHasSeller2(false)}
+                          style={{ fontSize: "11px", color: "#c0392b", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <input name="seller2Name" placeholder="Jane Smith" style={inp} />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setHasSeller2(true)}
+                      style={{ padding: "9px 16px", background: "transparent", color: "#5a5a54", border: "1px dashed #d0cfc8", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                    >
+                      + Add Seller 2 (if applicable)
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div style={secHead}>DEAL TERMS</div>
+                <div style={{ display: "grid", gap: "14px" }}>
+                  <div style={grid2}>
+                    <div>
+                      <label style={lbl}>Purchase Price *</label>
+                      <input name="offerPrice" required placeholder="$150,000" style={inp} />
+                    </div>
+                    <div>
+                      <label style={lbl}>Earnest Money Deposit *</label>
+                      <input name="earnestMoney" required placeholder="$1,000" style={inp} />
+                    </div>
+                  </div>
+                  <div style={{ maxWidth: "50%" }}>
+                    <label style={lbl}>Cash at Closing *</label>
+                    <input name="cashAtClosing" required placeholder="$149,000" style={inp} />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── NON-FLEX EQUITY fields ── */}
+          {!isFlexEquity && (
+            <>
+              <div>
+                <div style={secHead}>DOCUMENT</div>
+                <label style={lbl}>Upload Agreement PDF</label>
+                <label style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                  border: `2px dashed ${fileName ? "#3a7a50" : "#d0cfc8"}`,
+                  borderRadius: "8px", padding: "20px", cursor: "pointer",
+                  background: fileName ? "#eaf6f0" : "#fafaf8", transition: "all 0.15s",
+                }}>
+                  <input name="pdfFile" type="file" accept="application/pdf" style={{ display: "none" }} onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fileName ? "#3a7a50" : "#d0cfc8"} strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                  <span style={{ fontSize: "13px", color: fileName ? "#3a7a50" : "#8a8a84", fontWeight: fileName ? 500 : 400 }}>
+                    {fileName ?? "Click to upload PDF"}
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <div style={secHead}>PARTIES</div>
+                <div>
+                  <label style={lbl}>Seller(s) *</label>
+                  <input name="sellers" required placeholder="John Smith, Jane Smith" style={inp} />
+                </div>
+              </div>
+
+              <div>
+                <div style={secHead}>SIGNER</div>
+                <div style={grid2}>
+                  <div>
+                    <label style={lbl}>Signer Full Name</label>
+                    <input name="signerName" placeholder="John Smith" style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Signer Email</label>
+                    <input name="signerEmail" type="email" placeholder="john@example.com" style={inp} />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Notes — always shown */}
           <div>
             <label style={lbl}>Notes (internal)</label>
             <textarea name="notes" rows={2} placeholder="Any notes…" style={{ ...inp, resize: "vertical" }} />
           </div>
 
           <div style={{ display: "flex", gap: "10px", paddingTop: "4px", borderTop: "1px solid #e8e7e2" }}>
-            <button type="submit" disabled={pending} style={{ padding: "11px 28px", background: pending ? "#d0cfc8" : "#111110", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}>
-              {pending ? "Creating…" : "Create Agreement"}
+            <button
+              type="submit"
+              disabled={pending}
+              style={{ padding: "11px 28px", background: pending ? "#d0cfc8" : "#111110", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}
+            >
+              {pending ? (isFlexEquity ? "Generating PDF…" : "Creating…") : "Create Agreement"}
             </button>
-            <Link href="/admin/agreements" style={{ padding: "11px 20px", background: "transparent", color: "#5a5a54", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "13px", textDecoration: "none", display: "flex", alignItems: "center" }}>
+            <Link
+              href="/admin/agreements"
+              style={{ padding: "11px 20px", background: "transparent", color: "#5a5a54", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "13px", textDecoration: "none", display: "flex", alignItems: "center" }}
+            >
               Cancel
             </Link>
           </div>
+
+          {isFlexEquity && (
+            <div style={{ fontSize: "11.5px", color: "#8a8a84", background: "#f5f4f0", borderRadius: "8px", padding: "10px 14px" }}>
+              The completed agreement PDF will be auto-generated from the fields above.
+            </div>
+          )}
         </div>
       </form>
     </div>

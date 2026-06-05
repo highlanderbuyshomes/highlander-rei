@@ -29,6 +29,10 @@ model Agreement {
   listingStart       String?
   listingEnd         String?
   notes              String?
+  seller1Name        String?
+  seller2Name        String?
+  agreementDate      String?
+  cashAtClosing      String?
   pdfUrl             String?
   signerName         String?
   signerEmail        String?

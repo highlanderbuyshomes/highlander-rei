@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import { Resend } from "resend";
+import { generateFlexEquityPDF } from "./pdf-templates/generateFlexEquityPDF";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:  "Cash Offer",
@@ -17,16 +18,60 @@ const TYPE_LABELS: Record<string, string> = {
 export async function createAgreement(formData: FormData) {
   await requireAdmin();
 
-  const type    = String(formData.get("type")    ?? "");
+  const type    = String(formData.get("type")    ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
-  const sellers = String(formData.get("sellers") ?? "").trim();
-  if (!type || !address || !sellers) throw new Error("Missing required fields");
+  if (!type || !address) throw new Error("Missing required fields");
 
+  let sellers: string;
   let pdfUrl: string | null = null;
-  const file = formData.get("pdfFile") as File | null;
-  if (file && file.size > 0) {
-    const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
+  let seller1Name: string | null = null;
+  let seller2Name: string | null = null;
+  let agreementDate: string | null = null;
+  let cashAtClosing: string | null = null;
+  let offerPrice: string | null = null;
+  let earnestMoney: string | null = null;
+
+  if (type === "flex_equity") {
+    seller1Name   = String(formData.get("seller1Name")   ?? "").trim() || null;
+    seller2Name   = String(formData.get("seller2Name")   ?? "").trim() || null;
+    agreementDate = String(formData.get("agreementDate") ?? "").trim() || null;
+    offerPrice    = String(formData.get("offerPrice")    ?? "").trim() || null;
+    earnestMoney  = String(formData.get("earnestMoney")  ?? "").trim() || null;
+    cashAtClosing = String(formData.get("cashAtClosing") ?? "").trim() || null;
+
+    if (!seller1Name || !offerPrice || !earnestMoney || !cashAtClosing) {
+      throw new Error("Missing required fields for Flex Equity agreement");
+    }
+
+    sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
+
+    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const pdfBuffer = await generateFlexEquityPDF({
+      agreementDate: agreementDate ?? today,
+      seller1Name,
+      seller2Name: seller2Name ?? undefined,
+      address,
+      purchasePrice: offerPrice,
+      earnestMoney,
+      cashAtClosing,
+    });
+    const blob = await put(`agreements/flex-equity-${Date.now()}.pdf`, pdfBuffer, {
+      access: "public",
+      contentType: "application/pdf",
+    });
     pdfUrl = blob.url;
+  } else {
+    sellers = String(formData.get("sellers") ?? "").trim();
+    if (!sellers) throw new Error("Missing required fields");
+
+    const file = formData.get("pdfFile") as File | null;
+    if (file && file.size > 0) {
+      const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
+      pdfUrl = blob.url;
+    }
+
+    offerPrice   = formData.get("offerPrice")   ? String(formData.get("offerPrice"))   : null;
+    earnestMoney = formData.get("earnestMoney")  ? String(formData.get("earnestMoney")) : null;
   }
 
   const signerToken = randomUUID();
@@ -36,6 +81,12 @@ export async function createAgreement(formData: FormData) {
       type,
       address,
       sellers,
+      seller1Name,
+      seller2Name,
+      agreementDate,
+      cashAtClosing,
+      offerPrice,
+      earnestMoney,
       signerName:  formData.get("signerName")  ? String(formData.get("signerName"))  : null,
       signerEmail: formData.get("signerEmail") ? String(formData.get("signerEmail")) : null,
       notes:       formData.get("notes")       ? String(formData.get("notes"))       : null,
