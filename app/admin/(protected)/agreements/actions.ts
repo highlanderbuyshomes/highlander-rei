@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import { Resend } from "resend";
-import { generateFlexEquityPDF } from "./pdf-templates/generateFlexEquityPDF";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:  "Cash Offer",
@@ -46,6 +45,7 @@ export async function createAgreement(formData: FormData) {
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
     const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const { generateFlexEquityPDF } = await import("./pdf-templates/generateFlexEquityPDF");
     const pdfBuffer = await generateFlexEquityPDF({
       agreementDate: agreementDate ?? today,
       seller1Name,
