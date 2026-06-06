@@ -29,12 +29,13 @@ type Props = {
   sendLinksAction: () => Promise<{ ok: boolean; error?: string; sent?: number }>;
   baseUrl: string;
   emailEnabled: boolean;
+  readyToSend?: boolean;
 };
 
 const SIGNER_COLORS = ["#1a56db", "#c0392b", "#6b46c1", "#3a7a50", "#B8962E"];
 
 export default function SignerSection({
-  signers, contacts, addSignerAction, removeSignerAction, sendLinksAction, baseUrl, emailEnabled,
+  signers, contacts, addSignerAction, removeSignerAction, sendLinksAction, baseUrl, emailEnabled, readyToSend = false,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
@@ -98,6 +99,21 @@ export default function SignerSection({
 
   return (
     <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px" }}>
+      {readyToSend && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", background: "#faf6ec", border: "1px solid #e8d9a0", borderRadius: "8px", padding: "14px 16px", marginBottom: "18px" }}>
+          <div>
+            <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#111110", marginBottom: "3px" }}>Ready for your review</div>
+            <div style={{ fontSize: "11.5px", color: "#5a5a54", lineHeight: 1.5 }}>
+              {emailEnabled
+                ? "Review the PDF and signer emails, then send the signing links."
+                : "Review the PDF and signer emails. Email delivery must be configured before sending."}
+            </div>
+          </div>
+          <button onClick={handleSend} disabled={sending || !emailEnabled || signers.length === 0} title={!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined} style={{ padding: "9px 18px", background: sending || !emailEnabled || signers.length === 0 ? "#d0cfc8" : "#B8962E", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 700, cursor: sending || !emailEnabled || signers.length === 0 ? "default" : "pointer", fontFamily: "inherit" }}>
+            {sending ? "Sending…" : "Send for Signature"}
+          </button>
+        </div>
+      )}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
         <div style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}>
           Signers {signers.length > 0 && `(${signers.length})`}

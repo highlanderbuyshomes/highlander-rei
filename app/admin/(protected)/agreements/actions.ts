@@ -46,6 +46,22 @@ function escapeHtml(value: string) {
   })[char] ?? char);
 }
 
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+type NewSigner = {
+  name: string;
+  email: string;
+};
+
+function requireUniqueSignerEmails(signers: NewSigner[]) {
+  const duplicateEmail = signers.find((signer, index) =>
+    signers.findIndex((candidate) => candidate.email.toLowerCase() === signer.email.toLowerCase()) !== index
+  );
+  if (duplicateEmail) throw new Error(`Each signer needs a unique email address. ${duplicateEmail.email} was entered more than once.`);
+}
+
 export async function createAgreement(formData: FormData) {
   await requireAdmin();
 
@@ -67,6 +83,18 @@ export async function createAgreement(formData: FormData) {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   const g = (key: string) => String(formData.get(key) ?? "").trim() || null;
+  const intent = formData.get("intent") === "review" ? "review" : "draft";
+  const signers: NewSigner[] = [];
+  const buyerSignerName = g("buyerSignerName");
+  const buyerSignerEmail = g("buyerSignerEmail");
+  if (buyerSignerName || buyerSignerEmail) {
+    if (!buyerSignerName || !buyerSignerEmail || !isValidEmail(buyerSignerEmail)) {
+      throw new Error("Enter a valid name and email for the buyer signer.");
+    }
+  }
+  const addBuyerSigner = () => {
+    if (buyerSignerName && buyerSignerEmail) signers.push({ name: buyerSignerName, email: buyerSignerEmail });
+  };
 
   if (type === "flex_equity") {
     seller1Name   = g("seller1Name");
@@ -79,6 +107,15 @@ export async function createAgreement(formData: FormData) {
     if (!seller1Name || !offerPrice || !earnestMoney || !cashAtClosing) {
       throw new Error("Missing required fields for Flex Equity agreement");
     }
+
+    const seller1Email = g("seller1Email");
+    const seller2Email = g("seller2Email");
+    if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
+    if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
+    signers.push({ name: seller1Name, email: seller1Email });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
+    addBuyerSigner();
+    requireUniqueSignerEmails(signers);
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
@@ -114,6 +151,15 @@ export async function createAgreement(formData: FormData) {
       throw new Error("Missing required fields for Cash Offer agreement");
     }
 
+    const seller1Email = g("seller1Email");
+    const seller2Email = g("seller2Email");
+    if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
+    if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
+    signers.push({ name: seller1Name, email: seller1Email });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
+    addBuyerSigner();
+    requireUniqueSignerEmails(signers);
+
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
     if (shouldGeneratePdf()) {
@@ -140,6 +186,15 @@ export async function createAgreement(formData: FormData) {
     sellers = String(formData.get("sellers") ?? "").trim();
     if (!sellers) throw new Error("Missing required fields");
 
+    const signerName = g("signerName");
+    const signerEmail = g("signerEmail");
+    if (!signerName || !signerEmail || !isValidEmail(signerEmail)) {
+      throw new Error("Enter a valid name and email for the primary signer.");
+    }
+    signers.push({ name: signerName, email: signerEmail });
+    addBuyerSigner();
+    requireUniqueSignerEmails(signers);
+
     const file = formData.get("pdfFile") as File | null;
     if (file && file.size > 0) {
       requireBlobToken();
@@ -151,8 +206,6 @@ export async function createAgreement(formData: FormData) {
     offerPrice   = g("offerPrice");
     earnestMoney = g("earnestMoney");
   }
-
-  const signerToken = randomUUID();
 
   const agreement = await prisma.agreement.create({
     data: {
@@ -167,17 +220,23 @@ export async function createAgreement(formData: FormData) {
       earnestMoney,
       titleOffice,
       daysToClosing,
-      signerName:  formData.get("signerName")  ? String(formData.get("signerName"))  : null,
-      signerEmail: formData.get("signerEmail") ? String(formData.get("signerEmail")) : null,
+      signerName:  signers[0]?.name ?? null,
+      signerEmail: signers[0]?.email ?? null,
       notes:       formData.get("notes")       ? String(formData.get("notes"))       : null,
       pdfUrl,
-      signerToken,
       status: "draft",
+      signers: {
+        create: signers.map((signer, order) => ({
+          ...signer,
+          order,
+          token: randomUUID(),
+        })),
+      },
     },
   });
 
   revalidatePath("/admin/agreements");
-  redirect(`/admin/agreements/${agreement.id}`);
+  redirect(`/admin/agreements/${agreement.id}${intent === "review" ? "?review=send" : ""}`);
 }
 
 export async function updateAgreementStatus(id: string, formData: FormData) {

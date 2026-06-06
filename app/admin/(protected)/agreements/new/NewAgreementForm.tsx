@@ -11,9 +11,11 @@ const secHead: React.CSSProperties = { fontFamily: "var(--font-display), serif",
 
 export default function NewAgreementForm({ defaultType }: { defaultType: string }) {
   const [pending, setPending]   = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<"draft" | "review" | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [type, setType]         = useState(defaultType);
   const [hasSeller2, setHasSeller2] = useState(false);
+  const [includeBuyerSigner, setIncludeBuyerSigner] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   const isFlexEquity  = type === "flex_equity";
@@ -22,14 +24,22 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const intent = submitter?.value === "review" ? "review" : "draft";
     setPending(true);
+    setPendingIntent(intent);
     setSubmitError("");
     try {
-      await createAgreement(new FormData(e.currentTarget));
+      const formData = new FormData(e.currentTarget);
+      formData.set("intent", intent);
+      await createAgreement(formData);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Agreement could not be created. Please try again.");
     }
-    finally { setPending(false); }
+    finally {
+      setPending(false);
+      setPendingIntent(null);
+    }
   }
 
   return (
@@ -91,21 +101,31 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
                     <label style={lbl}>Seller 1 Full Legal Name *</label>
                     <input name="seller1Name" required placeholder="John Smith" style={inp} />
                   </div>
+                  <div>
+                    <label style={lbl}>Seller 1 Email *</label>
+                    <input name="seller1Email" type="email" required placeholder="john@example.com" style={inp} />
+                  </div>
 
                   {hasSeller2 ? (
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "5px" }}>
-                        <label style={{ ...lbl, marginBottom: 0 }}>Seller 2 Full Legal Name</label>
-                        <button
-                          type="button"
-                          onClick={() => setHasSeller2(false)}
-                          style={{ fontSize: "11px", color: "#c0392b", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                        >
-                          Remove
-                        </button>
+                    <>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "5px" }}>
+                          <label style={{ ...lbl, marginBottom: 0 }}>Seller 2 Full Legal Name *</label>
+                          <button
+                            type="button"
+                            onClick={() => setHasSeller2(false)}
+                            style={{ fontSize: "11px", color: "#c0392b", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <input name="seller2Name" required placeholder="Jane Smith" style={inp} />
                       </div>
-                      <input name="seller2Name" placeholder="Jane Smith" style={inp} />
-                    </div>
+                      <div>
+                        <label style={lbl}>Seller 2 Email *</label>
+                        <input name="seller2Email" type="email" required placeholder="jane@example.com" style={inp} />
+                      </div>
+                    </>
                   ) : (
                     <button
                       type="button"
@@ -116,6 +136,31 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
                     </button>
                   )}
                 </div>
+              </div>
+
+              <div>
+                <div style={secHead}>BUYER SIGNER</div>
+                <label style={{ display: "flex", alignItems: "center", gap: "9px", cursor: "pointer", fontSize: "12.5px", color: "#5a5a54" }}>
+                  <input
+                    type="checkbox"
+                    checked={includeBuyerSigner}
+                    onChange={(e) => setIncludeBuyerSigner(e.target.checked)}
+                    style={{ accentColor: "#111110" }}
+                  />
+                  Include a Highlander REI representative as a signer
+                </label>
+                {includeBuyerSigner && (
+                  <div style={{ ...grid2, marginTop: "12px" }}>
+                    <div>
+                      <label style={lbl}>Buyer Signer Name *</label>
+                      <input name="buyerSignerName" required placeholder="Full legal name" style={inp} />
+                    </div>
+                    <div>
+                      <label style={lbl}>Buyer Signer Email *</label>
+                      <input name="buyerSignerEmail" type="email" required placeholder="name@highlanderrei.com" style={inp} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -189,12 +234,12 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
                 <div style={secHead}>SIGNER</div>
                 <div style={grid2}>
                   <div>
-                    <label style={lbl}>Signer Full Name</label>
-                    <input name="signerName" placeholder="John Smith" style={inp} />
+                    <label style={lbl}>Primary Signer Full Name *</label>
+                    <input name="signerName" required placeholder="John Smith" style={inp} />
                   </div>
                   <div>
-                    <label style={lbl}>Signer Email</label>
-                    <input name="signerEmail" type="email" placeholder="john@example.com" style={inp} />
+                    <label style={lbl}>Primary Signer Email *</label>
+                    <input name="signerEmail" type="email" required placeholder="john@example.com" style={inp} />
                   </div>
                 </div>
               </div>
@@ -210,10 +255,21 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
           <div style={{ display: "flex", gap: "10px", paddingTop: "4px", borderTop: "1px solid #e8e7e2" }}>
             <button
               type="submit"
+              name="intent"
+              value="draft"
+              disabled={pending}
+              style={{ padding: "11px 22px", background: pending ? "#d0cfc8" : "#ffffff", color: pending ? "#ffffff" : "#111110", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}
+            >
+              {pendingIntent === "draft" ? "Saving…" : "Save Draft"}
+            </button>
+            <button
+              type="submit"
+              name="intent"
+              value="review"
               disabled={pending}
               style={{ padding: "11px 28px", background: pending ? "#d0cfc8" : "#111110", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}
             >
-              {pending ? (isAutoGenerated ? "Generating PDF…" : "Creating…") : "Create Agreement"}
+              {pendingIntent === "review" ? (isAutoGenerated ? "Generating PDF…" : "Creating…") : "Review & Send"}
             </button>
             <Link
               href="/admin/agreements"

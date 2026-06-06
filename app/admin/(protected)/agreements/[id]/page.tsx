@@ -25,9 +25,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: "13px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", outline: "none", fontFamily: "inherit" };
 const lbl: React.CSSProperties = { fontSize: "11px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 500 };
 
-export default async function AgreementDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AgreementDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ review?: string }>;
+}) {
   await requireAdmin();
   const { id } = await params;
+  const { review } = await searchParams;
 
   const [a, contacts] = await Promise.all([
     prisma.agreement.findUnique({
@@ -53,7 +60,7 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
     : !!a.signedAt;
 
   return (
-    <div style={{ maxWidth: "820px", padding: "32px" }}>
+    <div style={{ maxWidth: "820px", padding: "32px", margin: "0 auto" }}>
       <div style={{ marginBottom: "20px" }}>
         <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Agreements</Link>
       </div>
@@ -134,6 +141,7 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
         sendLinksAction={sendLinksWithId}
         baseUrl={baseUrl}
         emailEnabled={!!process.env.RESEND_API_KEY}
+        readyToSend={review === "send" && a.status === "draft"}
       />
 
       {/* Legacy signing link (for old single-signer agreements) */}
