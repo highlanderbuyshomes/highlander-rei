@@ -32,7 +32,7 @@ function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: st
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ac = useRef<any>(null);
 
-  useEffect(() => {
+  const initPlaces = () => {
     if (!GMAPS_KEY || !ref.current) return;
     loadPlaces(() => {
       const win = w(); if (!ref.current || ac.current || !win) return;
@@ -46,6 +46,9 @@ function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: st
         if (place?.formatted_address) setAddress(place.formatted_address);
       });
     });
+  };
+
+  useEffect(() => {
     return () => {
       const win = w();
       if (ac.current) { win?.google?.maps?.event?.clearInstanceListeners(ac.current); ac.current = null; }
@@ -68,6 +71,7 @@ function AddressForm({ placeholder, cta, style }: { placeholder: string; cta: st
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
+          onFocus={initPlaces}
           placeholder={placeholder}
           autoComplete="off"
           style={{ width: "100%", padding: "18px 16px 18px 48px", fontSize: "15px", border: "none", outline: "none", background: "transparent", color: "var(--near-black)", fontFamily: "var(--font-body), system-ui, sans-serif", borderRadius: "50px 0 0 50px" }}

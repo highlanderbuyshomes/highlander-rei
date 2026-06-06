@@ -2,8 +2,10 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import type { Metadata } from "next";
+import type { Prisma } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Agreements | Highlander REI" };
+const PAGE_SIZE = 50;
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:  "Cash Offer",
@@ -44,27 +46,43 @@ function TypeBadge({ type }: { type: string }) {
 export default async function AgreementsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   await requireAdmin();
-  const { status: filterStatus, q } = await searchParams;
+  const { status: filterStatus, q, page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, Number(pageParam) || 1);
 
-  const agreements = await prisma.agreement.findMany({
-    where: {
-      ...(filterStatus === "completed"
-        ? { status: { in: ["completed", "signed"] } }
-        : filterStatus && filterStatus !== "all"
-        ? { status: filterStatus }
-        : {}),
-      ...(q ? {
-        OR: [
-          { address: { contains: q, mode: "insensitive" } },
-          { sellers: { contains: q, mode: "insensitive" } },
-        ],
-      } : {}),
+  const where: Prisma.AgreementWhereInput = {
+    ...(filterStatus === "completed"
+      ? { status: { in: ["completed", "signed"] } }
+      : filterStatus && filterStatus !== "all"
+      ? { status: filterStatus }
+      : {}),
+    ...(q ? {
+      OR: [
+        { address: { contains: q, mode: "insensitive" } },
+        { sellers: { contains: q, mode: "insensitive" } },
+      ],
+    } : {}),
+  };
+
+  const [agreements, filteredTotal] = await Promise.all([
+    prisma.agreement.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    select: {
+      id: true,
+      type: true,
+      address: true,
+      sellers: true,
+      status: true,
+      createdAt: true,
     },
-    orderBy: { createdAt: "desc" },
-  });
+    }),
+    prisma.agreement.count({ where }),
+  ]);
 
   const counts = await prisma.agreement.groupBy({
     by: ["status"],
@@ -80,6 +98,15 @@ export default async function AgreementsPage({
   };
 
   const completedCount = (byStatus.completed ?? 0) + (byStatus.signed ?? 0);
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / PAGE_SIZE));
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams();
+    if (filterStatus) params.set("status", filterStatus);
+    if (q) params.set("q", q);
+    if (page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    return `/admin/agreements${qs ? `?${qs}` : ""}`;
+  };
   const TAB_FILTERS = [
     { key: "all",       label: "All",       count: total },
     { key: "draft",     label: "New",       count: byStatus.draft ?? 0 },
@@ -181,6 +208,21 @@ export default async function AgreementsPage({
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {filteredTotal > PAGE_SIZE && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px", fontSize: "12px", color: "#8a8a84" }}>
+          <span>
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTotal)} of {filteredTotal}
+          </span>
+          <div style={{ display: "flex", gap: "8px" }}>
+            {currentPage > 1 && (
+              <Link href={pageHref(currentPage - 1)} style={{ ...inp, textDecoration: "none", color: "#111110" }}>← Previous</Link>
+            )}
+            {currentPage < totalPages && (
+              <Link href={pageHref(currentPage + 1)} style={{ ...inp, textDecoration: "none", color: "#111110" }}>Next →</Link>
+            )}
+          </div>
         </div>
       )}
     </div>
