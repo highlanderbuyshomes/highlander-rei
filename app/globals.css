@@ -549,6 +549,52 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   .agreements-table-row {
     min-width: 820px;
   }
+
+  .admin-workspace-shell {
+    flex-direction: column;
+  }
+
+  .admin-workspace-sidebar {
+    width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto;
+    padding-bottom: 0 !important;
+    position: sticky;
+    top: 56px;
+    z-index: 40;
+  }
+
+  .admin-workspace-sidebar-section {
+    display: flex;
+    gap: 4px;
+    padding: 8px 4px !important;
+    flex-shrink: 0;
+  }
+
+  .admin-workspace-sidebar-label,
+  .admin-workspace-sidebar-divider {
+    display: none;
+  }
+
+  .admin-workspace-main {
+    min-width: 0;
+  }
+
+  .admin-workspace-header {
+    padding: 20px 16px 0 !important;
+  }
+
+  .admin-workspace-content {
+    padding: 16px !important;
+  }
+
+  .admin-workspace-table {
+    overflow-x: auto !important;
+  }
+
+  .admin-workspace-table-row {
+    min-width: 820px;
+  }
 }
 
 @media (max-width: 600px) {

@@ -13,7 +13,7 @@ async function login(formData: FormData) {
 
   const valid = storedHash
     ? hashPassword(password) === storedHash
-    : password === (process.env.ADMIN_PASSWORD ?? "highlander2024");
+    : !!process.env.ADMIN_PASSWORD && password === process.env.ADMIN_PASSWORD;
 
   if (valid) {
     await createSession();

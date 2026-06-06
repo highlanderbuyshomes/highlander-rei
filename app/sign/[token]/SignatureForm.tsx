@@ -132,7 +132,7 @@ export default function SignatureForm({
     return canvas.toDataURL("image/png");
   }
 
-  const canSubmit = agreed && (tab === "draw" ? hasDrawing : typedName.trim().length > 0);
+  const canSubmit = agreed && typedName.trim().length > 0 && (tab === "draw" ? hasDrawing : true);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -146,7 +146,7 @@ export default function SignatureForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          signerName: tab === "type" ? typedName.trim() : signerName,
+          signerName: typedName.trim(),
           signatureData: sig,
           signatureType: tab,
           fieldData: fields.length > 0 ? fieldValues : undefined,
@@ -186,6 +186,22 @@ export default function SignatureForm({
 
       <form onSubmit={handleSubmit}>
         <div style={{ padding: "20px 28px", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+          {!signerName && (
+            <div>
+              <label style={{ fontSize: "11px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "8px", display: "block", fontWeight: 600 }}>
+                Full legal name *
+              </label>
+              <input
+                type="text"
+                required
+                value={typedName}
+                onChange={(e) => setTypedName(e.target.value)}
+                placeholder="John Smith"
+                style={{ width: "100%", padding: "11px 14px", fontSize: "14px", color: "#111110", background: "#fafaf8", border: "1.5px solid #d0cfc8", borderRadius: "8px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+              />
+            </div>
+          )}
 
           {/* Tab switcher */}
           <div>

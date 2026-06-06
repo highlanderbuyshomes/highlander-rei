@@ -15,6 +15,36 @@ const TYPE_LABELS: Record<string, string> = {
 };
 const AGREEMENT_TYPES = new Set(Object.keys(TYPE_LABELS));
 const AGREEMENT_STATUSES = new Set(["draft", "sent", "signed", "completed", "void"]);
+const MAX_PDF_SIZE = 20 * 1024 * 1024;
+
+function hasBlobToken() {
+  return !!process.env.BLOB_READ_WRITE_TOKEN;
+}
+
+function requireBlobToken() {
+  if (!hasBlobToken()) throw new Error("Document storage is not configured.");
+}
+
+function shouldGeneratePdf() {
+  if (hasBlobToken()) return true;
+  if (process.env.NODE_ENV === "production") requireBlobToken();
+  return false;
+}
+
+function validatePdf(file: File) {
+  if (file.type !== "application/pdf") throw new Error("Agreement documents must be PDF files.");
+  if (file.size > MAX_PDF_SIZE) throw new Error("Agreement PDFs must be 20 MB or smaller.");
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  })[char] ?? char);
+}
 
 export async function createAgreement(formData: FormData) {
   await requireAdmin();
@@ -52,17 +82,17 @@ export async function createAgreement(formData: FormData) {
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    const { generateFlexEquityPDF } = await import("./pdf-templates/generateFlexEquityPDF");
-    const pdfBuffer = await generateFlexEquityPDF({
-      agreementDate: agreementDate ?? today,
-      seller1Name,
-      seller2Name: seller2Name ?? undefined,
-      address,
-      purchasePrice: offerPrice,
-      earnestMoney,
-      cashAtClosing,
-    });
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
+    if (shouldGeneratePdf()) {
+      const { generateFlexEquityPDF } = await import("./pdf-templates/generateFlexEquityPDF");
+      const pdfBuffer = await generateFlexEquityPDF({
+        agreementDate: agreementDate ?? today,
+        seller1Name,
+        seller2Name: seller2Name ?? undefined,
+        address,
+        purchasePrice: offerPrice,
+        earnestMoney,
+        cashAtClosing,
+      });
       const blob = await put(`agreements/flex-equity-${Date.now()}.pdf`, pdfBuffer, {
         access: "public",
         contentType: "application/pdf",
@@ -86,19 +116,19 @@ export async function createAgreement(formData: FormData) {
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    const { generateCashOfferPDF } = await import("./pdf-templates/generateCashOfferPDF");
-    const pdfBuffer = await generateCashOfferPDF({
-      agreementDate: agreementDate ?? today,
-      seller1Name,
-      seller2Name: seller2Name ?? undefined,
-      address,
-      purchasePrice: offerPrice,
-      earnestMoney,
-      cashAtClosing,
-      titleOffice:   titleOffice   ?? undefined,
-      daysToClosing: daysToClosing ?? undefined,
-    });
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
+    if (shouldGeneratePdf()) {
+      const { generateCashOfferPDF } = await import("./pdf-templates/generateCashOfferPDF");
+      const pdfBuffer = await generateCashOfferPDF({
+        agreementDate: agreementDate ?? today,
+        seller1Name,
+        seller2Name: seller2Name ?? undefined,
+        address,
+        purchasePrice: offerPrice,
+        earnestMoney,
+        cashAtClosing,
+        titleOffice:   titleOffice   ?? undefined,
+        daysToClosing: daysToClosing ?? undefined,
+      });
       const blob = await put(`agreements/cash-offer-${Date.now()}.pdf`, pdfBuffer, {
         access: "public",
         contentType: "application/pdf",
@@ -111,7 +141,9 @@ export async function createAgreement(formData: FormData) {
     if (!sellers) throw new Error("Missing required fields");
 
     const file = formData.get("pdfFile") as File | null;
-    if (file && file.size > 0 && process.env.BLOB_READ_WRITE_TOKEN) {
+    if (file && file.size > 0) {
+      requireBlobToken();
+      validatePdf(file);
       const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
       pdfUrl = blob.url;
     }
@@ -152,6 +184,17 @@ export async function updateAgreementStatus(id: string, formData: FormData) {
   await requireAdmin();
   const status = String(formData.get("status") ?? "");
   if (!AGREEMENT_STATUSES.has(status)) throw new Error("Invalid agreement status");
+  if (status === "signed" || status === "completed") {
+    const agreement = await prisma.agreement.findUnique({
+      where: { id },
+      select: { signedAt: true, signers: { select: { signedAt: true } } },
+    });
+    if (!agreement) throw new Error("Agreement not found");
+    const allSigned = agreement.signers.length > 0
+      ? agreement.signers.every((signer) => !!signer.signedAt)
+      : !!agreement.signedAt;
+    if (!allSigned) throw new Error("All signers must sign before the agreement can be completed.");
+  }
   await prisma.agreement.update({ where: { id }, data: { status } });
   revalidatePath("/admin/agreements");
   revalidatePath(`/admin/agreements/${id}`);
@@ -162,7 +205,9 @@ export async function updateAgreement(id: string, formData: FormData) {
 
   const file = formData.get("pdfFile") as File | null;
   let pdfUrl: string | undefined;
-  if (file && file.size > 0 && process.env.BLOB_READ_WRITE_TOKEN) {
+  if (file && file.size > 0) {
+    requireBlobToken();
+    validatePdf(file);
     const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
     pdfUrl = blob.url;
   }
@@ -252,6 +297,10 @@ export async function sendSigningLinks(agreementId: string) {
   for (const signer of unsent) {
     const signingUrl = `${baseUrl}/sign/${signer.token}`;
     const typeLabel = TYPE_LABELS[agreement.type] ?? agreement.type;
+    const safeName = escapeHtml(signer.name);
+    const safeTypeLabel = escapeHtml(typeLabel);
+    const safeAddress = escapeHtml(agreement.address);
+    const safeSigningUrl = escapeHtml(signingUrl);
 
     const { error } = await resend.emails.send({
       from: fromEmail,
@@ -264,16 +313,16 @@ export async function sendSigningLinks(agreementId: string) {
               <p style="font-size:20px;font-family:Georgia,serif;color:#fff;letter-spacing:3px;margin:0">REI<span style="color:#B8962E">.</span></p>
             </div>
             <div style="background:#fafaf8;border:1px solid #e8e7e2;border-top:none;border-radius:0 0 8px 8px;padding:28px 24px">
-              <h2 style="font-size:17px;color:#111;margin:0 0 12px">Hi ${signer.name},</h2>
+              <h2 style="font-size:17px;color:#111;margin:0 0 12px">Hi ${safeName},</h2>
               <p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 20px">
-                You have a <strong>${typeLabel}</strong> ready for your signature regarding the property at:<br/>
-                <strong style="color:#111">${agreement.address}</strong>
+                You have a <strong>${safeTypeLabel}</strong> ready for your signature regarding the property at:<br/>
+                <strong style="color:#111">${safeAddress}</strong>
               </p>
-              <a href="${signingUrl}" style="display:inline-block;background:#111110;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none;letter-spacing:0.3px">
+              <a href="${safeSigningUrl}" style="display:inline-block;background:#111110;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none;letter-spacing:0.3px">
                 Review &amp; Sign →
               </a>
               <p style="font-size:12px;color:#aaa;margin:20px 0 0">
-                Or copy this link: ${signingUrl}
+                Or copy this link: ${safeSigningUrl}
               </p>
             </div>
           </div>

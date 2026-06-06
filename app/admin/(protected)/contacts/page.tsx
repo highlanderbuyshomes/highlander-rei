@@ -66,20 +66,20 @@ export default async function ContactsPage({
   ];
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
+    <div className="admin-workspace-shell" style={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
 
       {/* ── Sidebar ── */}
-      <aside style={{ width: "236px", background: "#1C1C1B", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
+      <aside className="admin-workspace-sidebar" style={{ width: "236px", background: "#1C1C1B", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
 
-        <div style={{ padding: "16px 14px 12px" }}>
+        <div className="admin-workspace-sidebar-section" style={{ padding: "16px 14px 12px" }}>
           <Link href="/admin/contacts/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "#B8962E", color: "#ffffff", padding: "11px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             Add Contact
           </Link>
         </div>
 
-        <div style={{ padding: "8px 10px 0" }}>
-          <div style={{ fontSize: "9px", fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>CONTACTS</div>
+        <div className="admin-workspace-sidebar-section" style={{ padding: "8px 10px 0" }}>
+          <div className="admin-workspace-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>CONTACTS</div>
           {FILTERS.map(({ key, label, count, icon }) => {
             const active = filter === key;
             return (
@@ -98,8 +98,8 @@ export default async function ContactsPage({
           })}
         </div>
 
-        <div style={{ margin: "20px 14px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }} />
-        <div style={{ padding: "12px 10px 0" }}>
+        <div className="admin-workspace-sidebar-divider" style={{ margin: "20px 14px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }} />
+        <div className="admin-workspace-sidebar-section" style={{ padding: "12px 10px 0" }}>
           <Link href="/admin/agreements" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", textDecoration: "none", color: "rgba(255,255,255,0.35)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
             <span style={{ fontSize: "12.5px" }}>Agreements</span>
@@ -108,9 +108,9 @@ export default async function ContactsPage({
       </aside>
 
       {/* ── Main ── */}
-      <main style={{ flex: 1, background: "#f5f4f0", display: "flex", flexDirection: "column" }}>
+      <main className="admin-workspace-main" style={{ flex: 1, background: "#f5f4f0", display: "flex", flexDirection: "column" }}>
 
-        <div style={{ padding: "28px 32px 0", borderBottom: "1px solid #e8e7e2", background: "#ffffff" }}>
+        <div className="admin-workspace-header" style={{ padding: "28px 32px 0", borderBottom: "1px solid #e8e7e2", background: "#ffffff" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
             <div style={{ fontFamily: "var(--font-display), serif", fontSize: "28px", color: "#111110", letterSpacing: "2px" }}>
               {filter === "all" ? "ALL CONTACTS" : filter === "seller" ? "SELLERS" : "BUYERS"}
@@ -131,7 +131,7 @@ export default async function ContactsPage({
           </form>
         </div>
 
-        <div style={{ flex: 1, padding: "24px 32px" }}>
+        <div className="admin-workspace-content" style={{ flex: 1, padding: "24px 32px" }}>
           {contacts.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center" }}>
               <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style={{ marginBottom: "20px", opacity: 0.3 }}>
@@ -148,8 +148,8 @@ export default async function ContactsPage({
               </Link>
             </div>
           ) : (
-            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "12px", overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1.4fr 1.2fr 1fr 80px 60px 120px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+            <div className="admin-workspace-table" style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "12px", overflow: "hidden" }}>
+              <div className="admin-workspace-table-row" style={{ display: "grid", gridTemplateColumns: "1.4fr 1.4fr 1.2fr 1fr 80px 60px 120px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
                 {["Name", "Email", "Phone", "Company", "Type", "Deals", ""].map((h) => (
                   <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
                 ))}
@@ -161,7 +161,7 @@ export default async function ContactsPage({
                   ? [c.firstName, c.lastName].filter(Boolean).join(" ")
                   : c.name;
                 return (
-                  <div key={c.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.4fr 1.2fr 1fr 80px 60px 120px", padding: "14px 20px", borderBottom: i < contacts.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center", background: "#ffffff" }}>
+                  <div key={c.id} className="admin-workspace-table-row" style={{ display: "grid", gridTemplateColumns: "1.4fr 1.4fr 1.2fr 1fr 80px 60px 120px", padding: "14px 20px", borderBottom: i < contacts.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center", background: "#ffffff" }}>
                     <div>
                       <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{displayName}</div>
                       {c.firstName && c.lastName && c.name !== displayName && (

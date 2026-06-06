@@ -48,6 +48,9 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
 
   const signingUrl = a.signerToken ? `https://highlanderrei.com/sign/${a.signerToken}` : null;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
+  const canComplete = a.signers.length > 0
+    ? a.signers.every((signer) => !!signer.signedAt)
+    : !!a.signedAt;
 
   return (
     <div style={{ maxWidth: "820px", padding: "32px" }}>
@@ -97,11 +100,12 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
               const done = i <= currentFlowIdx;
               const current = i === currentFlowIdx;
               const cfg = STATUS_CONFIG[s];
+              const locked = s === "completed" && !canComplete;
               return (
                 <div key={s} style={{ display: "flex", alignItems: "center", flex: i < STATUS_FLOW.length - 1 ? 1 : 0 }}>
                   <form action={updateStatusWithId}>
                     <input type="hidden" name="status" value={s} />
-                    <button type="submit" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", background: "none", border: "none", cursor: i !== currentFlowIdx ? "pointer" : "default", padding: "0 4px" }}>
+                    <button type="submit" disabled={locked} title={locked ? "All signers must sign before completion" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", background: "none", border: "none", cursor: locked || i === currentFlowIdx ? "default" : "pointer", opacity: locked ? 0.55 : 1, padding: "0 4px" }}>
                       <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? (current ? cfg.bg : "#eaf6f0") : "#f0efeb", border: `2px solid ${done ? (current ? cfg.border : "#b8dfc8") : "#d0cfc8"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {done && !current && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#3a7a50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         {current && <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color }} />}

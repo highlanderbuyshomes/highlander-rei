@@ -21,7 +21,7 @@ async function changePassword(formData: FormData) {
 
   const validCurrent = currentHash
     ? hashPassword(current) === currentHash
-    : current === (process.env.ADMIN_PASSWORD ?? "highlander2024");
+    : !!process.env.ADMIN_PASSWORD && current === process.env.ADMIN_PASSWORD;
 
   if (!validCurrent) redirect("/admin/password?error=wrong");
 

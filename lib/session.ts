@@ -6,8 +6,11 @@ const COOKIE = "hlr_admin_session";
 const MAX_AGE = 60 * 60 * 8; // 8 hours
 
 function getSecret() {
-  const secret = process.env.SESSION_SECRET ?? "fallback-dev-secret-change-me";
-  return new TextEncoder().encode(secret);
+  const secret = process.env.SESSION_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET must be configured in production.");
+  }
+  return new TextEncoder().encode(secret ?? "local-development-session-secret");
 }
 
 export async function createSession() {
