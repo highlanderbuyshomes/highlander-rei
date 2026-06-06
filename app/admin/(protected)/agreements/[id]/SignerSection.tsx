@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 type Signer = {
   id: string;
@@ -26,14 +26,15 @@ type Props = {
   contacts: Contact[];
   addSignerAction:  (formData: FormData) => Promise<void>;
   removeSignerAction: (id: string) => Promise<void>;
-  sendLinksAction: () => Promise<void>;
+  sendLinksAction: () => Promise<{ ok: boolean; error?: string; sent?: number }>;
   baseUrl: string;
+  emailEnabled: boolean;
 };
 
 const SIGNER_COLORS = ["#1a56db", "#c0392b", "#6b46c1", "#3a7a50", "#B8962E"];
 
 export default function SignerSection({
-  signers, contacts, addSignerAction, removeSignerAction, sendLinksAction, baseUrl,
+  signers, contacts, addSignerAction, removeSignerAction, sendLinksAction, baseUrl, emailEnabled,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
@@ -41,6 +42,7 @@ export default function SignerSection({
   const [customName, setCustomName] = useState("");
   const [customEmail, setCustomEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendMessage, setSendMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -72,8 +74,17 @@ export default function SignerSection({
   async function handleSend() {
     if (!confirm("Email signing links to all unsent signers and mark agreement as Pending?")) return;
     setSending(true);
-    await sendLinksAction();
-    setSending(false);
+    setSendMessage(null);
+    try {
+      const result = await sendLinksAction();
+      setSendMessage(result.ok
+        ? { type: "success", text: `${result.sent ?? 0} signing link${result.sent === 1 ? "" : "s"} sent.` }
+        : { type: "error", text: result.error ?? "Signing links could not be sent." });
+    } catch {
+      setSendMessage({ type: "error", text: "Signing links could not be sent. Please try again." });
+    } finally {
+      setSending(false);
+    }
   }
 
   async function copy(text: string, id: string) {
@@ -93,7 +104,7 @@ export default function SignerSection({
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           {signers.length > 0 && anyUnsent && !allSigned && (
-            <button onClick={handleSend} disabled={sending} style={{ padding: "6px 14px", background: sending ? "#d0cfc8" : "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
+            <button onClick={handleSend} disabled={sending || !emailEnabled} title={!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined} style={{ padding: "6px 14px", background: sending || !emailEnabled ? "#d0cfc8" : "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: sending || !emailEnabled ? "default" : "pointer", fontFamily: "inherit" }}>
               {sending ? "Sending…" : "Send Links"}
             </button>
           )}
@@ -211,7 +222,13 @@ export default function SignerSection({
         </div>
       )}
 
-      {signers.length > 0 && !process.env.RESEND_API_KEY && (
+      {sendMessage && (
+        <div style={{ marginTop: "10px", fontSize: "11.5px", color: sendMessage.type === "success" ? "#3a7a50" : "#c0392b", background: sendMessage.type === "success" ? "#eaf6f0" : "rgba(192,57,43,0.06)", border: `1px solid ${sendMessage.type === "success" ? "#b8dfc8" : "rgba(192,57,43,0.2)"}`, borderRadius: "6px", padding: "8px 12px" }}>
+          {sendMessage.text}
+        </div>
+      )}
+
+      {signers.length > 0 && !emailEnabled && (
         <div style={{ marginTop: "10px", fontSize: "11.5px", color: "#8a6a10", background: "rgba(184,150,46,0.08)", border: "1px solid rgba(184,150,46,0.25)", borderRadius: "6px", padding: "8px 12px" }}>
           Note: Set RESEND_API_KEY in Vercel env vars to enable automatic email delivery.
         </div>

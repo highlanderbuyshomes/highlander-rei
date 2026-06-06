@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, signerName, fieldData } = await req.json();
+    const { token, signerName, signatureData, signatureType, fieldData } = await req.json();
     if (!token || !signerName) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     // Try new AgreementSigner system first
@@ -15,11 +15,17 @@ export async function POST(req: NextRequest) {
     if (signer) {
       if (signer.signedAt) return NextResponse.json({ error: "Already signed" }, { status: 409 });
 
+      const storedData = {
+        ...(typeof fieldData === "object" && fieldData !== null ? fieldData : {}),
+        ...(signatureData   ? { signatureData }   : {}),
+        ...(signatureType   ? { signatureType }   : {}),
+      };
+
       await prisma.agreementSigner.update({
         where: { id: signer.id },
         data: {
           signedAt:  new Date(),
-          fieldData: fieldData ?? undefined,
+          fieldData: Object.keys(storedData).length > 0 ? storedData : undefined,
         },
       });
 

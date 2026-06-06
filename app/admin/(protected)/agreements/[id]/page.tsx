@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, removeSigner, sendSigningLinks } from "../actions";
 import CopyButton from "../CopyButton";
 import SignerSection from "./SignerSection";
+import DeleteAgreementForm from "./DeleteAgreementForm";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:  "Cash Offer",
@@ -49,7 +50,7 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
 
   return (
-    <div style={{ maxWidth: "820px" }}>
+    <div style={{ maxWidth: "820px", padding: "32px" }}>
       <div style={{ marginBottom: "20px" }}>
         <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Agreements</Link>
       </div>
@@ -128,6 +129,7 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
         removeSignerAction={removeSigner}
         sendLinksAction={sendLinksWithId}
         baseUrl={baseUrl}
+        emailEnabled={!!process.env.RESEND_API_KEY}
       />
 
       {/* Legacy signing link (for old single-signer agreements) */}
@@ -185,11 +187,7 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
               </button>
             </form>
           )}
-          <form action={deleteWithId}>
-            <button type="submit" onClick={(e) => { if (!confirm("Permanently delete this agreement?")) e.preventDefault(); }} style={{ padding: "8px 16px", background: "rgba(192,57,43,0.08)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.25)", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>
-              Delete Permanently
-            </button>
-          </form>
+          <DeleteAgreementForm action={deleteWithId} />
         </div>
       </div>
     </div>

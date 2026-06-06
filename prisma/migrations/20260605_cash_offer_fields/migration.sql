@@ -1,0 +1,2 @@
+ALTER TABLE "Agreement" ADD COLUMN IF NOT EXISTS "titleOffice" TEXT;
+ALTER TABLE "Agreement" ADD COLUMN IF NOT EXISTS "daysToClosing" TEXT;

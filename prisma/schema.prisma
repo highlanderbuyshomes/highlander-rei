@@ -33,6 +33,8 @@ model Agreement {
   seller2Name        String?
   agreementDate      String?
   cashAtClosing      String?
+  titleOffice        String?
+  daysToClosing      String?
   pdfUrl             String?
   signerName         String?
   signerEmail        String?
@@ -65,15 +67,18 @@ model AgreementSigner {
 }
 
 model Contact {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  company   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  signers   AgreementSigner[]
+  id          String   @id @default(cuid())
+  name        String
+  firstName   String?
+  lastName    String?
+  email       String   @unique
+  phone       String?
+  company     String?
+  contactType String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  signers     AgreementSigner[]
 }
 
 model Lead {

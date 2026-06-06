@@ -13,13 +13,15 @@ const TYPE_LABELS: Record<string, string> = {
   flex_equity: "Flex Equity Program",
   listing:     "Listing Agreement",
 };
+const AGREEMENT_TYPES = new Set(Object.keys(TYPE_LABELS));
+const AGREEMENT_STATUSES = new Set(["draft", "sent", "signed", "completed", "void"]);
 
 export async function createAgreement(formData: FormData) {
   await requireAdmin();
 
   const type    = String(formData.get("type")    ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
-  if (!type || !address) throw new Error("Missing required fields");
+  if (!AGREEMENT_TYPES.has(type) || !address) throw new Error("Missing or invalid required fields");
 
   let sellers: string;
   let pdfUrl: string | null = null;
@@ -29,14 +31,20 @@ export async function createAgreement(formData: FormData) {
   let cashAtClosing: string | null = null;
   let offerPrice: string | null = null;
   let earnestMoney: string | null = null;
+  let titleOffice: string | null = null;
+  let daysToClosing: string | null = null;
+
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+  const g = (key: string) => String(formData.get(key) ?? "").trim() || null;
 
   if (type === "flex_equity") {
-    seller1Name   = String(formData.get("seller1Name")   ?? "").trim() || null;
-    seller2Name   = String(formData.get("seller2Name")   ?? "").trim() || null;
-    agreementDate = String(formData.get("agreementDate") ?? "").trim() || null;
-    offerPrice    = String(formData.get("offerPrice")    ?? "").trim() || null;
-    earnestMoney  = String(formData.get("earnestMoney")  ?? "").trim() || null;
-    cashAtClosing = String(formData.get("cashAtClosing") ?? "").trim() || null;
+    seller1Name   = g("seller1Name");
+    seller2Name   = g("seller2Name");
+    agreementDate = g("agreementDate");
+    offerPrice    = g("offerPrice");
+    earnestMoney  = g("earnestMoney");
+    cashAtClosing = g("cashAtClosing");
 
     if (!seller1Name || !offerPrice || !earnestMoney || !cashAtClosing) {
       throw new Error("Missing required fields for Flex Equity agreement");
@@ -44,7 +52,6 @@ export async function createAgreement(formData: FormData) {
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     const { generateFlexEquityPDF } = await import("./pdf-templates/generateFlexEquityPDF");
     const pdfBuffer = await generateFlexEquityPDF({
       agreementDate: agreementDate ?? today,
@@ -55,23 +62,62 @@ export async function createAgreement(formData: FormData) {
       earnestMoney,
       cashAtClosing,
     });
-    const blob = await put(`agreements/flex-equity-${Date.now()}.pdf`, pdfBuffer, {
-      access: "public",
-      contentType: "application/pdf",
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const blob = await put(`agreements/flex-equity-${Date.now()}.pdf`, pdfBuffer, {
+        access: "public",
+        contentType: "application/pdf",
+      });
+      pdfUrl = blob.url;
+    }
+
+  } else if (type === "cash_offer") {
+    seller1Name   = g("seller1Name");
+    seller2Name   = g("seller2Name");
+    agreementDate = g("agreementDate");
+    offerPrice    = g("offerPrice");
+    earnestMoney  = g("earnestMoney");
+    cashAtClosing = g("cashAtClosing");
+    titleOffice   = g("titleOffice");
+    daysToClosing = g("daysToClosing");
+
+    if (!seller1Name || !offerPrice || !earnestMoney || !cashAtClosing) {
+      throw new Error("Missing required fields for Cash Offer agreement");
+    }
+
+    sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
+
+    const { generateCashOfferPDF } = await import("./pdf-templates/generateCashOfferPDF");
+    const pdfBuffer = await generateCashOfferPDF({
+      agreementDate: agreementDate ?? today,
+      seller1Name,
+      seller2Name: seller2Name ?? undefined,
+      address,
+      purchasePrice: offerPrice,
+      earnestMoney,
+      cashAtClosing,
+      titleOffice:   titleOffice   ?? undefined,
+      daysToClosing: daysToClosing ?? undefined,
     });
-    pdfUrl = blob.url;
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const blob = await put(`agreements/cash-offer-${Date.now()}.pdf`, pdfBuffer, {
+        access: "public",
+        contentType: "application/pdf",
+      });
+      pdfUrl = blob.url;
+    }
+
   } else {
     sellers = String(formData.get("sellers") ?? "").trim();
     if (!sellers) throw new Error("Missing required fields");
 
     const file = formData.get("pdfFile") as File | null;
-    if (file && file.size > 0) {
+    if (file && file.size > 0 && process.env.BLOB_READ_WRITE_TOKEN) {
       const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
       pdfUrl = blob.url;
     }
 
-    offerPrice   = formData.get("offerPrice")   ? String(formData.get("offerPrice"))   : null;
-    earnestMoney = formData.get("earnestMoney")  ? String(formData.get("earnestMoney")) : null;
+    offerPrice   = g("offerPrice");
+    earnestMoney = g("earnestMoney");
   }
 
   const signerToken = randomUUID();
@@ -87,6 +133,8 @@ export async function createAgreement(formData: FormData) {
       cashAtClosing,
       offerPrice,
       earnestMoney,
+      titleOffice,
+      daysToClosing,
       signerName:  formData.get("signerName")  ? String(formData.get("signerName"))  : null,
       signerEmail: formData.get("signerEmail") ? String(formData.get("signerEmail")) : null,
       notes:       formData.get("notes")       ? String(formData.get("notes"))       : null,
@@ -103,7 +151,7 @@ export async function createAgreement(formData: FormData) {
 export async function updateAgreementStatus(id: string, formData: FormData) {
   await requireAdmin();
   const status = String(formData.get("status") ?? "");
-  if (!status) return;
+  if (!AGREEMENT_STATUSES.has(status)) throw new Error("Invalid agreement status");
   await prisma.agreement.update({ where: { id }, data: { status } });
   revalidatePath("/admin/agreements");
   revalidatePath(`/admin/agreements/${id}`);
@@ -114,7 +162,7 @@ export async function updateAgreement(id: string, formData: FormData) {
 
   const file = formData.get("pdfFile") as File | null;
   let pdfUrl: string | undefined;
-  if (file && file.size > 0) {
+  if (file && file.size > 0 && process.env.BLOB_READ_WRITE_TOKEN) {
     const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
     pdfUrl = blob.url;
   }
@@ -187,25 +235,29 @@ export async function sendSigningLinks(agreementId: string) {
     where: { id: agreementId },
     include: { signers: { orderBy: { order: "asc" } } },
   });
-  if (!agreement || agreement.signers.length === 0) return;
+  if (!agreement) return { ok: false, error: "Agreement not found." };
+  if (agreement.signers.length === 0) return { ok: false, error: "Add at least one signer before sending." };
+  if (!agreement.pdfUrl) return { ok: false, error: "Attach or generate the agreement PDF before sending signing links." };
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
   const resendKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? "noreply@highlanderrei.com";
-  const resend = resendKey ? new Resend(resendKey) : null;
+  if (!resendKey) return { ok: false, error: "Email delivery is not configured. Add RESEND_API_KEY first." };
+  const resend = new Resend(resendKey);
 
   const unsent = agreement.signers.filter((s) => !s.emailedAt);
+  if (unsent.length === 0) return { ok: false, error: "All signing links have already been sent." };
 
+  let sent = 0;
   for (const signer of unsent) {
     const signingUrl = `${baseUrl}/sign/${signer.token}`;
     const typeLabel = TYPE_LABELS[agreement.type] ?? agreement.type;
 
-    if (resend) {
-      await resend.emails.send({
-        from: fromEmail,
-        to: signer.email,
-        subject: `Action required: Please sign your ${typeLabel}`,
-        html: `
+    const { error } = await resend.emails.send({
+      from: fromEmail,
+      to: signer.email,
+      subject: `Action required: Please sign your ${typeLabel}`,
+      html: `
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
             <div style="background:#111110;padding:18px 24px;border-radius:8px 8px 0 0">
               <p style="font-size:10px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 4px">Highlander</p>
@@ -225,15 +277,21 @@ export async function sendSigningLinks(agreementId: string) {
               </p>
             </div>
           </div>
-        `,
-      });
+      `,
+    });
+    if (error) {
+      console.error("Signing email delivery failed:", { signerId: signer.id, error });
+      continue;
     }
 
     await prisma.agreementSigner.update({
       where: { id: signer.id },
       data:  { emailedAt: new Date() },
     });
+    sent += 1;
   }
+
+  if (sent === 0) return { ok: false, error: "No signing links were delivered. Check the email configuration and try again." };
 
   await prisma.agreement.update({
     where: { id: agreementId },
@@ -242,4 +300,5 @@ export async function sendSigningLinks(agreementId: string) {
 
   revalidatePath("/admin/agreements");
   revalidatePath(`/admin/agreements/${agreementId}`);
+  return { ok: true, sent };
 }

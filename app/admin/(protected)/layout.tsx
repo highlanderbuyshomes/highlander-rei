@@ -15,7 +15,7 @@ async function logout() {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ minHeight: "100vh", background: "#111110", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
-      <header style={{
+      <header className="admin-header" style={{
         background: "#111110",
         borderBottom: "1px solid rgba(255,255,255,0.08)",
         padding: "0 28px",
@@ -28,10 +28,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         zIndex: 50,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-          <span style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#f5f4f0" }}>
+          <span className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#f5f4f0" }}>
             HIGHLANDER REI
           </span>
-          <nav style={{ display: "flex", gap: "2px" }}>
+          <nav className="admin-nav" style={{ display: "flex", gap: "2px" }}>
             {[
               { href: "/admin/agreements", label: "Agreements" },
               { href: "/admin/templates", label: "Templates" },
@@ -52,9 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </header>
 
       <div style={{ background: "#f5f4f0", minHeight: "calc(100vh - 56px)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "32px" }}>
-          {children}
-        </div>
+        {children}
       </div>
     </div>
   );

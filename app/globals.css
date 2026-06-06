@@ -488,6 +488,67 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
 
   .form-with-sidebar { grid-template-columns: 1fr; gap: 36px; }
   .form-row-2 { grid-template-columns: 1fr; }
+
+  .admin-header {
+    padding: 0 14px !important;
+  }
+
+  .admin-nav {
+    display: none !important;
+  }
+
+  .admin-brand {
+    font-size: 14px !important;
+  }
+
+  .agreements-shell {
+    flex-direction: column;
+  }
+
+  .agreements-sidebar {
+    width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto;
+    padding-bottom: 0 !important;
+    position: sticky;
+    top: 56px;
+    z-index: 40;
+  }
+
+  .agreements-sidebar-section {
+    display: flex;
+    gap: 4px;
+    padding: 8px 4px !important;
+    flex-shrink: 0;
+  }
+
+  .agreements-sidebar-label {
+    display: none;
+  }
+
+  .agreements-new-section {
+    padding-left: 8px !important;
+  }
+
+  .agreements-main {
+    min-width: 0;
+  }
+
+  .agreements-main-header {
+    padding: 20px 16px 0 !important;
+  }
+
+  .agreements-list-area {
+    padding: 16px !important;
+  }
+
+  .agreements-table {
+    overflow-x: auto !important;
+  }
+
+  .agreements-table-row {
+    min-width: 820px;
+  }
 }
 
 @media (max-width: 600px) {

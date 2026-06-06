@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any -- PDF.js is loaded dynamically from its CDN and does not expose local types. */
+
+import { useState, useEffect } from "react";
 
 type FieldType = "signature" | "initials" | "date" | "text";
 
@@ -115,7 +117,11 @@ export default function PdfFieldEditor({
 
   async function handleSave() {
     setSaving(true);
-    await onSave(signerCount, fields.map(({ id: _, ...f }) => f));
+    await onSave(signerCount, fields.map((field) => {
+      const copy: Partial<Field> = { ...field };
+      delete copy.id;
+      return copy as FieldInput;
+    }));
     setSaving(false);
   }
 

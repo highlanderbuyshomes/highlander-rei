@@ -47,7 +47,7 @@ export default async function PasswordPage({ searchParams }: Props) {
   };
 
   return (
-    <div style={{ maxWidth: "440px" }}>
+    <div style={{ maxWidth: "440px", padding: "32px" }}>
       <div style={{ marginBottom: "20px" }}>
         <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Back</Link>
       </div>

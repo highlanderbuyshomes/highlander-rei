@@ -49,7 +49,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const inp: React.CSSProperties = { padding: "8px 14px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none" };
 
   return (
-    <div style={{ maxWidth: "1100px" }}>
+    <div style={{ maxWidth: "1100px", padding: "32px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <div style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#111110", letterSpacing: "2px", lineHeight: 1 }}>LEADS</div>
