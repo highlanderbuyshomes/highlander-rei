@@ -6,6 +6,7 @@ type Signer = {
   id: string;
   name: string;
   email: string;
+  contactId: string | null;
   order: number;
   emailedAt: Date | null;
   signedAt: Date | null;
@@ -26,6 +27,9 @@ type Props = {
   contacts: Contact[];
   addSignerAction:  (formData: FormData) => Promise<void>;
   removeSignerAction: (id: string) => Promise<void>;
+  updateSignerEmailAction: (id: string, formData: FormData) => Promise<{ ok: boolean; error?: string }>;
+  createSignerContactAction: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  sendSignerAction: (id: string) => Promise<{ ok: boolean; error?: string; sent?: number }>;
   sendLinksAction: () => Promise<{ ok: boolean; error?: string; sent?: number }>;
   baseUrl: string;
   emailEnabled: boolean;
@@ -36,7 +40,7 @@ type Props = {
 const SIGNER_COLORS = ["#1a56db", "#c0392b", "#6b46c1", "#3a7a50", "#B8962E"];
 
 export default function SignerSection({
-  signers, contacts, addSignerAction, removeSignerAction, sendLinksAction, baseUrl, emailEnabled, readyToSend = false,
+  signers, contacts, addSignerAction, removeSignerAction, updateSignerEmailAction, createSignerContactAction, sendSignerAction, sendLinksAction, baseUrl, emailEnabled, readyToSend = false,
   sendBlockedReasons = [],
 }: Props) {
   const [adding, setAdding] = useState(false);
@@ -45,6 +49,9 @@ export default function SignerSection({
   const [customName, setCustomName] = useState("");
   const [customEmail, setCustomEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendingSignerId, setSendingSignerId] = useState<string | null>(null);
+  const [editingSignerId, setEditingSignerId] = useState<string | null>(null);
+  const [editEmail, setEditEmail] = useState("");
   const [sendMessage, setSendMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -88,6 +95,41 @@ export default function SignerSection({
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleSignerSend(signer: Signer) {
+    const verb = signer.emailedAt ? "Resend" : "Send";
+    if (!confirm(`${verb} the signing link to ${signer.email}?`)) return;
+    setSendingSignerId(signer.id);
+    setSendMessage(null);
+    try {
+      const result = await sendSignerAction(signer.id);
+      setSendMessage(result.ok
+        ? { type: "success", text: `Signing link ${signer.emailedAt ? "resent" : "sent"} to ${signer.email}.` }
+        : { type: "error", text: result.error ?? "Signing link could not be sent." });
+    } catch {
+      setSendMessage({ type: "error", text: "Signing link could not be sent. Please try again." });
+    } finally {
+      setSendingSignerId(null);
+    }
+  }
+
+  async function handleEmailUpdate(e: React.FormEvent<HTMLFormElement>, signerId: string) {
+    e.preventDefault();
+    const result = await updateSignerEmailAction(signerId, new FormData(e.currentTarget));
+    if (!result.ok) {
+      setSendMessage({ type: "error", text: result.error ?? "Recipient email could not be updated." });
+      return;
+    }
+    setEditingSignerId(null);
+    setSendMessage({ type: "success", text: "Recipient email updated. The signer is ready to receive a new link." });
+  }
+
+  async function handleCreateContact(signer: Signer) {
+    const result = await createSignerContactAction(signer.id);
+    setSendMessage(result.ok
+      ? { type: "success", text: `${signer.name} was added to Contacts.` }
+      : { type: "error", text: result.error ?? "Contact could not be created." });
   }
 
   async function copy(text: string, id: string) {
@@ -152,7 +194,23 @@ export default function SignerSection({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{s.name}</div>
-              <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>{s.email}</div>
+              {editingSignerId === s.id ? (
+                <form onSubmit={(event) => handleEmailUpdate(event, s.id)} style={{ display: "flex", gap: "5px", marginTop: "4px", maxWidth: "360px" }}>
+                  <input name="email" type="email" required value={editEmail} onChange={(event) => setEditEmail(event.target.value)} style={{ flex: 1, minWidth: 0, padding: "5px 7px", border: "1px solid #d0cfc8", borderRadius: "5px", fontSize: "11.5px" }} />
+                  <button type="submit" style={{ padding: "4px 8px", border: 0, borderRadius: "5px", background: "#111110", color: "#fff", fontSize: "10.5px", cursor: "pointer" }}>Save</button>
+                  <button type="button" onClick={() => setEditingSignerId(null)} style={{ padding: "4px 7px", border: "1px solid #d0cfc8", borderRadius: "5px", background: "#fff", color: "#5a5a54", fontSize: "10.5px", cursor: "pointer" }}>Cancel</button>
+                </form>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "11.5px", color: "#8a8a84" }}>{s.email}</span>
+                  {!s.signedAt && (
+                    <button type="button" onClick={() => { setEditingSignerId(s.id); setEditEmail(s.email); }} style={{ padding: 0, border: 0, background: "transparent", color: "#1a56db", fontSize: "10.5px", cursor: "pointer" }}>Edit email</button>
+                  )}
+                  {!s.contactId && (
+                    <button type="button" onClick={() => handleCreateContact(s)} style={{ padding: 0, border: 0, background: "transparent", color: "#8a6a10", fontSize: "10.5px", cursor: "pointer" }}>Create contact</button>
+                  )}
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
               {s.signedAt ? (
@@ -167,6 +225,17 @@ export default function SignerSection({
                 <span style={{ fontSize: "11px", background: "#f0efeb", color: "#5a5a54", border: "1px solid #d0cfc8", borderRadius: "20px", padding: "2px 8px", fontWeight: 600 }}>
                   Draft
                 </span>
+              )}
+              {!s.signedAt && (
+                <button
+                  type="button"
+                  onClick={() => handleSignerSend(s)}
+                  disabled={!emailEnabled || sendBlockedReasons.length > 0 || sendingSignerId === s.id}
+                  title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure email delivery first" : undefined)}
+                  style={{ fontSize: "11px", padding: "4px 10px", background: !emailEnabled || sendBlockedReasons.length > 0 ? "#d0cfc8" : "#111110", color: "#fff", border: "none", borderRadius: "5px", cursor: !emailEnabled || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}
+                >
+                  {sendingSignerId === s.id ? "Sending…" : s.emailedAt ? "Resend" : "Send"}
+                </button>
               )}
               <button
                 onClick={() => copy(signingUrl, s.id)}

@@ -56,9 +56,20 @@ function isValidEmail(email: string) {
 type NewSigner = {
   name: string;
   email: string;
+  contactType: "seller" | "buyer";
+  contactId?: string;
 };
 
 type TemplateValues = Record<string, string | null | undefined>;
+
+async function upsertSignerContact(name: string, email: string, contactType: "seller" | "buyer") {
+  return prisma.contact.upsert({
+    where: { email },
+    create: { name, email, contactType },
+    update: { name, contactType },
+    select: { id: true },
+  });
+}
 
 async function createFromMappedTemplate({
   type,
@@ -165,12 +176,12 @@ async function createAgreementRecord(formData: FormData) {
   const intent = formData.get("intent") === "review" ? "review" : "draft";
   const signers: NewSigner[] = [];
   const buyerSignerName = g("buyerSignerName");
-  const buyerSignerEmail = g("buyerSignerEmail");
+  const buyerSignerEmail = g("buyerSignerEmail")?.toLowerCase() ?? null;
   if (!buyerSignerName || !buyerSignerEmail || !isValidEmail(buyerSignerEmail)) {
     throw new Error("Every agreement requires a valid buyer name and email.");
   }
   const addBuyerSigner = () => {
-    signers.push({ name: buyerSignerName, email: buyerSignerEmail });
+    signers.push({ name: buyerSignerName, email: buyerSignerEmail, contactType: "buyer" });
   };
 
   if (type === "flex_equity") {
@@ -188,12 +199,12 @@ async function createAgreementRecord(formData: FormData) {
       throw new Error("Missing required fields for Flex Equity agreement");
     }
 
-    const seller1Email = g("seller1Email");
-    const seller2Email = g("seller2Email");
+    const seller1Email = g("seller1Email")?.toLowerCase() ?? null;
+    const seller2Email = g("seller2Email")?.toLowerCase() ?? null;
     if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
     if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
-    signers.push({ name: seller1Name, email: seller1Email });
-    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
+    signers.push({ name: seller1Name, email: seller1Email, contactType: "seller" });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email, contactType: "seller" });
     addBuyerSigner();
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
@@ -256,12 +267,12 @@ async function createAgreementRecord(formData: FormData) {
       throw new Error("Missing required fields for Cash Offer agreement");
     }
 
-    const seller1Email = g("seller1Email");
-    const seller2Email = g("seller2Email");
+    const seller1Email = g("seller1Email")?.toLowerCase() ?? null;
+    const seller2Email = g("seller2Email")?.toLowerCase() ?? null;
     if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
     if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
-    signers.push({ name: seller1Name, email: seller1Email });
-    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
+    signers.push({ name: seller1Name, email: seller1Email, contactType: "seller" });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email, contactType: "seller" });
     addBuyerSigner();
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
@@ -314,12 +325,12 @@ async function createAgreementRecord(formData: FormData) {
 
     if (!seller1Name) throw new Error("Missing required fields for AIF / Novation Agreement");
 
-    const seller1Email = g("seller1Email");
-    const seller2Email = g("seller2Email");
+    const seller1Email = g("seller1Email")?.toLowerCase() ?? null;
+    const seller2Email = g("seller2Email")?.toLowerCase() ?? null;
     if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
     if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
-    signers.push({ name: seller1Name, email: seller1Email });
-    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
+    signers.push({ name: seller1Name, email: seller1Email, contactType: "seller" });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email, contactType: "seller" });
     addBuyerSigner();
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
@@ -368,12 +379,12 @@ async function createAgreementRecord(formData: FormData) {
       throw new Error("Missing required fields for Listing Agreement");
     }
 
-    const seller1Email = g("seller1Email");
-    const seller2Email = g("seller2Email");
+    const seller1Email = g("seller1Email")?.toLowerCase() ?? null;
+    const seller2Email = g("seller2Email")?.toLowerCase() ?? null;
     if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
     if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
-    signers.push({ name: seller1Name, email: seller1Email });
-    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
+    signers.push({ name: seller1Name, email: seller1Email, contactType: "seller" });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email, contactType: "seller" });
     addBuyerSigner();
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
@@ -440,6 +451,10 @@ async function createAgreementRecord(formData: FormData) {
     }
   }
 
+  for (const signer of signers) {
+    signer.contactId = (await upsertSignerContact(signer.name, signer.email, signer.contactType)).id;
+  }
+
   const agreement = await prisma.agreement.create({
     data: {
       type,
@@ -473,7 +488,9 @@ async function createAgreementRecord(formData: FormData) {
       status: "draft",
       signers: {
         create: signers.map((signer, order) => ({
-          ...signer,
+          name: signer.name,
+          email: signer.email,
+          contactId: signer.contactId,
           order,
           token: randomUUID(),
         })),
@@ -539,9 +556,10 @@ export async function deleteAgreement(id: string) {
 export async function addSigner(agreementId: string, formData: FormData) {
   await requireAdmin();
   const name      = String(formData.get("name")      ?? "").trim();
-  const email     = String(formData.get("email")     ?? "").trim();
-  const contactId = formData.get("contactId") ? String(formData.get("contactId")) : null;
-  if (!name || !email) return;
+  const email     = String(formData.get("email")     ?? "").trim().toLowerCase();
+  const selectedContactId = formData.get("contactId") ? String(formData.get("contactId")) : null;
+  if (!name || !email || !isValidEmail(email)) return;
+  const contactId = selectedContactId ?? (await upsertSignerContact(name, email, "seller")).id;
 
   const last = await prisma.agreementSigner.findFirst({
     where: { agreementId },
@@ -563,6 +581,36 @@ export async function addSigner(agreementId: string, formData: FormData) {
   revalidatePath(`/admin/agreements/${agreementId}`);
 }
 
+export async function updateSignerEmail(signerId: string, formData: FormData) {
+  await requireAdmin();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!isValidEmail(email)) return { ok: false, error: "Enter a valid email address." };
+
+  const signer = await prisma.agreementSigner.findUnique({ where: { id: signerId }, include: { contact: true } });
+  if (!signer) return { ok: false, error: "Signer not found." };
+  if (signer.signedAt) return { ok: false, error: "Signed recipient details cannot be changed." };
+
+  const contactType = signer.contact?.contactType === "buyer" ? "buyer" : "seller";
+  const contact = await upsertSignerContact(signer.name, email, contactType);
+  await prisma.agreementSigner.update({
+    where: { id: signerId },
+    data: { email, contactId: contact.id, emailedAt: null },
+  });
+  revalidatePath(`/admin/agreements/${signer.agreementId}`);
+  return { ok: true };
+}
+
+export async function createSignerContact(signerId: string) {
+  await requireAdmin();
+  const signer = await prisma.agreementSigner.findUnique({ where: { id: signerId } });
+  if (!signer) return { ok: false, error: "Signer not found." };
+  const contact = await upsertSignerContact(signer.name, signer.email.toLowerCase(), signer.order === 0 ? "seller" : "buyer");
+  await prisma.agreementSigner.update({ where: { id: signerId }, data: { contactId: contact.id } });
+  revalidatePath(`/admin/agreements/${signer.agreementId}`);
+  revalidatePath("/admin/contacts");
+  return { ok: true };
+}
+
 export async function removeSigner(signerId: string) {
   await requireAdmin();
   const s = await prisma.agreementSigner.findUnique({ where: { id: signerId } });
@@ -572,6 +620,18 @@ export async function removeSigner(signerId: string) {
 }
 
 export async function sendSigningLinks(agreementId: string) {
+  return deliverSigningLinks(agreementId);
+}
+
+export async function sendSigningLink(signerId: string) {
+  await requireAdmin();
+  const signer = await prisma.agreementSigner.findUnique({ where: { id: signerId } });
+  if (!signer) return { ok: false, error: "Signer not found." };
+  if (signer.signedAt) return { ok: false, error: "This signer has already completed the agreement." };
+  return deliverSigningLinks(signer.agreementId, signerId);
+}
+
+async function deliverSigningLinks(agreementId: string, signerId?: string) {
   await requireAdmin();
 
   const agreement = await prisma.agreement.findUnique({
@@ -621,11 +681,13 @@ export async function sendSigningLinks(agreementId: string) {
   if (!resendKey) return { ok: false, error: "Email delivery is not configured. Add RESEND_API_KEY first." };
   const resend = new Resend(resendKey);
 
-  const unsent = agreement.signers.filter((s) => !s.emailedAt);
-  if (unsent.length === 0) return { ok: false, error: "All signing links have already been sent." };
+  const recipients = signerId
+    ? agreement.signers.filter((signer) => signer.id === signerId && !signer.signedAt)
+    : agreement.signers.filter((signer) => !signer.emailedAt && !signer.signedAt);
+  if (recipients.length === 0) return { ok: false, error: signerId ? "This signing link cannot be sent." : "All signing links have already been sent." };
 
   let sent = 0;
-  for (const signer of unsent) {
+  for (const signer of recipients) {
     const signingUrl = `${baseUrl}/sign/${signer.token}`;
     const typeLabel = TYPE_LABELS[agreement.type] ?? agreement.type;
     const safeName = escapeHtml(signer.name);

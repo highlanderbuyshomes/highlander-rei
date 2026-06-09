@@ -2,12 +2,12 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, removeSigner, sendSigningLinks } from "../actions";
+import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, createSignerContact, removeSigner, sendSigningLink, sendSigningLinks, updateSignerEmail } from "../actions";
 import CopyButton from "../CopyButton";
 import SignerSection from "./SignerSection";
 import DeleteAgreementForm from "./DeleteAgreementForm";
 import type { FieldInput } from "./AgreementFieldEditor";
-import { getAgreementFieldIssues, isAgreementDataField } from "@/lib/agreement-fields";
+import { getAgreementFieldIssues, getInitialSigningFields, isAgreementDataField } from "@/lib/agreement-fields";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:   "Cash Offer",
@@ -47,6 +47,10 @@ export default async function AgreementDetailPage({
     prisma.contact.findMany({ orderBy: { name: "asc" } }),
   ]);
   if (!a) notFound();
+  const template = await prisma.agreementTemplate.findUnique({
+    where: { type: a.type },
+    include: { fields: { orderBy: { page: "asc" } } },
+  });
 
   const statusCfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.draft;
   const currentFlowIdx = a.status === "signed" ? 2 : STATUS_FLOW.indexOf(a.status as typeof STATUS_FLOW[number]);
@@ -64,8 +68,24 @@ export default async function AgreementDetailPage({
   const savedSigningFields = Array.isArray(a.customFields)
     ? (a.customFields as FieldInput[]).filter((field) => !isAgreementDataField(field))
     : [];
-  const savedFields = savedSigningFields.length > 0 ? savedSigningFields : null;
-  const sendBlockedReasons = getAgreementFieldIssues(savedFields, a.signers.length);
+  const signingFields = savedSigningFields.length > 0
+    ? savedSigningFields
+    : getInitialSigningFields(template?.fields.map((field) => ({
+        id: field.id,
+        type: field.type,
+        label: field.label ?? undefined,
+        page: field.page,
+        x: field.x,
+        y: field.y,
+        width: field.width,
+        height: field.height,
+        signerIndex: field.signerIndex,
+      })) ?? [], {
+        type: a.type,
+        seller2Name: a.seller2Name,
+        signerCount: a.signers.length,
+      });
+  const sendBlockedReasons = getAgreementFieldIssues(signingFields, a.signers.length);
 
   return (
     <div className="agreement-detail-page" style={{ maxWidth: "820px", padding: "32px", margin: "0 auto" }}>
@@ -170,11 +190,14 @@ export default async function AgreementDetailPage({
         agreementId={a.id}
         signers={a.signers.map(s => ({
           id: s.id, name: s.name, email: s.email, order: s.order,
-          emailedAt: s.emailedAt, signedAt: s.signedAt, token: s.token,
+          contactId: s.contactId, emailedAt: s.emailedAt, signedAt: s.signedAt, token: s.token,
         }))}
         contacts={contacts.map(c => ({ id: c.id, name: c.name, email: c.email, phone: c.phone, company: c.company }))}
         addSignerAction={addSignerWithId}
         removeSignerAction={removeSigner}
+        updateSignerEmailAction={updateSignerEmail}
+        createSignerContactAction={createSignerContact}
+        sendSignerAction={sendSigningLink}
         sendLinksAction={sendLinksWithId}
         baseUrl={baseUrl}
         emailEnabled={!!process.env.RESEND_API_KEY}
