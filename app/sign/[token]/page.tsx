@@ -47,7 +47,6 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
       <SignLayout
         type={a.type}
         address={a.address}
-        sellers={a.sellers}
         signerName={signer.name}
         pdfUrl={a.pdfUrl}
         alreadySigned={alreadySigned}
@@ -69,7 +68,6 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
     <SignLayout
       type={a.type}
       address={a.address}
-      sellers={a.sellers}
       signerName={a.signerName ?? ""}
       pdfUrl={a.pdfUrl}
       alreadySigned={!!a.signedAt}
@@ -81,91 +79,52 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
 }
 
 function SignLayout({
-  type, address, sellers, signerName, pdfUrl, alreadySigned, signedAt, token, fields,
+  type, address, signerName, pdfUrl, alreadySigned, signedAt, token, fields,
 }: {
-  type: string; address: string; sellers: string; signerName: string | null;
+  type: string; address: string; signerName: string | null;
   pdfUrl: string | null; alreadySigned: boolean; signedAt: string | null;
   token: string; fields: { id: string; type: string; label: string; page: number; x: number; y: number; width: number; height: number }[];
 }) {
   const label = TYPE_LABELS[type] ?? type;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      {/* Top bar — blue */}
-      <div style={{ background: "#1a56db", height: "56px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 10 }}>
-        <span style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff", letterSpacing: "1.5px" }}>HIGHLANDER REI</span>
-        <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.15)", padding: "3px 10px", borderRadius: "20px" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "system-ui, -apple-system, sans-serif", color: "#111110" }}>
+      <div style={{ height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 10, background: "rgba(255,255,255,0.96)", borderBottom: "1px solid #eeeeef" }}>
+        <span style={{ fontSize: "14px", fontWeight: 750, color: "#111110", letterSpacing: "1.7px" }}>HIGHLANDER REI</span>
+        <span style={{ fontSize: "10px", color: "#777781", background: "#f2f2f4", padding: "5px 10px", borderRadius: "20px", fontWeight: 700 }}>
           {label}
         </span>
       </div>
 
-      <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px 16px 40px" }}>
-
-        {/* Document card */}
-        <div style={{ background: "#f0f4ff", borderRadius: "12px", padding: "16px 18px", marginBottom: "16px", borderLeft: "3px solid #1a56db" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#1a56db", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>
-            Document to Sign
-          </div>
-          <div style={{ fontSize: "15px", fontWeight: 600, color: "#0f172a", marginBottom: "3px" }}>{label}</div>
-          <div style={{ fontSize: "13px", color: "#475569" }}>{address}</div>
-          <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>Seller(s): {sellers}</div>
-          {signerName && (
-            <div style={{ fontSize: "12px", color: "#64748b" }}>Signing as: <strong style={{ color: "#0f172a" }}>{signerName}</strong></div>
-          )}
-        </div>
-
-        {/* PDF viewer */}
-        {pdfUrl && (
-          <div style={{ marginBottom: "16px" }}>
-            {/* Mobile: link button */}
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                width: "100%", padding: "14px", background: "#ffffff", border: "1.5px solid #1a56db",
-                borderRadius: "10px", color: "#1a56db", fontSize: "14px", fontWeight: 600,
-                textDecoration: "none", boxSizing: "border-box",
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
-              </svg>
-              View Agreement PDF
-            </a>
-            <p style={{ fontSize: "11px", color: "#94a3b8", textAlign: "center", marginTop: "6px", marginBottom: 0 }}>
-              Review the full document before signing
-            </p>
-          </div>
-        )}
-
-        {/* Signed state */}
+      <main style={{ maxWidth: "520px", margin: "0 auto", padding: "32px 20px 54px" }}>
         {alreadySigned ? (
-          <div style={{ background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "14px", padding: "32px 24px", textAlign: "center" }}>
-            <div style={{ width: 56, height: 56, background: "#16a34a", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+          <div style={{ padding: "72px 22px", textAlign: "center" }}>
+            <div style={{ width: 58, height: 58, background: "#111110", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <div style={{ fontSize: "18px", fontWeight: 700, color: "#15803d", marginBottom: "8px" }}>Agreement Signed</div>
+            <div style={{ fontSize: "25px", fontWeight: 750, color: "#111110", marginBottom: "8px", letterSpacing: "-0.5px" }}>Agreement signed</div>
             {signedAt && (
-              <div style={{ fontSize: "13px", color: "#166534" }}>
+              <div style={{ fontSize: "13px", color: "#777781" }}>
                 Signed on {new Date(signedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </div>
             )}
-            <div style={{ fontSize: "12px", color: "#4ade80", marginTop: "6px" }}>You&apos;ll receive a copy once all parties have signed.</div>
+            {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: "18px", color: "#111110", fontSize: "13px", fontWeight: 700 }}>Review document</a>}
           </div>
         ) : (
           <SignatureForm
             token={token}
             signerName={signerName ?? ""}
             fields={fields}
+            documentLabel={label}
+            address={address}
+            pdfUrl={pdfUrl}
           />
         )}
 
-        <div style={{ textAlign: "center", marginTop: "28px", fontSize: "11px", color: "#cbd5e1" }}>
+        <div style={{ textAlign: "center", marginTop: "34px", fontSize: "10px", color: "#b0b0b7", letterSpacing: "0.3px" }}>
           Secured by Highlander REI · Legally binding electronic signatures
         </div>
-      </div>
+      </main>
     </div>
   );
 }

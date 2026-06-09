@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Field = {
   id: string;
@@ -13,42 +13,52 @@ type Field = {
   height: number;
 };
 
+type Step = "welcome" | "adopt" | "review";
+
 export default function SignatureForm({
   token,
   signerName,
   fields,
+  documentLabel,
+  address,
+  pdfUrl,
 }: {
   token: string;
   signerName: string;
   fields: Field[];
+  documentLabel: string;
+  address: string;
+  pdfUrl: string | null;
 }) {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const initialsFields = fields.filter((field) => field.type === "initials");
+  const textFields = fields.filter((field) => field.type === "text");
+  const dateFields = fields.filter((field) => field.type === "date");
 
-  const [tab, setTab]               = useState<"draw" | "type">("draw");
-  const [typedName, setTypedName]   = useState(signerName);
-  const [agreed, setAgreed]         = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [done, setDone]             = useState(false);
-  const [error, setError]           = useState("");
+  const [step, setStep] = useState<Step>("welcome");
+  const [tab, setTab] = useState<"draw" | "type">("type");
+  const [typedName, setTypedName] = useState(signerName);
+  const [initials, setInitials] = useState(() => signerName.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 4).toUpperCase());
+  const [signatureData, setSignatureData] = useState("");
   const [hasDrawing, setHasDrawing] = useState(false);
-  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    fields.forEach(f => { if (f.type === "date") init[f.id] = today; });
-    return init;
-  });
+  const [agreed, setAgreed] = useState(false);
+  const [readyToFinish, setReadyToFinish] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+  const [textValues, setTextValues] = useState<Record<string, string>>({});
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawing   = useRef(false);
-  const lastPos   = useRef<{ x: number; y: number } | null>(null);
+  const drawing = useRef(false);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
 
   function getPos(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    if ("touches" in e) {
-      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
-    }
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+    const client = "touches" in e ? e.touches[0] : e;
+    return {
+      x: (client.clientX - rect.left) * (canvas.width / rect.width),
+      y: (client.clientY - rect.top) * (canvas.height / rect.height),
+    };
   }
 
   const startDraw = useCallback((e: MouseEvent | TouchEvent) => {
@@ -61,16 +71,15 @@ export default function SignatureForm({
 
   const draw = useCallback((e: MouseEvent | TouchEvent) => {
     e.preventDefault();
-    if (!drawing.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx || !lastPos.current) return;
+    if (!drawing.current || !canvas || !ctx || !lastPos.current) return;
     const pos = getPos(e, canvas);
     ctx.beginPath();
     ctx.moveTo(lastPos.current.x, lastPos.current.y);
     ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = "#0f172a";
-    ctx.lineWidth = 2.8;
+    ctx.strokeStyle = "#111110";
+    ctx.lineWidth = 3;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.stroke();
@@ -78,11 +87,14 @@ export default function SignatureForm({
     setHasDrawing(true);
   }, []);
 
-  const stopDraw = useCallback(() => { drawing.current = false; lastPos.current = null; }, []);
+  const stopDraw = useCallback(() => {
+    drawing.current = false;
+    lastPos.current = null;
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || step !== "adopt" || tab !== "draw") return;
     canvas.addEventListener("mousedown", startDraw);
     canvas.addEventListener("mousemove", draw);
     canvas.addEventListener("mouseup", stopDraw);
@@ -99,244 +111,172 @@ export default function SignatureForm({
       canvas.removeEventListener("touchmove", draw);
       canvas.removeEventListener("touchend", stopDraw);
     };
-  }, [startDraw, draw, stopDraw]);
+  }, [draw, startDraw, step, stopDraw, tab]);
 
   function clearCanvas() {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawing(false);
   }
 
-  function getSignatureData(): string | null {
-    if (tab === "type") return typedName.trim() || null;
-    const canvas = canvasRef.current;
-    if (!canvas || !hasDrawing) return null;
-    return canvas.toDataURL("image/png");
+  function continueToReview() {
+    const signature = tab === "type" ? typedName.trim() : canvasRef.current?.toDataURL("image/png") ?? "";
+    if (!signature || (tab === "draw" && !hasDrawing) || (initialsFields.length > 0 && !initials.trim())) return;
+    setSignatureData(signature);
+    setStep("review");
   }
 
-  const canSubmit = agreed && typedName.trim().length > 0 && (tab === "draw" ? hasDrawing : true);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const sig = getSignatureData();
-    if (!sig || !agreed) return;
+  async function finishSigning() {
+    if (!agreed || !readyToFinish || !signatureData) return;
     setSubmitting(true);
     setError("");
+    const fieldData: Record<string, string> = {};
+    initialsFields.forEach((field) => { fieldData[field.id] = initials.trim(); });
+    dateFields.forEach((field) => { fieldData[field.id] = today; });
+    textFields.forEach((field) => { fieldData[field.id] = textValues[field.id] ?? ""; });
+
     try {
-      const res = await fetch("/api/agreements/sign", {
+      const response = await fetch("/api/agreements/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
           signerName: typedName.trim(),
-          signatureData: sig,
+          signatureData,
           signatureType: tab,
-          fieldData: fields.length > 0 ? fieldValues : undefined,
+          fieldData,
         }),
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!response.ok) throw new Error("Signing request failed");
       setDone(true);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("We could not finish signing. Please try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
+  const buttonStyle = (enabled = true): React.CSSProperties => ({
+    width: "100%",
+    padding: "15px 18px",
+    border: "none",
+    borderRadius: "12px",
+    background: enabled ? "#111110" : "#d8d8dc",
+    color: "#ffffff",
+    fontSize: "15px",
+    fontWeight: 700,
+    cursor: enabled ? "pointer" : "default",
+    fontFamily: "inherit",
+  });
+
   if (done) {
     return (
-      <div style={{ background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "16px", padding: "48px 24px", textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, background: "#1a56db", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <section style={{ textAlign: "center", padding: "72px 22px" }}>
+        <div style={{ width: 58, height: 58, borderRadius: "50%", background: "#111110", color: "#fff", display: "grid", placeItems: "center", margin: "0 auto 22px" }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <div style={{ fontSize: "20px", fontWeight: 700, color: "#0f172a", marginBottom: "10px" }}>Agreement Signed</div>
-        <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.7 }}>
-          Your signature has been recorded on <strong style={{ color: "#0f172a" }}>{today}</strong>.<br />
-          You will receive a copy once all parties have signed.
-        </div>
-      </div>
+        <h1 style={{ margin: "0 0 10px", fontSize: "25px", letterSpacing: "-0.5px" }}>You&apos;re finished</h1>
+        <p style={{ margin: 0, color: "#777781", fontSize: "14px", lineHeight: 1.6 }}>Your signature was recorded on {today}. You will receive the completed document after all parties sign.</p>
+      </section>
     );
   }
 
   return (
-    <div style={{ background: "#ffffff", border: "1.5px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
-
-      {/* Header */}
-      <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc" }}>
-        <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "3px" }}>Sign Agreement</div>
-        <div style={{ fontSize: "12px", color: "#64748b" }}>Choose how you&apos;d like to apply your signature.</div>
+    <div>
+      <div style={{ display: "flex", gap: "6px", marginBottom: "28px" }}>
+        {["Start", "Adopt", "Sign"].map((label, index) => {
+          const activeIndex = step === "welcome" ? 0 : step === "adopt" ? 1 : 2;
+          return (
+            <div key={label} style={{ flex: 1 }}>
+              <div style={{ height: "3px", borderRadius: "4px", background: index <= activeIndex ? "#111110" : "#e8e8ec", marginBottom: "7px" }} />
+              <span style={{ fontSize: "10px", fontWeight: 700, color: index <= activeIndex ? "#111110" : "#aaaab2", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</span>
+            </div>
+          );
+        })}
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
+      {step === "welcome" && (
+        <section>
+          <p style={{ margin: "0 0 8px", fontSize: "12px", color: "#777781", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>Ready for your signature</p>
+          <h1 style={{ margin: "0 0 10px", fontSize: "28px", letterSpacing: "-0.8px", lineHeight: 1.15 }}>{documentLabel}</h1>
+          <p style={{ margin: "0 0 26px", color: "#777781", fontSize: "14px", lineHeight: 1.6 }}>{address}</p>
+          <div style={{ padding: "18px", border: "1px solid #e8e8ec", borderRadius: "14px", marginBottom: "18px" }}>
+            <div style={{ fontSize: "12px", color: "#777781", marginBottom: "5px" }}>Signing as</div>
+            <div style={{ fontSize: "15px", fontWeight: 700 }}>{signerName}</div>
+          </div>
+          {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", textAlign: "center", padding: "13px", border: "1px solid #d8d8dc", borderRadius: "12px", color: "#111110", textDecoration: "none", fontSize: "13px", fontWeight: 650, marginBottom: "12px" }}>Review exact PDF</a>}
+          <button type="button" onClick={() => setStep("adopt")} style={buttonStyle()}>Start</button>
+        </section>
+      )}
 
-          {/* Name field if not pre-filled */}
-          {!signerName && (
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", marginBottom: "6px", display: "block" }}>
-                Full legal name *
-              </label>
-              <input
-                type="text"
-                required
-                value={typedName}
-                onChange={(e) => setTypedName(e.target.value)}
-                placeholder="John Smith"
-                style={{ width: "100%", padding: "13px 14px", fontSize: "15px", color: "#0f172a", background: "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: "10px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-              />
-            </div>
-          )}
+      {step === "adopt" && (
+        <section>
+          <h1 style={{ margin: "0 0 7px", fontSize: "25px", letterSpacing: "-0.6px" }}>Choose your signature</h1>
+          <p style={{ margin: "0 0 22px", color: "#777781", fontSize: "13px", lineHeight: 1.6 }}>We will apply your adopted signature and initials to every place assigned to you.</p>
 
-          {/* Draw / Type toggle */}
-          <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "10px", padding: "4px" }}>
-            {(["draw", "type"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                style={{
-                  flex: 1, padding: "11px", borderRadius: "8px",
-                  fontSize: "13px", fontWeight: tab === t ? 700 : 500,
-                  color: tab === t ? "#1a56db" : "#64748b",
-                  background: tab === t ? "#ffffff" : "transparent",
-                  border: "none", cursor: "pointer", fontFamily: "inherit",
-                  boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-                  transition: "all 0.15s",
-                }}
-              >
-                {t === "draw" ? "✍️  Draw" : "⌨️  Type"}
+          <div style={{ display: "flex", background: "#f2f2f4", borderRadius: "12px", padding: "4px", marginBottom: "18px" }}>
+            {(["type", "draw"] as const).map((option) => (
+              <button key={option} type="button" onClick={() => setTab(option)} style={{ flex: 1, padding: "11px", border: 0, borderRadius: "9px", background: tab === option ? "#fff" : "transparent", boxShadow: tab === option ? "0 1px 5px rgba(0,0,0,0.08)" : "none", fontWeight: 700, color: tab === option ? "#111110" : "#888891", fontFamily: "inherit", cursor: "pointer" }}>
+                {option === "type" ? "Type" : "Draw"}
               </button>
             ))}
           </div>
 
-          {/* Draw pad */}
-          {tab === "draw" && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>Draw your signature</label>
-                {hasDrawing && (
-                  <button type="button" onClick={clearCanvas} style={{ fontSize: "12px", color: "#ef4444", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, fontWeight: 600 }}>
-                    Clear
-                  </button>
-                )}
+          {tab === "type" ? (
+            <div style={{ border: "1px solid #d8d8dc", borderRadius: "14px", padding: "18px", marginBottom: "18px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#777781", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700 }}>Full legal name</label>
+              <input value={typedName} onChange={(e) => setTypedName(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, padding: 0, fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "27px", color: "#111110" }} />
+            </div>
+          ) : (
+            <div style={{ marginBottom: "18px" }}>
+              <div style={{ border: "1px solid #d8d8dc", borderRadius: "14px", overflow: "hidden", position: "relative" }}>
+                <canvas ref={canvasRef} width={720} height={210} style={{ display: "block", width: "100%", height: "180px", touchAction: "none" }} />
+                <div style={{ position: "absolute", left: 18, right: 18, bottom: 35, height: 1, background: "#e8e8ec", pointerEvents: "none" }} />
               </div>
-              <div style={{ position: "relative", border: "1.5px solid #cbd5e1", borderRadius: "12px", overflow: "hidden", background: "#ffffff", cursor: "crosshair" }}>
-                <canvas
-                  ref={canvasRef}
-                  width={720}
-                  height={200}
-                  style={{ display: "block", width: "100%", height: "200px", touchAction: "none" }}
-                />
-                {!hasDrawing && (
-                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", gap: "6px" }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>
-                    </svg>
-                    <span style={{ fontSize: "13px", color: "#94a3b8" }}>Sign here with your finger</span>
-                  </div>
-                )}
-                {/* Signature baseline */}
-                <div style={{ position: "absolute", bottom: "32px", left: "20px", right: "20px", height: "1px", background: "#e2e8f0" }} />
-              </div>
-              <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "6px" }}>Use your finger or stylus to sign above.</div>
+              <button type="button" onClick={clearCanvas} style={{ background: "none", border: 0, padding: "8px 0 0", color: "#777781", fontSize: "12px", cursor: "pointer" }}>Clear signature</button>
             </div>
           )}
 
-          {/* Type signature */}
-          {tab === "type" && (
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", marginBottom: "6px", display: "block" }}>
-                Type your full legal name *
-              </label>
-              <input
-                type="text"
-                required={tab === "type"}
-                value={typedName}
-                onChange={(e) => setTypedName(e.target.value)}
-                placeholder="John Smith"
-                style={{ width: "100%", padding: "14px 16px", fontSize: "24px", color: "#0f172a", background: "#ffffff", border: "1.5px solid #1a56db", borderRadius: "10px", outline: "none", fontFamily: "Georgia, serif", boxSizing: "border-box", fontStyle: "italic" }}
-              />
-              <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "5px" }}>Typing your full name constitutes your electronic signature.</div>
-
-              {typedName.trim() && (
-                <div style={{ marginTop: "14px", background: "#f8fafc", borderRadius: "10px", padding: "16px 18px", border: "1px solid #e2e8f0" }}>
-                  <div style={{ fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px", fontWeight: 600 }}>Preview</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: "16px" }}>
-                    <div>
-                      <div style={{ fontSize: "10px", color: "#64748b", marginBottom: "3px" }}>Signature</div>
-                      <div style={{ fontSize: "22px", color: "#0f172a", fontStyle: "italic", fontFamily: "Georgia, serif" }}>{typedName}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: "10px", color: "#64748b", marginBottom: "3px" }}>Date</div>
-                      <div style={{ fontSize: "12px", color: "#0f172a", fontWeight: 600 }}>{today}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
+          {initialsFields.length > 0 && (
+            <div style={{ border: "1px solid #d8d8dc", borderRadius: "14px", padding: "16px", marginBottom: "18px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#777781", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700 }}>Initials</label>
+              <input value={initials} onChange={(e) => setInitials(e.target.value.toUpperCase().slice(0, 4))} style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, padding: 0, fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "24px", color: "#111110" }} />
             </div>
           )}
 
-          {/* Extra fields (initials, date, text) */}
-          {fields.filter(f => f.type !== "signature").map(field => (
-            <div key={field.id}>
-              <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1a56db", display: "inline-block" }} />
-                {field.label} {field.type === "date" ? "" : "*"}
-              </label>
-              <input
-                type="text"
-                required={field.type !== "date"}
-                value={fieldValues[field.id] ?? ""}
-                readOnly={field.type === "date"}
-                onChange={(e) => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                style={{ width: "100%", padding: "12px 14px", fontSize: "14px", color: "#0f172a", background: field.type === "date" ? "#f8fafc" : "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: "10px", outline: "none", fontFamily: field.type === "initials" ? "Georgia, serif" : "inherit", boxSizing: "border-box", fontStyle: field.type === "initials" ? "italic" : "normal" }}
-              />
+          <button type="button" onClick={continueToReview} disabled={!typedName.trim() || (tab === "draw" && !hasDrawing) || (initialsFields.length > 0 && !initials.trim())} style={buttonStyle(!!typedName.trim() && (tab === "type" || hasDrawing) && (initialsFields.length === 0 || !!initials.trim()))}>Next</button>
+        </section>
+      )}
+
+      {step === "review" && (
+        <section>
+          <h1 style={{ margin: "0 0 7px", fontSize: "25px", letterSpacing: "-0.6px" }}>Review and sign</h1>
+          <p style={{ margin: "0 0 20px", color: "#777781", fontSize: "13px", lineHeight: 1.6 }}>Your signature is ready. Review the document, then start signing and finish.</p>
+
+          {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", textAlign: "center", padding: "13px", border: "1px solid #d8d8dc", borderRadius: "12px", color: "#111110", textDecoration: "none", fontSize: "13px", fontWeight: 650, marginBottom: "14px" }}>Open exact PDF</a>}
+
+          {textFields.map((field) => (
+            <div key={field.id} style={{ marginBottom: "14px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#777781", marginBottom: "6px", fontWeight: 700 }}>{field.label}</label>
+              <input value={textValues[field.id] ?? ""} onChange={(e) => setTextValues((current) => ({ ...current, [field.id]: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", padding: "12px 13px", border: "1px solid #d8d8dc", borderRadius: "10px", fontSize: "14px" }} />
             </div>
           ))}
 
-          {/* Consent checkbox */}
-          <label style={{ display: "flex", gap: "14px", cursor: "pointer", alignItems: "flex-start", padding: "16px", background: "#f0f4ff", borderRadius: "12px", border: "1px solid #bfdbfe" }}>
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              style={{ marginTop: "2px", accentColor: "#1a56db", width: "18px", height: "18px", flexShrink: 0, cursor: "pointer" }}
-            />
-            <span style={{ fontSize: "12.5px", color: "#334155", lineHeight: 1.65 }}>
-              I have reviewed the full agreement and agree to be legally bound by its terms. My {tab === "draw" ? "drawn signature" : "typed name"} constitutes a legally binding electronic signature.
-            </span>
+          <label style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "16px", background: "#f5f5f6", borderRadius: "12px", marginBottom: "14px", cursor: "pointer" }}>
+            <input type="checkbox" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setReadyToFinish(false); }} style={{ width: 18, height: 18, accentColor: "#111110", flexShrink: 0 }} />
+            <span style={{ fontSize: "12px", color: "#55555d", lineHeight: 1.55 }}>I reviewed the agreement and agree that my adopted signature and initials are legally binding.</span>
           </label>
 
-          {error && (
-            <div style={{ fontSize: "13px", color: "#dc2626", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "8px", padding: "12px 14px" }}>
-              {error}
-            </div>
+          {!readyToFinish ? (
+            <button type="button" onClick={() => setReadyToFinish(true)} disabled={!agreed || textFields.some((field) => !(textValues[field.id] ?? "").trim())} style={buttonStyle(agreed && !textFields.some((field) => !(textValues[field.id] ?? "").trim()))}>Start Signing</button>
+          ) : (
+            <button type="button" onClick={finishSigning} disabled={submitting} style={buttonStyle(!submitting)}>{submitting ? "Finishing…" : "Finish"}</button>
           )}
-        </div>
 
-        {/* Submit */}
-        <div style={{ padding: "16px 20px 20px", borderTop: "1px solid #e2e8f0" }}>
-          <button
-            type="submit"
-            disabled={!canSubmit || submitting}
-            style={{
-              width: "100%", padding: "16px", fontSize: "15px", fontWeight: 700,
-              background: canSubmit && !submitting ? "#1a56db" : "#cbd5e1",
-              color: "#ffffff", border: "none", borderRadius: "12px",
-              cursor: canSubmit && !submitting ? "pointer" : "default",
-              fontFamily: "inherit", transition: "background 0.15s", letterSpacing: "0.3px",
-            }}
-          >
-            {submitting ? "Submitting…" : "Sign Agreement →"}
-          </button>
-          <div style={{ fontSize: "11px", color: "#94a3b8", textAlign: "center", marginTop: "10px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            Secured · Legally binding electronic signature
-          </div>
-        </div>
-      </form>
+          {error && <div role="alert" style={{ marginTop: "12px", color: "#b42318", background: "#fff1f0", borderRadius: "10px", padding: "12px", fontSize: "12px" }}>{error}</div>}
+          <button type="button" onClick={() => { setStep("adopt"); setReadyToFinish(false); }} style={{ width: "100%", marginTop: "10px", padding: "10px", border: 0, background: "transparent", color: "#777781", fontSize: "12px", cursor: "pointer" }}>Back</button>
+        </section>
+      )}
     </div>
   );
 }

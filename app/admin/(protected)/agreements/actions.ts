@@ -618,24 +618,24 @@ export async function sendSigningLinks(agreementId: string) {
       to: signer.email,
       subject: `Action required: Please sign your ${typeLabel}`,
       html: `
-          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
-            <div style="background:#111110;padding:18px 24px;border-radius:8px 8px 0 0">
-              <p style="font-size:10px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 4px">Highlander</p>
-              <p style="font-size:20px;font-family:Georgia,serif;color:#fff;letter-spacing:3px;margin:0">REI<span style="color:#B8962E">.</span></p>
+        <div style="margin:0;padding:32px 12px;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111110">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e8e8ec;border-radius:18px;overflow:hidden">
+            <div style="padding:22px 24px;border-bottom:1px solid #eeeeef">
+              <span style="font-size:14px;font-weight:750;letter-spacing:1.7px">HIGHLANDER REI</span>
             </div>
-            <div style="background:#fafaf8;border:1px solid #e8e7e2;border-top:none;border-radius:0 0 8px 8px;padding:28px 24px">
-              <h2 style="font-size:17px;color:#111;margin:0 0 12px">Hi ${safeName},</h2>
-              <p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 20px">
-                You have a <strong>${safeTypeLabel}</strong> ready for your signature regarding the property at:<br/>
-                <strong style="color:#111">${safeAddress}</strong>
-              </p>
-              <a href="${safeSigningUrl}" style="display:inline-block;background:#111110;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none;letter-spacing:0.3px">
-                Review &amp; Sign →
-              </a>
-              <p style="font-size:12px;color:#aaa;margin:20px 0 0">
-                Or copy this link: ${safeSigningUrl}
-              </p>
+            <div style="padding:30px 24px 26px">
+              <span style="display:inline-block;padding:6px 10px;border-radius:20px;background:#f2f2f4;color:#666670;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase">Signature requested</span>
+              <h1 style="font-size:25px;line-height:1.2;letter-spacing:-.5px;margin:20px 0 10px">Hi ${safeName}, your agreement is ready.</h1>
+              <p style="font-size:14px;color:#666670;line-height:1.65;margin:0 0 22px">Use our guided signing flow to review the exact PDF, choose your signature and initials, and finish securely.</p>
+              <div style="padding:16px 17px;border:1px solid #e8e8ec;border-radius:13px;margin-bottom:20px">
+                <div style="font-size:11px;color:#888891;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:6px">${safeTypeLabel}</div>
+                <div style="font-size:14px;color:#111110;font-weight:700;line-height:1.5">${safeAddress}</div>
+              </div>
+              <a href="${safeSigningUrl}" style="display:block;background:#111110;color:#ffffff;padding:15px 18px;border-radius:12px;font-size:14px;font-weight:700;text-align:center;text-decoration:none">Start signing</a>
+              <p style="font-size:11px;color:#aaaab2;line-height:1.55;margin:20px 0 0;word-break:break-all">If the button does not open, use this secure link:<br/>${safeSigningUrl}</p>
             </div>
+          </div>
+          <p style="max-width:560px;margin:16px auto 0;text-align:center;font-size:10px;color:#aaaab2;letter-spacing:.3px">Secured by Highlander REI · Legally binding electronic signatures</p>
           </div>
       `,
     });
