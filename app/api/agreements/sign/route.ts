@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stampPdf } from "@/lib/stamp-pdf";
 import { put } from "@vercel/blob";
 import { Resend } from "resend";
-import { getInitialSigningFields, isAgreementDataField, type AgreementField } from "@/lib/agreement-fields";
+import { getInitialSigningFields, isAgreementDataField, resolveAgreementFields, type AgreementField } from "@/lib/agreement-fields";
 
 const MAX_REQUEST_SIZE = 750_000;
 const MAX_SIGNATURE_SIZE = 500_000;
@@ -33,6 +33,12 @@ function cleanFields(value: unknown): Record<string, string> | null {
     fields[key] = fieldValue;
   }
   return fields;
+}
+
+function cleanFieldIds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > MAX_FIELDS) return null;
+  if (!value.every((id) => typeof id === "string" && id.length > 0 && id.length <= 100)) return null;
+  return [...new Set(value)];
 }
 
 async function finalizeAgreement(agreementId: string) {
@@ -164,7 +170,7 @@ export async function POST(req: NextRequest) {
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (contentLength > MAX_REQUEST_SIZE) return invalid("Signature submission is too large.", 413);
 
-    const { token, signerName, signatureData, signatureType, fieldData } = await req.json();
+    const { token, signerName, signatureData, signatureType, fieldData, appliedFieldIds } = await req.json();
     if (typeof token !== "string" || !token || token.length > 100) return invalid("Invalid signing link.");
     if (typeof signerName !== "string" || !signerName.trim() || signerName.length > 200) return invalid("A valid signer name is required.");
     if (signatureType !== "draw" && signatureType !== "type") return invalid("Choose a valid signature method.");
@@ -174,6 +180,8 @@ export async function POST(req: NextRequest) {
 
     const cleanedFields = cleanFields(fieldData);
     if (!cleanedFields) return invalid("One or more agreement fields are invalid.");
+    const cleanedAppliedFieldIds = cleanFieldIds(appliedFieldIds);
+    if (!cleanedAppliedFieldIds) return invalid("The signing field record is invalid.");
 
     // Try new AgreementSigner system first
     const signer = await prisma.agreementSigner.findUnique({
@@ -186,10 +194,40 @@ export async function POST(req: NextRequest) {
       if (signer.agreement.status === "void") return invalid("This agreement has been voided.", 409);
       if (!signer.agreement.pdfUrl) return invalid("This agreement document is unavailable.", 409);
 
+      const savedFields = Array.isArray(signer.agreement.customFields)
+        ? (signer.agreement.customFields as AgreementField[])
+            .filter((field) => !isAgreementDataField(field))
+            .map((field, index) => ({ ...field, id: field.id ?? `cf-${index}` }))
+        : [];
+      let signingFields = savedFields;
+      if (signingFields.length === 0) {
+        const template = await prisma.agreementTemplate.findUnique({
+          where: { type: signer.agreement.type },
+          include: { fields: { orderBy: { page: "asc" } } },
+        });
+        signingFields = resolveAgreementFields((template?.fields ?? []).map((field) => ({
+          ...field,
+          label: field.label ?? undefined,
+        })), {
+          type: signer.agreement.type,
+          seller2Name: signer.agreement.seller2Name,
+          signerCount: await prisma.agreementSigner.count({ where: { agreementId: signer.agreementId } }),
+        });
+      }
+      const requiredClickIds = signingFields
+        .filter((field) => field.signerIndex === signer.order && (field.type === "signature" || field.type === "initials"))
+        .map((field) => field.id)
+        .filter((id): id is string => !!id);
+      if (requiredClickIds.length === 0) return invalid("No signature fields are mapped for this signer.", 409);
+      if (requiredClickIds.some((id) => !cleanedAppliedFieldIds.includes(id))) {
+        return invalid("Click every assigned signature and initials field before finishing.", 409);
+      }
+
       const storedData = {
         ...cleanedFields,
         signatureData,
         signatureType,
+        appliedFieldIds: cleanedAppliedFieldIds,
       };
 
       const updated = await prisma.agreementSigner.updateMany({

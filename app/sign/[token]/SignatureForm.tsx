@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Field = {
@@ -34,6 +36,8 @@ export default function SignatureForm({
   const initialsFields = fields.filter((field) => field.type === "initials");
   const textFields = fields.filter((field) => field.type === "text");
   const dateFields = fields.filter((field) => field.type === "date");
+  const clickFields = fields.filter((field) => field.type === "signature" || field.type === "initials");
+  const firstClickFieldId = clickFields[0]?.id;
 
   const [step, setStep] = useState<Step>("welcome");
   const [tab, setTab] = useState<"draw" | "type">("type");
@@ -42,7 +46,10 @@ export default function SignatureForm({
   const [signatureData, setSignatureData] = useState("");
   const [hasDrawing, setHasDrawing] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [readyToFinish, setReadyToFinish] = useState(false);
+  const [signingStarted, setSigningStarted] = useState(false);
+  const [appliedFields, setAppliedFields] = useState<string[]>([]);
+  const [pages, setPages] = useState<string[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -51,6 +58,54 @@ export default function SignatureForm({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!signingStarted || !pdfUrl || pages.length > 0) return;
+    let cancelled = false;
+
+    async function loadPdf() {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          if ((window as any).pdfjsLib) return resolve();
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+          script.onload = () => resolve();
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        const lib = (window as any).pdfjsLib;
+        lib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        const pdf = await lib.getDocument({ url: pdfUrl, withCredentials: false }).promise;
+        const renderedPages: string[] = [];
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          const viewport = page.getViewport({ scale: 1.4 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
+          renderedPages.push(canvas.toDataURL());
+        }
+        if (!cancelled) setPages(renderedPages);
+      } catch {
+        if (!cancelled) setError("The agreement PDF could not be displayed. Please try again.");
+      } finally {
+        if (!cancelled) setPdfLoading(false);
+      }
+    }
+
+    loadPdf();
+    return () => { cancelled = true; };
+  }, [pages.length, pdfUrl, signingStarted]);
+
+  useEffect(() => {
+    if (!signingStarted || pages.length === 0 || !firstClickFieldId) return;
+    const timeout = window.setTimeout(() => {
+      document.getElementById(`sign-field-${firstClickFieldId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 180);
+    return () => window.clearTimeout(timeout);
+  }, [firstClickFieldId, pages.length, signingStarted]);
 
   function getPos(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) {
     const rect = canvas.getBoundingClientRect();
@@ -127,7 +182,7 @@ export default function SignatureForm({
   }
 
   async function finishSigning() {
-    if (!agreed || !readyToFinish || !signatureData) return;
+    if (!agreed || appliedFields.length !== clickFields.length || !signatureData) return;
     setSubmitting(true);
     setError("");
     const fieldData: Record<string, string> = {};
@@ -145,14 +200,38 @@ export default function SignatureForm({
           signatureData,
           signatureType: tab,
           fieldData,
+          appliedFieldIds: appliedFields,
         }),
       });
-      if (!response.ok) throw new Error("Signing request failed");
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error ?? "Signing request failed");
+      }
       setDone(true);
-    } catch {
-      setError("We could not finish signing. Please try again.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "We could not finish signing. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function startSigning() {
+    if (clickFields.length === 0) {
+      setError("This agreement has no mapped signature or initials fields. Please contact Highlander REI.");
+      return;
+    }
+    setError("");
+    setPdfLoading(true);
+    setSigningStarted(true);
+  }
+
+  function applyField(fieldId: string) {
+    if (appliedFields.includes(fieldId)) return;
+    const nextApplied = [...appliedFields, fieldId];
+    setAppliedFields(nextApplied);
+    const nextField = clickFields.find((field) => !nextApplied.includes(field.id));
+    if (nextField) {
+      window.setTimeout(() => document.getElementById(`sign-field-${nextField.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
     }
   }
 
@@ -181,8 +260,10 @@ export default function SignatureForm({
     );
   }
 
+  const allMarksApplied = clickFields.length > 0 && appliedFields.length === clickFields.length;
+
   return (
-    <div>
+    <div style={{ maxWidth: signingStarted ? "820px" : "520px", margin: "0 auto" }}>
       <div style={{ display: "flex", gap: "6px", marginBottom: "28px" }}>
         {["Start", "Adopt", "Sign"].map((label, index) => {
           const activeIndex = step === "welcome" ? 0 : step === "adopt" ? 1 : 2;
@@ -250,31 +331,84 @@ export default function SignatureForm({
 
       {step === "review" && (
         <section>
-          <h1 style={{ margin: "0 0 7px", fontSize: "25px", letterSpacing: "-0.6px" }}>Review and sign</h1>
-          <p style={{ margin: "0 0 20px", color: "#777781", fontSize: "13px", lineHeight: 1.6 }}>Your signature is ready. Review the document, then start signing and finish.</p>
+          {!signingStarted ? (
+            <>
+              <h1 style={{ margin: "0 0 7px", fontSize: "25px", letterSpacing: "-0.6px" }}>Review and sign</h1>
+              <p style={{ margin: "0 0 20px", color: "#777781", fontSize: "13px", lineHeight: 1.6 }}>Next, you will enter the agreement and click every signature and initials field assigned to you.</p>
 
-          {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", textAlign: "center", padding: "13px", border: "1px solid #d8d8dc", borderRadius: "12px", color: "#111110", textDecoration: "none", fontSize: "13px", fontWeight: 650, marginBottom: "14px" }}>Open exact PDF</a>}
+              {textFields.map((field) => (
+                <div key={field.id} style={{ marginBottom: "14px" }}>
+                  <label style={{ display: "block", fontSize: "11px", color: "#777781", marginBottom: "6px", fontWeight: 700 }}>{field.label}</label>
+                  <input value={textValues[field.id] ?? ""} onChange={(e) => setTextValues((current) => ({ ...current, [field.id]: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", padding: "12px 13px", border: "1px solid #d8d8dc", borderRadius: "10px", fontSize: "14px" }} />
+                </div>
+              ))}
 
-          {textFields.map((field) => (
-            <div key={field.id} style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "11px", color: "#777781", marginBottom: "6px", fontWeight: 700 }}>{field.label}</label>
-              <input value={textValues[field.id] ?? ""} onChange={(e) => setTextValues((current) => ({ ...current, [field.id]: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", padding: "12px 13px", border: "1px solid #d8d8dc", borderRadius: "10px", fontSize: "14px" }} />
-            </div>
-          ))}
+              <label style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "16px", background: "#f5f5f6", borderRadius: "12px", marginBottom: "14px", cursor: "pointer" }}>
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ width: 18, height: 18, accentColor: "#111110", flexShrink: 0 }} />
+                <span style={{ fontSize: "12px", color: "#55555d", lineHeight: 1.55 }}>I reviewed the agreement and agree that my adopted signature and initials are legally binding.</span>
+              </label>
 
-          <label style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "16px", background: "#f5f5f6", borderRadius: "12px", marginBottom: "14px", cursor: "pointer" }}>
-            <input type="checkbox" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setReadyToFinish(false); }} style={{ width: 18, height: 18, accentColor: "#111110", flexShrink: 0 }} />
-            <span style={{ fontSize: "12px", color: "#55555d", lineHeight: 1.55 }}>I reviewed the agreement and agree that my adopted signature and initials are legally binding.</span>
-          </label>
-
-          {!readyToFinish ? (
-            <button type="button" onClick={() => setReadyToFinish(true)} disabled={!agreed || textFields.some((field) => !(textValues[field.id] ?? "").trim())} style={buttonStyle(agreed && !textFields.some((field) => !(textValues[field.id] ?? "").trim()))}>Start Signing</button>
+              <button type="button" onClick={startSigning} disabled={!agreed || textFields.some((field) => !(textValues[field.id] ?? "").trim())} style={buttonStyle(agreed && !textFields.some((field) => !(textValues[field.id] ?? "").trim()))}>Start Signing</button>
+              {error && <div role="alert" style={{ marginTop: "12px", color: "#b42318", background: "#fff1f0", borderRadius: "10px", padding: "12px", fontSize: "12px" }}>{error}</div>}
+              <button type="button" onClick={() => setStep("adopt")} style={{ width: "100%", marginTop: "10px", padding: "10px", border: 0, background: "transparent", color: "#777781", fontSize: "12px", cursor: "pointer" }}>Back</button>
+            </>
           ) : (
-            <button type="button" onClick={finishSigning} disabled={submitting} style={buttonStyle(!submitting)}>{submitting ? "Finishing…" : "Finish"}</button>
-          )}
+            <>
+              <div style={{ position: "sticky", top: "74px", zIndex: 20, background: "rgba(255,255,255,0.96)", border: "1px solid #e8e8ec", borderRadius: "14px", padding: "12px 14px", marginBottom: "16px", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", backdropFilter: "blur(10px)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 750 }}>{allMarksApplied ? "All fields completed" : "Click each highlighted field"}</div>
+                    <div style={{ fontSize: "11px", color: "#777781", marginTop: "3px" }}>{appliedFields.length} of {clickFields.length} signatures and initials completed</div>
+                  </div>
+                  <button type="button" onClick={finishSigning} disabled={!allMarksApplied || submitting} style={{ padding: "11px 18px", border: 0, borderRadius: "10px", background: allMarksApplied && !submitting ? "#111110" : "#d8d8dc", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: allMarksApplied && !submitting ? "pointer" : "default" }}>
+                    {submitting ? "Finishing…" : "Finish"}
+                  </button>
+                </div>
+              </div>
 
-          {error && <div role="alert" style={{ marginTop: "12px", color: "#b42318", background: "#fff1f0", borderRadius: "10px", padding: "12px", fontSize: "12px" }}>{error}</div>}
-          <button type="button" onClick={() => { setStep("adopt"); setReadyToFinish(false); }} style={{ width: "100%", marginTop: "10px", padding: "10px", border: 0, background: "transparent", color: "#777781", fontSize: "12px", cursor: "pointer" }}>Back</button>
+              <div style={{ background: "#eeeeef", borderRadius: "14px", padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
+                {pdfLoading && <div style={{ padding: "60px 0", color: "#777781", fontSize: "13px" }}>Loading agreement…</div>}
+                {!pdfLoading && pages.length === 0 && <div style={{ padding: "60px 20px", color: "#777781", fontSize: "13px", textAlign: "center" }}>The agreement could not be displayed.</div>}
+                {pages.map((dataUrl, pageIndex) => (
+                  <div key={pageIndex} style={{ width: "100%", maxWidth: "760px" }}>
+                    <div style={{ fontSize: "9px", color: "#9999a2", textAlign: "center", letterSpacing: "1px", marginBottom: "5px" }}>PAGE {pageIndex + 1}</div>
+                    <div style={{ position: "relative", width: "100%", boxShadow: "0 4px 18px rgba(0,0,0,0.14)", background: "#fff" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={dataUrl} alt={`Agreement page ${pageIndex + 1}`} style={{ display: "block", width: "100%", height: "auto" }} />
+                      {fields.filter((field) => field.page === pageIndex + 1).map((field) => {
+                        const clickable = field.type === "signature" || field.type === "initials";
+                        const applied = appliedFields.includes(field.id);
+                        const value = field.type === "signature" ? typedName : field.type === "initials" ? initials : field.type === "date" ? today : textValues[field.id] ?? "";
+                        return (
+                          <button
+                            id={clickable ? `sign-field-${field.id}` : undefined}
+                            key={field.id}
+                            type="button"
+                            onClick={() => clickable && applyField(field.id)}
+                            disabled={!clickable}
+                            aria-label={`${applied ? "Completed" : "Apply"} ${field.label}`}
+                            style={{
+                              position: "absolute", left: `${field.x * 100}%`, top: `${field.y * 100}%`,
+                              width: `${field.width * 100}%`, height: `${field.height * 100}%`,
+                              border: clickable ? `2px solid ${applied ? "#238636" : "#1a56db"}` : "none",
+                              borderRadius: "4px", background: clickable ? (applied ? "rgba(35,134,54,0.12)" : "rgba(26,86,219,0.14)") : "transparent",
+                              color: "#111110", padding: "1px 3px", boxSizing: "border-box", overflow: "hidden",
+                              cursor: clickable && !applied ? "pointer" : "default", fontFamily: field.type === "signature" || field.type === "initials" ? "Georgia, serif" : "inherit",
+                              fontStyle: field.type === "signature" || field.type === "initials" ? "italic" : "normal", fontSize: "clamp(7px, 1.6vw, 14px)", fontWeight: clickable ? 700 : 500,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                            }}
+                          >
+                            {clickable && !applied ? `Click ${field.type === "signature" ? "to sign" : "to initial"}` : value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {error && <div role="alert" style={{ marginTop: "12px", color: "#b42318", background: "#fff1f0", borderRadius: "10px", padding: "12px", fontSize: "12px" }}>{error}</div>}
+            </>
+          )}
         </section>
       )}
     </div>

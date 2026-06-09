@@ -96,7 +96,7 @@ function SignLayout({
         </span>
       </div>
 
-      <main style={{ maxWidth: "520px", margin: "0 auto", padding: "32px 20px 54px" }}>
+      <main style={{ maxWidth: "920px", margin: "0 auto", padding: "32px 20px 54px" }}>
         {alreadySigned ? (
           <div style={{ padding: "72px 22px", textAlign: "center" }}>
             <div style={{ width: 58, height: 58, background: "#111110", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
