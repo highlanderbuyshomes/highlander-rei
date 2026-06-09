@@ -23,9 +23,10 @@ const styles = StyleSheet.create({
 });
 
 const TYPE_LABELS: Record<string, string> = {
-  cash_offer:  "Cash Offer",
-  flex_equity: "Flex Equity Program",
-  listing:     "Listing Agreement",
+  cash_offer:   "Cash Offer",
+  flex_equity:  "Flex Equity Program",
+  listing:      "Listing Agreement",
+  aif_novation: "AIF / Novation Agreement",
 };
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {

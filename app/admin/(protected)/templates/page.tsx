@@ -32,6 +32,21 @@ const TEMPLATE_TYPES = [
     ),
   },
   {
+    type: "aif_novation",
+    name: "AIF / Novation Agreement",
+    description: "Novation agreement granting the limited Attorney-in-Fact authority used in Flex Equity transactions.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 3h5v5"/>
+        <path d="M8 21H3v-5"/>
+        <path d="M21 3l-7 7"/>
+        <path d="M3 21l7-7"/>
+        <path d="M14 3h-4a7 7 0 00-7 7v1"/>
+        <path d="M10 21h4a7 7 0 007-7v-1"/>
+      </svg>
+    ),
+  },
+  {
     type: "listing",
     name: "Listing Agreement",
     description: "Listing agreement for working with real estate agents and brokers.",
@@ -54,7 +69,9 @@ export default async function TemplatesPage({
   await requireAdmin();
   const { type: typeFilter, q } = await searchParams;
 
-  const templates = await prisma.agreementTemplate.findMany();
+  const templates = await prisma.agreementTemplate.findMany({
+    include: { _count: { select: { fields: true } } },
+  });
   const byType = Object.fromEntries(templates.map((t) => [t.type, t]));
 
   const filtered = TEMPLATE_TYPES.filter((t) => {
@@ -153,8 +170,8 @@ export default async function TemplatesPage({
           <div className="admin-workspace-table" style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "12px", overflow: "hidden" }}>
 
             {/* Column headers */}
-            <div className="admin-workspace-table-row" style={{ display: "grid", gridTemplateColumns: "1.4fr 1.8fr 110px 130px 200px", padding: "10px 24px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
-              {["Name", "Description", "Status", "Last Updated", ""].map((h) => (
+            <div className="admin-workspace-table-row" style={{ display: "grid", gridTemplateColumns: "1.4fr 1.8fr 110px 1fr", padding: "10px 24px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+              {["Name", "Description", "Status", ""].map((h) => (
                 <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
               ))}
             </div>
@@ -170,6 +187,7 @@ export default async function TemplatesPage({
                   description={description}
                   icon={icon}
                   hasPdf={!!existing?.pdfUrl}
+                  fieldCount={existing?._count.fields ?? 0}
                   pdfUrl={existing?.pdfUrl ?? null}
                   currentDescription={existing?.description ?? ""}
                   updatedAt={existing?.updatedAt ?? null}

@@ -2,15 +2,19 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, removeSigner, sendSigningLinks } from "../actions";
+import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, removeSigner, sendSigningLinks, saveAgreementFields } from "../actions";
 import CopyButton from "../CopyButton";
 import SignerSection from "./SignerSection";
 import DeleteAgreementForm from "./DeleteAgreementForm";
+import FieldEditorWrapper from "./FieldEditorWrapper";
+import type { FieldInput } from "./AgreementFieldEditor";
+import { getAgreementFieldIssues, getAgreementSignerLabels, getDefaultAgreementFields, resolveAgreementFields } from "@/lib/agreement-fields";
 
 const TYPE_LABELS: Record<string, string> = {
-  cash_offer:  "Cash Offer",
-  flex_equity: "Flex Equity Program",
-  listing:     "Listing Agreement",
+  cash_offer:   "Cash Offer",
+  flex_equity:  "Flex Equity Program",
+  listing:      "Listing Agreement",
+  aif_novation: "AIF / Novation Agreement",
 };
 
 const STATUS_FLOW = ["draft", "sent", "completed"] as const;
@@ -45,6 +49,11 @@ export default async function AgreementDetailPage({
   ]);
   if (!a) notFound();
 
+  const template = await prisma.agreementTemplate.findUnique({
+    where: { type: a.type },
+    include: { fields: { orderBy: { page: "asc" } } },
+  }).catch(() => null);
+
   const statusCfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.draft;
   const currentFlowIdx = a.status === "signed" ? 2 : STATUS_FLOW.indexOf(a.status as typeof STATUS_FLOW[number]);
   const updateStatusWithId = updateAgreementStatus.bind(null, a.id);
@@ -52,21 +61,24 @@ export default async function AgreementDetailPage({
   const updateWithId       = updateAgreement.bind(null, a.id);
   const addSignerWithId    = addSigner.bind(null, a.id);
   const sendLinksWithId    = sendSigningLinks.bind(null, a.id);
+  const saveFieldsWithId   = saveAgreementFields.bind(null, a.id);
 
   const signingUrl = a.signerToken ? `https://highlanderrei.com/sign/${a.signerToken}` : null;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
   const canComplete = a.signers.length > 0
     ? a.signers.every((signer) => !!signer.signedAt)
     : !!a.signedAt;
+  const savedFields = Array.isArray(a.customFields) ? a.customFields as FieldInput[] : null;
+  const sendBlockedReasons = getAgreementFieldIssues(savedFields, a.signers.length);
 
   return (
-    <div style={{ maxWidth: "820px", padding: "32px", margin: "0 auto" }}>
+    <div className="agreement-detail-page" style={{ maxWidth: "820px", padding: "32px", margin: "0 auto" }}>
       <div style={{ marginBottom: "20px" }}>
         <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Agreements</Link>
       </div>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px", gap: "16px", flexWrap: "wrap" }}>
+      <div className="agreement-detail-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px", gap: "16px", flexWrap: "wrap" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
             <span style={{ fontFamily: "var(--font-display), serif", fontSize: "26px", color: "#111110", letterSpacing: "2px" }}>
@@ -81,7 +93,13 @@ export default async function AgreementDetailPage({
             Created {new Date(a.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
           </div>
         </div>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div className="agreement-detail-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {a.completedPdfUrl && (
+            <a href={a.completedPdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", background: "#B8962E", color: "#ffffff", borderRadius: "6px", fontSize: "12.5px", textDecoration: "none", fontWeight: 600 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Executed Agreement
+            </a>
+          )}
           {a.pdfUrl && (
             <a href={a.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12.5px", color: "#111110", textDecoration: "none", fontWeight: 500, background: "#ffffff" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -91,12 +109,47 @@ export default async function AgreementDetailPage({
         </div>
       </div>
 
-      {/* PDF Preview */}
-      {a.pdfUrl && (
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden", marginBottom: "16px", height: "500px" }}>
-          <iframe src={a.pdfUrl} style={{ width: "100%", height: "100%", border: "none" }} title="Agreement PDF" />
+      {!a.pdfUrl && (
+        <div style={{ background: "#ffffff", border: "2px dashed #d0cfc8", borderRadius: "14px", padding: "36px 24px", marginBottom: "16px", textAlign: "center" }}>
+          <div style={{ fontSize: "32px", marginBottom: "10px", opacity: 0.25 }}>📄</div>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "#5a5a54", marginBottom: "6px" }}>No PDF attached</div>
+          <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Upload a PDF below to enable the signing flow and field editor.</div>
+          <form action={updateWithId} style={{ display: "inline-flex", gap: "10px", alignItems: "center" }}>
+            <input name="address" type="hidden" value={a.address} />
+            <input name="sellers" type="hidden" value={a.sellers} />
+            <input name="pdfFile" type="file" accept="application/pdf" style={{ fontSize: "12px", color: "#5a5a54" }} />
+            <button type="submit" style={{ padding: "8px 18px", background: "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Upload
+            </button>
+          </form>
         </div>
       )}
+
+      {/* The field editor is the only inline PDF view before sending. */}
+      {a.pdfUrl && (() => {
+        const customFields = Array.isArray(a.customFields) ? (a.customFields as FieldInput[]) : null;
+        const context = {
+          type: a.type,
+          seller2Name: a.seller2Name,
+          signerCount: a.signers.length,
+        };
+        const templateFields = getDefaultAgreementFields(context) ?? resolveAgreementFields((template?.fields ?? []).map(f => ({
+          type: f.type, label: f.label ?? undefined,
+          page: f.page, x: f.x, y: f.y, width: f.width, height: f.height,
+          signerIndex: f.signerIndex,
+        })), context);
+        const initialFields = customFields ?? templateFields;
+        const labels = getAgreementSignerLabels(context);
+        return (
+          <FieldEditorWrapper
+            agreementId={a.id}
+            pdfUrl={a.pdfUrl}
+            initialFields={initialFields}
+            signerLabels={labels}
+            saveAction={saveFieldsWithId}
+          />
+        );
+      })()}
 
       {/* Status progression */}
       {a.status !== "void" && (
@@ -142,6 +195,7 @@ export default async function AgreementDetailPage({
         baseUrl={baseUrl}
         emailEnabled={!!process.env.RESEND_API_KEY}
         readyToSend={review === "send" && a.status === "draft"}
+        sendBlockedReasons={sendBlockedReasons}
       />
 
       {/* Legacy signing link (for old single-signer agreements) */}

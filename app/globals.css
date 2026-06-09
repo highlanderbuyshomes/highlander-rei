@@ -616,3 +616,212 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   form[style] { padding: 24px 16px !important; }
   .form-success-card { padding: 36px 20px; }
 }
+
+/* ── ADMIN MOBILE BOTTOM TAB BAR ──────────────────────────── */
+.admin-mobile-nav {
+  display: none;
+}
+
+.agreement-field-editor-mobile {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .admin-mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+  }
+
+  .admin-mobile-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 4px;
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 0.3px;
+    transition: color 0.15s;
+  }
+
+  .admin-mobile-nav a.active {
+    color: #1a56db;
+  }
+
+  /* Push content above tab bar */
+  .admin-content-wrap {
+    padding-bottom: 80px;
+  }
+
+  /* Main tabs replace dense desktop sidebars on mobile. */
+  .agreements-sidebar,
+  .admin-workspace-sidebar {
+    display: none !important;
+  }
+
+  .agreements-main-header form,
+  .admin-workspace-header form {
+    flex-wrap: wrap;
+  }
+
+  .agreements-main-header form > div,
+  .admin-workspace-header form > div {
+    min-width: 100%;
+  }
+
+  .agreements-main-header form button,
+  .agreements-main-header form a,
+  .admin-workspace-header form button,
+  .admin-workspace-header form a {
+    min-height: 40px;
+  }
+
+  /* Replace horizontally scrolling tables with simple cards. */
+  .agreements-table,
+  .admin-workspace-table {
+    overflow: visible !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .agreements-table > .agreements-table-row:first-child,
+  .admin-workspace-table > .admin-workspace-table-row:first-child {
+    display: none !important;
+  }
+
+  .agreements-table-row:not(:first-child),
+  .template-main-row {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .agreements-table-row:not(:first-child) > div,
+  .template-main-row > div {
+    width: 100%;
+    padding-right: 0 !important;
+  }
+
+  .agreements-table-row:not(:first-child) > div:last-child {
+    display: none !important;
+  }
+
+  .template-main-row > div:last-child {
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+
+  .template-upload-row {
+    min-width: 0 !important;
+    margin: -12px 0 12px;
+    border: 1px solid #e2e8f0;
+    border-top: 0 !important;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .agreement-detail-page {
+    padding: 20px 16px !important;
+  }
+
+  .agreement-detail-header,
+  .agreement-detail-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .agreement-detail-actions a {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+  }
+}
+
+/* ── ADMIN NEW AGREEMENT FORM — MOBILE ───────────────────── */
+.new-agreement-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .new-agreement-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .new-agreement-wrap {
+    padding: 16px !important;
+  }
+
+  .new-agreement-card {
+    padding: 20px 16px !important;
+    border-radius: 12px !important;
+  }
+
+  .new-agreement-title {
+    font-size: 26px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .new-agreement-actions {
+    flex-direction: column !important;
+  }
+
+  .new-agreement-actions a,
+  .new-agreement-actions button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .agreement-field-editor-desktop {
+    display: none;
+  }
+
+  .agreement-field-editor-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    color: #0f172a;
+  }
+
+  .agreement-field-editor-mobile span {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  .agreement-field-editor-mobile a {
+    display: flex;
+    justify-content: center;
+    padding: 11px 14px;
+    border-radius: 8px;
+    background: #1a56db;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+}

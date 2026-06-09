@@ -30,12 +30,14 @@ type Props = {
   baseUrl: string;
   emailEnabled: boolean;
   readyToSend?: boolean;
+  sendBlockedReasons?: string[];
 };
 
 const SIGNER_COLORS = ["#1a56db", "#c0392b", "#6b46c1", "#3a7a50", "#B8962E"];
 
 export default function SignerSection({
   signers, contacts, addSignerAction, removeSignerAction, sendLinksAction, baseUrl, emailEnabled, readyToSend = false,
+  sendBlockedReasons = [],
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
@@ -109,7 +111,7 @@ export default function SignerSection({
                 : "Review the PDF and signer emails. Email delivery must be configured before sending."}
             </div>
           </div>
-          <button onClick={handleSend} disabled={sending || !emailEnabled || signers.length === 0} title={!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined} style={{ padding: "9px 18px", background: sending || !emailEnabled || signers.length === 0 ? "#d0cfc8" : "#B8962E", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 700, cursor: sending || !emailEnabled || signers.length === 0 ? "default" : "pointer", fontFamily: "inherit" }}>
+          <button onClick={handleSend} disabled={sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0} title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined)} style={{ padding: "9px 18px", background: sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0 ? "#d0cfc8" : "#B8962E", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 700, cursor: sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}>
             {sending ? "Sending…" : "Send for Signature"}
           </button>
         </div>
@@ -120,7 +122,7 @@ export default function SignerSection({
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           {signers.length > 0 && anyUnsent && !allSigned && (
-            <button onClick={handleSend} disabled={sending || !emailEnabled} title={!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined} style={{ padding: "6px 14px", background: sending || !emailEnabled ? "#d0cfc8" : "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: sending || !emailEnabled ? "default" : "pointer", fontFamily: "inherit" }}>
+            <button onClick={handleSend} disabled={sending || !emailEnabled || sendBlockedReasons.length > 0} title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined)} style={{ padding: "6px 14px", background: sending || !emailEnabled || sendBlockedReasons.length > 0 ? "#d0cfc8" : "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: sending || !emailEnabled || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}>
               {sending ? "Sending…" : "Send Links"}
             </button>
           )}
@@ -247,6 +249,11 @@ export default function SignerSection({
       {signers.length > 0 && !emailEnabled && (
         <div style={{ marginTop: "10px", fontSize: "11.5px", color: "#8a6a10", background: "rgba(184,150,46,0.08)", border: "1px solid rgba(184,150,46,0.25)", borderRadius: "6px", padding: "8px 12px" }}>
           Note: Set RESEND_API_KEY in Vercel env vars to enable automatic email delivery.
+        </div>
+      )}
+      {sendBlockedReasons.length > 0 && (
+        <div style={{ marginTop: "10px", fontSize: "11.5px", color: "#8a6a10", background: "rgba(184,150,46,0.08)", border: "1px solid rgba(184,150,46,0.25)", borderRadius: "6px", padding: "8px 12px" }}>
+          Before sending: {sendBlockedReasons[0]}
         </div>
       )}
     </div>

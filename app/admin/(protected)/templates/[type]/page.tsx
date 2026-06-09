@@ -9,12 +9,26 @@ import { saveTemplateFields } from "./actions";
 export const metadata: Metadata = { title: "Edit Fields | Highlander REI" };
 
 const TEMPLATE_NAMES: Record<string, string> = {
-  cash_offer:  "Cash Offer",
-  flex_equity: "Flex Equity Program",
-  listing:     "Listing Agreement",
+  cash_offer:   "Cash Offer",
+  flex_equity:  "Flex Equity Program",
+  listing:      "Listing Agreement",
+  aif_novation: "AIF / Novation Agreement",
 };
 
-const VALID_TYPES = ["cash_offer", "flex_equity", "listing"];
+const SIGNER_LABELS: Record<string, string[]> = {
+  cash_offer:   ["Seller 1", "Seller 2", "Buyer"],
+  flex_equity:  ["Seller 1", "Seller 2", "Buyer"],
+  listing:      ["Seller", "Buyer"],
+  aif_novation: ["Seller 1", "Seller 2", "Buyer"],
+};
+
+const VALID_TYPES = ["cash_offer", "flex_equity", "listing", "aif_novation"];
+const REQUIRED_SIGNER_COUNTS: Record<string, number> = {
+  cash_offer: 3,
+  flex_equity: 3,
+  aif_novation: 3,
+  listing: 2,
+};
 
 export default async function TemplateFieldsPage({ params }: { params: Promise<{ type: string }> }) {
   await requireAdmin();
@@ -47,7 +61,8 @@ export default async function TemplateFieldsPage({ params }: { params: Promise<{
       <PdfFieldEditor
         pdfUrl={template?.pdfUrl ?? null}
         initialFields={(template?.fields ?? []).map(f => ({ ...f, label: f.label ?? undefined }))}
-        initialSignerCount={template?.signerCount ?? 1}
+        initialSignerCount={Math.max(template?.signerCount ?? 1, REQUIRED_SIGNER_COUNTS[type] ?? 2)}
+        signerLabels={SIGNER_LABELS[type]}
         onSave={saveWithType}
       />
     </div>

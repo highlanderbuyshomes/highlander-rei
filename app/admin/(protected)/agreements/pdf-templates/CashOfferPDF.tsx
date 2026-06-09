@@ -5,6 +5,7 @@ export type CashOfferPDFProps = {
   agreementDate: string;
   seller1Name: string;
   seller2Name?: string;
+  buyerName?: string;
   address: string;
   purchasePrice: string;
   earnestMoney: string;
@@ -155,7 +156,7 @@ function P({ bold, children }: { bold: string; children: string }) {
 
 export default function CashOfferPDF(props: CashOfferPDFProps) {
   const {
-    agreementDate, seller1Name, seller2Name, address,
+    agreementDate, seller1Name, seller2Name, buyerName = "Highlander REI LLC", address,
     purchasePrice, earnestMoney, cashAtClosing,
     titleOffice = "", daysToClosing = "30",
   } = props;
@@ -181,7 +182,7 @@ export default function CashOfferPDF(props: CashOfferPDFProps) {
 
         <PartyBox title="SELLER 1" value={seller1Name} />
         <PartyBox title="SELLER 2 (IF APPLICABLE)" value={seller2Name ?? "N/A"} />
-        <PartyBox title="BUYER – HIGHLANDER REI LLC, AND/OR ASSIGNS" value="Highlander REI LLC" />
+        <PartyBox title="BUYER, AND/OR ASSIGNS" value={buyerName} />
 
         {/* Property details table — no section header in this version */}
         <View style={s.pdTable}>
@@ -292,7 +293,7 @@ export default function CashOfferPDF(props: CashOfferPDFProps) {
             </View>
             <View style={s.sigBoxR}>
               <View style={s.sigLine} />
-              <Text style={s.sigLabel}>BUYER – HIGHLANDER REI LLC</Text>
+              <Text style={s.sigLabel}>BUYER – {buyerName}</Text>
               <Text style={s.sigDate}>Date</Text>
             </View>
           </View>

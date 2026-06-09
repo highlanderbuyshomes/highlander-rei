@@ -9,6 +9,7 @@ type Props = {
   description: string;
   icon: React.ReactNode;
   hasPdf: boolean;
+  fieldCount: number;
   pdfUrl: string | null;
   currentDescription: string;
   updatedAt: Date | null;
@@ -17,26 +18,38 @@ type Props = {
 };
 
 export default function TemplateRow({
-  type, name, description, icon, hasPdf, pdfUrl, currentDescription, updatedAt, upsertAction, isLast,
+  type, name, description, icon, hasPdf, fieldCount, pdfUrl, currentDescription, updatedAt, upsertAction, isLast,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const ready = hasPdf && fieldCount > 0;
 
   return (
     <div style={{ borderBottom: isLast ? "none" : "1px solid #f0efeb" }}>
       {/* Main row */}
-      <div className="admin-workspace-table-row" style={{ display: "grid", gridTemplateColumns: "1.4fr 1.8fr 110px 130px 200px", padding: "16px 24px", alignItems: "center", background: "#ffffff" }}>
+      <div className="admin-workspace-table-row template-main-row" style={{ display: "grid", gridTemplateColumns: "1.4fr 1.8fr 110px 1fr", padding: "16px 24px", alignItems: "center", background: "#ffffff" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ color: "#8a8a84" }}>{icon}</span>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>{name}</span>
+          <div>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>{name}</div>
+            {updatedAt && (
+              <div style={{ fontSize: "10.5px", color: "#aaa", marginTop: "2px" }}>
+                Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ fontSize: "12px", color: "#5a5a54", paddingRight: "16px", lineHeight: 1.5 }}>{description}</div>
 
         <div>
-          {hasPdf ? (
+          {ready ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600, background: "#eaf6f0", color: "#3a7a50", border: "1px solid #b8dfc8" }}>
               <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#3a7a50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Ready
+            </span>
+          ) : hasPdf ? (
+            <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600, background: "#fff7e6", color: "#946200", border: "1px solid #ead18a" }}>
+              Needs Fields
             </span>
           ) : (
             <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600, background: "#f0efeb", color: "#8a8a84", border: "1px solid #d0cfc8" }}>
@@ -45,27 +58,18 @@ export default function TemplateRow({
           )}
         </div>
 
-        <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>
-          {updatedAt
-            ? new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-            : "—"}
-        </div>
-
         <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
-          {hasPdf && (
-            <a href={pdfUrl!} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "#5a5a54", textDecoration: "none", padding: "6px 12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", whiteSpace: "nowrap" }}>
-              View PDF
-            </a>
-          )}
-          <Link href={`/admin/agreements/new?template=${type}`} style={{ fontSize: "12px", fontWeight: 600, color: "#ffffff", textDecoration: "none", padding: "6px 14px", borderRadius: "6px", background: "#111110", whiteSpace: "nowrap" }}>
-            Use
-          </Link>
+          {ready ? (
+            <Link href={`/admin/agreements/new?template=${type}`} style={{ fontSize: "12px", fontWeight: 600, color: "#ffffff", textDecoration: "none", padding: "6px 14px", borderRadius: "6px", background: "#111110", whiteSpace: "nowrap" }}>
+              Use
+            </Link>
+          ) : null}
           <Link href={`/admin/templates/${type}`} style={{ fontSize: "12px", color: "#5a5a54", textDecoration: "none", padding: "6px 12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", whiteSpace: "nowrap" }}>
-            Edit
+            {hasPdf && fieldCount === 0 ? "Map Fields" : "Edit"}
           </Link>
           <button
             onClick={() => setOpen(o => !o)}
-            title={hasPdf ? "Replace PDF" : "Upload PDF"}
+            title={hasPdf ? "View / Replace PDF" : "Upload PDF"}
             style={{ fontSize: "12px", color: open ? "#B8962E" : "#5a5a54", background: open ? "rgba(184,150,46,0.08)" : "transparent", border: `1px solid ${open ? "rgba(184,150,46,0.35)" : "#d0cfc8"}`, borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "5px" }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -80,7 +84,12 @@ export default function TemplateRow({
 
       {/* Collapsible upload form */}
       {open && (
-        <form action={upsertAction} className="admin-workspace-table-row" style={{ padding: "12px 24px 16px", display: "flex", gap: "12px", alignItems: "flex-end", background: "#fafaf8", borderTop: "1px solid #f0efeb" }}>
+        <form action={upsertAction} className="admin-workspace-table-row template-upload-row" style={{ padding: "12px 24px 16px", display: "flex", gap: "12px", alignItems: "flex-end", background: "#fafaf8", borderTop: "1px solid #f0efeb", flexWrap: "wrap" }}>
+          {hasPdf && (
+            <a href={pdfUrl!} target="_blank" rel="noopener noreferrer" style={{ width: "100%", marginBottom: "8px", fontSize: "11.5px", color: "#3a7a50", textDecoration: "underline" }}>
+              View current PDF ↗
+            </a>
+          )}
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 600 }}>
               {hasPdf ? "Replace PDF" : "Upload PDF"}

@@ -1,0 +1,1 @@
+ALTER TABLE "Agreement" ADD COLUMN IF NOT EXISTS "completedPdfUrl" TEXT;

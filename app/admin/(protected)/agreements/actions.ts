@@ -7,11 +7,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import { Resend } from "resend";
+import { getAgreementFieldIssues, isAgreementDataField, resolveAgreementFields, type AgreementField } from "@/lib/agreement-fields";
+import { stampAgreementData } from "@/lib/stamp-pdf";
 
 const TYPE_LABELS: Record<string, string> = {
-  cash_offer:  "Cash Offer",
-  flex_equity: "Flex Equity Program",
-  listing:     "Listing Agreement",
+  cash_offer:   "Cash Offer",
+  flex_equity:  "Flex Equity Program",
+  listing:      "Listing Agreement",
+  aif_novation: "AIF / Novation Agreement",
 };
 const AGREEMENT_TYPES = new Set(Object.keys(TYPE_LABELS));
 const AGREEMENT_STATUSES = new Set(["draft", "sent", "signed", "completed", "void"]);
@@ -71,6 +74,7 @@ export async function createAgreement(formData: FormData) {
 
   let sellers: string;
   let pdfUrl: string | null = null;
+  let customFields: AgreementField[] | undefined;
   let seller1Name: string | null = null;
   let seller2Name: string | null = null;
   let agreementDate: string | null = null;
@@ -79,6 +83,17 @@ export async function createAgreement(formData: FormData) {
   let earnestMoney: string | null = null;
   let titleOffice: string | null = null;
   let daysToClosing: string | null = null;
+  let inspectionPeriod: string | null = null;
+  let agentName: string | null = null;
+  let agentEmail: string | null = null;
+  let agentPhone: string | null = null;
+  let agentLicense: string | null = null;
+  let brokerageName: string | null = null;
+  let listPrice: string | null = null;
+  let agencyRelationship: string | null = null;
+  let brokerComp: string | null = null;
+  let listingStart: string | null = null;
+  let listingEnd: string | null = null;
 
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
@@ -87,22 +102,23 @@ export async function createAgreement(formData: FormData) {
   const signers: NewSigner[] = [];
   const buyerSignerName = g("buyerSignerName");
   const buyerSignerEmail = g("buyerSignerEmail");
-  if (buyerSignerName || buyerSignerEmail) {
-    if (!buyerSignerName || !buyerSignerEmail || !isValidEmail(buyerSignerEmail)) {
-      throw new Error("Enter a valid name and email for the buyer signer.");
-    }
+  if (!buyerSignerName || !buyerSignerEmail || !isValidEmail(buyerSignerEmail)) {
+    throw new Error("Every agreement requires a valid buyer name and email.");
   }
   const addBuyerSigner = () => {
-    if (buyerSignerName && buyerSignerEmail) signers.push({ name: buyerSignerName, email: buyerSignerEmail });
+    signers.push({ name: buyerSignerName, email: buyerSignerEmail });
   };
 
   if (type === "flex_equity") {
-    seller1Name   = g("seller1Name");
-    seller2Name   = g("seller2Name");
-    agreementDate = g("agreementDate");
-    offerPrice    = g("offerPrice");
-    earnestMoney  = g("earnestMoney");
-    cashAtClosing = g("cashAtClosing");
+    seller1Name      = g("seller1Name");
+    seller2Name      = g("seller2Name");
+    agreementDate    = g("agreementDate");
+    offerPrice       = g("offerPrice");
+    earnestMoney     = g("earnestMoney");
+    cashAtClosing    = g("cashAtClosing");
+    inspectionPeriod = g("inspectionPeriod");
+    titleOffice      = g("titleOffice");
+    daysToClosing    = g("daysToClosing");
 
     if (!seller1Name || !offerPrice || !earnestMoney || !cashAtClosing) {
       throw new Error("Missing required fields for Flex Equity agreement");
@@ -122,14 +138,19 @@ export async function createAgreement(formData: FormData) {
     if (shouldGeneratePdf()) {
       const { generateFlexEquityPDF } = await import("./pdf-templates/generateFlexEquityPDF");
       const pdfBuffer = await generateFlexEquityPDF({
-        agreementDate: agreementDate ?? today,
+        agreementDate:    agreementDate ?? today,
         seller1Name,
-        seller2Name: seller2Name ?? undefined,
+        seller2Name:      seller2Name      ?? undefined,
+        buyerName:        buyerSignerName,
         address,
-        purchasePrice: offerPrice,
+        purchasePrice:    offerPrice,
         earnestMoney,
         cashAtClosing,
+        inspectionPeriod: inspectionPeriod ?? undefined,
+        titleOffice:      titleOffice      ?? undefined,
+        daysToClosing:    daysToClosing    ?? undefined,
       });
+
       const blob = await put(`agreements/flex-equity-${Date.now()}.pdf`, pdfBuffer, {
         access: "public",
         contentType: "application/pdf",
@@ -168,6 +189,7 @@ export async function createAgreement(formData: FormData) {
         agreementDate: agreementDate ?? today,
         seller1Name,
         seller2Name: seller2Name ?? undefined,
+        buyerName: buyerSignerName,
         address,
         purchasePrice: offerPrice,
         earnestMoney,
@@ -182,29 +204,133 @@ export async function createAgreement(formData: FormData) {
       pdfUrl = blob.url;
     }
 
-  } else {
-    sellers = String(formData.get("sellers") ?? "").trim();
-    if (!sellers) throw new Error("Missing required fields");
+  } else if (type === "aif_novation") {
+    seller1Name = g("seller1Name");
+    seller2Name = g("seller2Name");
+    agreementDate = g("agreementDate");
 
-    const signerName = g("signerName");
-    const signerEmail = g("signerEmail");
-    if (!signerName || !signerEmail || !isValidEmail(signerEmail)) {
-      throw new Error("Enter a valid name and email for the primary signer.");
-    }
-    signers.push({ name: signerName, email: signerEmail });
+    if (!seller1Name) throw new Error("Missing required fields for AIF / Novation Agreement");
+
+    const seller1Email = g("seller1Email");
+    const seller2Email = g("seller2Email");
+    if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
+    if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
+    signers.push({ name: seller1Name, email: seller1Email });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
     addBuyerSigner();
     requireUniqueSignerEmails(signers);
 
-    const file = formData.get("pdfFile") as File | null;
-    if (file && file.size > 0) {
-      requireBlobToken();
-      validatePdf(file);
-      const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
-      pdfUrl = blob.url;
+    sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
+
+    const template = await prisma.agreementTemplate.findUnique({
+      where: { type: "aif_novation" },
+      include: { fields: { orderBy: { page: "asc" } } },
+    });
+    if (!template?.pdfUrl) {
+      throw new Error("Upload the AIF / Novation Agreement template PDF before creating an agreement.");
+    }
+    if (template.fields.length === 0) {
+      throw new Error("Add and save signing fields on the AIF / Novation Agreement template before creating an agreement.");
     }
 
-    offerPrice   = g("offerPrice");
-    earnestMoney = g("earnestMoney");
+    const resolvedFields = resolveAgreementFields(template.fields.map((field) => ({
+      id: field.id,
+      type: field.type,
+      label: field.label ?? undefined,
+      page: field.page,
+      x: field.x,
+      y: field.y,
+      width: field.width,
+      height: field.height,
+      signerIndex: field.signerIndex,
+    })), {
+      type,
+      seller2Name,
+      signerCount: signers.length,
+    });
+    customFields = resolvedFields.filter((field) => !isAgreementDataField(field));
+
+    const fieldIssues = getAgreementFieldIssues(customFields, signers.length);
+    if (fieldIssues.length > 0) {
+      throw new Error(`AIF / Novation template is not ready: ${fieldIssues[0]}`);
+    }
+
+    const templateResponse = await fetch(template.pdfUrl);
+    if (!templateResponse.ok) throw new Error("The AIF / Novation template PDF could not be loaded.");
+    const filledPdf = await stampAgreementData(await templateResponse.arrayBuffer(), resolvedFields.map((field, index) => ({
+      ...field,
+      id: field.id ?? `field-${index}`,
+    })), {
+      agreementDate: agreementDate ?? today,
+      seller1Name,
+      seller2Name,
+      buyerName: buyerSignerName,
+      propertyAddress: address,
+      purchasePrice: offerPrice,
+      earnestMoney,
+      cashAtClosing,
+      inspectionPeriod,
+      titleOffice,
+      daysToClosing,
+    });
+    const blob = await put(`agreements/aif-novation-${Date.now()}.pdf`, Buffer.from(filledPdf), {
+      access: "public",
+      contentType: "application/pdf",
+    });
+    pdfUrl = blob.url;
+
+  } else {
+    // Listing Agreement
+    seller1Name   = g("seller1Name");
+    seller2Name   = g("seller2Name");
+    agreementDate = g("agreementDate");
+    listPrice     = g("listPrice");
+    listingStart  = g("listingStart");
+    listingEnd    = g("listingEnd");
+    agentName     = g("agentName");
+    agentEmail    = g("agentEmail");
+    agentPhone    = g("agentPhone");
+    agentLicense  = g("agentLicense");
+    brokerageName = g("brokerageName");
+    agencyRelationship = g("agencyRelationship");
+    brokerComp    = g("brokerComp");
+
+    if (!seller1Name || !listPrice || !listingStart || !listingEnd) {
+      throw new Error("Missing required fields for Listing Agreement");
+    }
+
+    const seller1Email = g("seller1Email");
+    const seller2Email = g("seller2Email");
+    if (!seller1Email || !isValidEmail(seller1Email)) throw new Error("Enter a valid email for Seller 1.");
+    if (seller2Name && (!seller2Email || !isValidEmail(seller2Email))) throw new Error("Enter a valid email for Seller 2.");
+    signers.push({ name: seller1Name, email: seller1Email });
+    if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
+    addBuyerSigner();
+    requireUniqueSignerEmails(signers);
+
+    sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
+
+    if (shouldGeneratePdf()) {
+      const { generateListingAgreementPDF } = await import("./pdf-templates/generateListingAgreementPDF");
+      const pdfBuffer = await generateListingAgreementPDF({
+        agreementDate: agreementDate ?? today,
+        seller1Name,
+        seller2Name: seller2Name ?? undefined,
+        address,
+        listPrice,
+        listingStart,
+        listingEnd,
+        agentName:         agentName ?? undefined,
+        brokerageName:     brokerageName ?? undefined,
+        brokerComp:        brokerComp ?? undefined,
+        agencyRelationship: agencyRelationship ?? undefined,
+      });
+      const blob = await put(`agreements/listing-${Date.now()}.pdf`, pdfBuffer, {
+        access: "public",
+        contentType: "application/pdf",
+      });
+      pdfUrl = blob.url;
+    }
   }
 
   const agreement = await prisma.agreement.create({
@@ -212,6 +338,7 @@ export async function createAgreement(formData: FormData) {
       type,
       address,
       sellers,
+      companyBuyer: buyerSignerName,
       seller1Name,
       seller2Name,
       agreementDate,
@@ -220,10 +347,22 @@ export async function createAgreement(formData: FormData) {
       earnestMoney,
       titleOffice,
       daysToClosing,
+      inspectionPeriod,
+      agentName,
+      agentEmail,
+      agentPhone,
+      agentLicense,
+      brokerageName,
+      listPrice,
+      agencyRelationship,
+      brokerComp,
+      listingStart,
+      listingEnd,
       signerName:  signers[0]?.name ?? null,
       signerEmail: signers[0]?.email ?? null,
       notes:       formData.get("notes")       ? String(formData.get("notes"))       : null,
       pdfUrl,
+      customFields,
       status: "draft",
       signers: {
         create: signers.map((signer, order) => ({
@@ -342,6 +481,11 @@ export async function sendSigningLinks(agreementId: string) {
   if (!agreement) return { ok: false, error: "Agreement not found." };
   if (agreement.signers.length === 0) return { ok: false, error: "Add at least one signer before sending." };
   if (!agreement.pdfUrl) return { ok: false, error: "Attach or generate the agreement PDF before sending signing links." };
+  const fields = Array.isArray(agreement.customFields)
+    ? agreement.customFields as AgreementField[]
+    : null;
+  const fieldIssues = getAgreementFieldIssues(fields, agreement.signers.length);
+  if (fieldIssues.length > 0) return { ok: false, error: fieldIssues[0] };
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
   const resendKey = process.env.RESEND_API_KEY;
@@ -409,4 +553,19 @@ export async function sendSigningLinks(agreementId: string) {
   revalidatePath("/admin/agreements");
   revalidatePath(`/admin/agreements/${agreementId}`);
   return { ok: true, sent };
+}
+
+export async function saveAgreementFields(
+  agreementId: string,
+  fields: AgreementField[]
+) {
+  await requireAdmin();
+  const signerCount = await prisma.agreementSigner.count({ where: { agreementId } });
+  const issues = getAgreementFieldIssues(fields, signerCount);
+  if (issues.length > 0) throw new Error(issues[0]);
+  await prisma.agreement.update({
+    where: { id: agreementId },
+    data:  { customFields: fields },
+  });
+  revalidatePath(`/admin/agreements/${agreementId}`);
 }

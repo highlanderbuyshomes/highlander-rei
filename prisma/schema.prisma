@@ -35,7 +35,10 @@ model Agreement {
   cashAtClosing      String?
   titleOffice        String?
   daysToClosing      String?
+  inspectionPeriod   String?
   pdfUrl             String?
+  completedPdfUrl    String?
+  customFields       Json?
   signerName         String?
   signerEmail        String?
   signerToken        String?   @unique

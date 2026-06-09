@@ -5,10 +5,14 @@ export type FlexEquityPDFProps = {
   agreementDate: string;
   seller1Name: string;
   seller2Name?: string;
+  buyerName?: string;
   address: string;
   purchasePrice: string;
   earnestMoney: string;
   cashAtClosing: string;
+  inspectionPeriod?: string;
+  titleOffice?: string;
+  daysToClosing?: string;
 };
 
 const BLUE = "#3A5FA0";
@@ -56,14 +60,14 @@ const s = StyleSheet.create({
   para: { marginBottom: 8, fontSize: 9.5 },
   bold: { fontFamily: "Helvetica-Bold" },
   sigPad: { marginTop: 28 },
-  sigPairRow: { flexDirection: "row", marginBottom: 38 },
+  sigPairRow: { flexDirection: "row" },
   sigBoxL: { flex: 1, marginRight: 36 },
   sigBoxR: { flex: 1 },
-  sigBoxSolo: { width: "47%", marginBottom: 36 },
+  sigBoxSolo: { width: "47%", marginTop: 38 },
   sigLine: { borderBottomWidth: 1, borderBottomColor: "#111", marginBottom: 5 },
   sigLabel: { fontSize: 7.5, fontFamily: "Helvetica-Bold", letterSpacing: 1.5, textTransform: "uppercase", color: "#333" },
   sigDate: { fontSize: 7.5, color: "#888", marginTop: 3 },
-  tagline: { textAlign: "center", fontFamily: "Helvetica-Oblique", fontSize: 9, color: "#888", marginTop: 40 },
+  tagline: { textAlign: "center", fontFamily: "Helvetica-Oblique", fontSize: 9, color: "#888", marginTop: 10 },
 });
 
 function Header() {
@@ -133,7 +137,11 @@ function P({ bold, children }: { bold: string; children: string }) {
 }
 
 export default function FlexEquityPDF(props: FlexEquityPDFProps) {
-  const { agreementDate, seller1Name, seller2Name, address, purchasePrice, earnestMoney, cashAtClosing } = props;
+  const {
+    agreementDate, seller1Name, seller2Name, buyerName = "Highlander REI LLC", address, purchasePrice,
+    earnestMoney, cashAtClosing, inspectionPeriod = "10 Business Days",
+    titleOffice = "Magnus AZ Title Agency", daysToClosing = "30",
+  } = props;
 
   return (
     <Document title={`Flex Equity Program — ${address}`}>
@@ -149,19 +157,22 @@ export default function FlexEquityPDF(props: FlexEquityPDFProps) {
 
         <Text style={s.introLine}>
           <Text style={s.bold}>BY AND BETWEEN | </Text>
-          Seller(s) and their heir(s), successors, administrators, and assigns, as identified in the party boxes above, and Highlander REI LLC and assigns, hereafter called Buyer.
+          Seller(s) and their heir(s), successors, administrators, and assigns, as identified in the party boxes above, and the Buyer identified below and assigns, hereafter called Buyer.
         </Text>
 
         <PartyBox title="SELLER 1" value={seller1Name} />
         <PartyBox title="SELLER 2 (IF APPLICABLE)" value={seller2Name ?? "N/A"} />
-        <PartyBox title="BUYER – HIGHLANDER REI LLC, AND/OR ASSIGNS" value="Highlander REI LLC" />
+        <PartyBox title="BUYER, AND/OR ASSIGNS" value={buyerName} />
 
         <Sec>PROPERTY DETAILS</Sec>
         <View style={s.pdTable}>
           <PRow label={"ADDRESS"} value={address} />
           <PRow label={"PURCHASE\nPRICE"} value={purchasePrice} />
           <PRow label={"EARNEST\nMONEY\nDEPOSIT"} value={earnestMoney} />
-          <PRow label={"CASH AT\nCLOSING"} value={cashAtClosing} last />
+          <PRow label={"CASH AT\nCLOSING"} value={cashAtClosing} />
+          <PRow label={"INSPECTION\nPERIOD"} value={inspectionPeriod} />
+          <PRow label={"TITLE /\nATTORNEY\nOFFICE"} value={titleOffice} />
+          <PRow label={"DAYS TO\nCLOSING"} value={daysToClosing} last />
         </View>
 
         <Sec>TERMS & CONDITIONS</Sec>
@@ -171,11 +182,11 @@ export default function FlexEquityPDF(props: FlexEquityPDFProps) {
         </P>
 
         <P bold="CLOSE OF ESCROW |">
-          Close of escrow will be held at title or attorney office (Magnus AZ Title Agency) and close of escrow will take place on or before (30 CALENDAR DAYS) or sooner after the date of Ratification without a written addendum to this agreement. If the title is not clear by the close of escrow date, the close of escrow will automatically be extended to 30 days after the Seller can deliver a clear title. If title can't be transferred, the Buyer has the option to terminate this contract and the Deposit will be refunded in full to the Buyer.
+          {`Close of escrow will be held at ${titleOffice} and close of escrow will take place on or before (${daysToClosing} CALENDAR DAYS) or sooner after the date of Ratification without a written addendum to this agreement. If the title is not clear by the close of escrow date, the close of escrow will automatically be extended to 30 days after the Seller can deliver a clear title. If title can't be transferred, the Buyer has the option to terminate this contract and the Deposit will be refunded in full to the Buyer.`}
         </P>
 
         <P bold="ACCESS |">
-          Although the property is being sold "as is," this property is subject to inspection during the due diligence period, and the buyer may cancel this agreement during the due diligence period, which is 5 business days after contract ratification. The inspection is to validate that the property is in the same "as is" condition as described by the Seller. The seller agrees to provide access to the Buyer's representatives before the transfer of title for inspection, repairs, and to market the property. If the property is vacant, Seller shall provide Buyer with a key to access the property specifically for the reasons above.
+          {`Although the property is being sold "as is," this property is subject to inspection during the due diligence period, and the buyer may cancel this agreement during the due diligence period, which is ${inspectionPeriod} after contract ratification. The inspection is to validate that the property is in the same "as is" condition as described by the Seller. The seller agrees to provide access to the Buyer's representatives before the transfer of title for inspection, repairs, and to market the property. If the property is vacant, Seller shall provide Buyer with a key to access the property specifically for the reasons above.`}
         </P>
 
         <P bold="POSSESSION |">
@@ -289,7 +300,7 @@ export default function FlexEquityPDF(props: FlexEquityPDFProps) {
             </View>
             <View style={s.sigBoxR}>
               <View style={s.sigLine} />
-              <Text style={s.sigLabel}>BUYER – HIGHLANDER REI LLC</Text>
+              <Text style={s.sigLabel}>BUYER – {buyerName}</Text>
               <Text style={s.sigDate}>Date</Text>
             </View>
           </View>
@@ -303,7 +314,6 @@ export default function FlexEquityPDF(props: FlexEquityPDFProps) {
           )}
         </View>
 
-        <Text style={s.tagline}>Real estate solutions — Sell, Invest, or Partner with us.</Text>
       </Page>
     </Document>
   );

@@ -6,9 +6,10 @@ import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 
 const TEMPLATE_NAMES: Record<string, string> = {
-  cash_offer:  "Cash Offer",
-  flex_equity: "Flex Equity Program",
-  listing:     "Listing Agreement",
+  cash_offer:   "Cash Offer",
+  flex_equity:  "Flex Equity Program",
+  listing:      "Listing Agreement",
+  aif_novation: "AIF / Novation Agreement",
 };
 const MAX_PDF_SIZE = 20 * 1024 * 1024;
 
@@ -27,7 +28,7 @@ export async function upsertTemplate(type: string, formData: FormData) {
 
   const description = formData.has("description") ? String(formData.get("description") ?? "").trim() : undefined;
 
-  await prisma.agreementTemplate.upsert({
+  const template = await prisma.agreementTemplate.upsert({
     where: { type },
     create: {
       type,
@@ -41,5 +42,11 @@ export async function upsertTemplate(type: string, formData: FormData) {
     },
   });
 
+  // Coordinates belong to a specific PDF version and must be reviewed again.
+  if (pdfUrl) {
+    await prisma.templateField.deleteMany({ where: { templateId: template.id } });
+  }
+
   revalidatePath("/admin/templates");
+  revalidatePath(`/admin/templates/${type}`);
 }

@@ -9,9 +9,10 @@ export const metadata: Metadata = { title: "Agreements | Highlander REI" };
 const PAGE_SIZE = 50;
 
 const TYPE_LABELS: Record<string, string> = {
-  cash_offer:  "Cash Offer",
-  flex_equity: "Flex Equity",
-  listing:     "Listing Agreement",
+  cash_offer:   "Cash Offer",
+  flex_equity:  "Flex Equity",
+  listing:      "Listing Agreement",
+  aif_novation: "AIF / Novation Agreement",
 };
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
@@ -49,7 +50,7 @@ function EmptyState({ folder, hasSearch }: { folder: Folder; hasSearch: boolean 
     sent:      { title: "Nothing pending",          sub: "Agreements sent for signatures will appear here." },
     completed: { title: "No completed agreements",  sub: "Signed and fully executed agreements will appear here." },
     void:      { title: "No voided agreements",     sub: "Voided agreements will appear here." },
-    all:       { title: "No agreements yet",        sub: "Create your first cash offer, flex equity, or listing agreement." },
+    all:       { title: "No agreements yet",        sub: "Create your first agreement from an uploaded and mapped template." },
   };
   const { title, sub } = messages[folder];
   return (
@@ -173,6 +174,7 @@ export default async function AgreementsPage({
   const TYPES = [
     { key: "cash_offer",  label: "Cash Offer",       icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
     { key: "flex_equity", label: "Flex Equity",      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+    { key: "aif_novation", label: "AIF / Novation", icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg> },
     { key: "listing",     label: "Listing Agreement", icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
   ];
 
