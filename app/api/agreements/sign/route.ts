@@ -210,10 +210,9 @@ export async function POST(req: NextRequest) {
           where: { id: signer.agreementId, status: { not: "void" } },
           data:  { status: "completed" },
         });
-        // Fire stamp + email in background (don't await — don't block the signer's response)
-        finalizeAgreement(signer.agreementId).catch(err =>
-          console.error("finalizeAgreement failed:", err)
-        );
+        // Complete the executed PDF before returning so serverless shutdown
+        // cannot interrupt the final export.
+        await finalizeAgreement(signer.agreementId);
       }
 
       return NextResponse.json({ ok: true });

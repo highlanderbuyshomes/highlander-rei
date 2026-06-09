@@ -90,7 +90,15 @@ export async function stampPdf(
         try {
           const imgBytes = Buffer.from(sigData.split(",")[1], "base64");
           const img = await pdfDoc.embedPng(imgBytes);
-          page.drawImage(img, { x, y, width: fieldW, height: fieldH });
+          const scale = Math.min(fieldW / img.width, fieldH / img.height);
+          const width = img.width * scale;
+          const height = img.height * scale;
+          page.drawImage(img, {
+            x: x + (fieldW - width) / 2,
+            y: y + (fieldH - height) / 2,
+            width,
+            height,
+          });
         } catch { /* skip if PNG embedding fails */ }
       } else if (sigData) {
         // Typed signature — render in italic-style bold

@@ -58,6 +58,61 @@ type NewSigner = {
   email: string;
 };
 
+type TemplateValues = Record<string, string | null | undefined>;
+
+async function createFromMappedTemplate({
+  type,
+  seller2Name,
+  signerCount,
+  values,
+}: {
+  type: string;
+  seller2Name: string | null;
+  signerCount: number;
+  values: TemplateValues;
+}) {
+  const template = await prisma.agreementTemplate.findUnique({
+    where: { type },
+    include: { fields: { orderBy: { page: "asc" } } },
+  });
+  if (!template?.pdfUrl) return null;
+
+  const resolvedFields = resolveAgreementFields(template.fields.map((field) => ({
+    id: field.id,
+    type: field.type,
+    label: field.label ?? undefined,
+    page: field.page,
+    x: field.x,
+    y: field.y,
+    width: field.width,
+    height: field.height,
+    signerIndex: field.signerIndex,
+  })), {
+    type,
+    seller2Name,
+    signerCount,
+  });
+  const signingFields = resolvedFields.filter((field) => !isAgreementDataField(field));
+  const fieldIssues = getAgreementFieldIssues(signingFields, signerCount);
+  if (fieldIssues.length > 0) {
+    throw new Error(`${TYPE_LABELS[type] ?? "Agreement"} template is not ready: ${fieldIssues[0]}`);
+  }
+
+  const templateResponse = await fetch(template.pdfUrl);
+  if (!templateResponse.ok) throw new Error("The agreement template PDF could not be loaded.");
+  const filledPdf = await stampAgreementData(
+    await templateResponse.arrayBuffer(),
+    resolvedFields.map((field, index) => ({ ...field, id: field.id ?? `field-${index}` })),
+    values,
+  );
+  const blob = await put(`agreements/${type}-${Date.now()}.pdf`, Buffer.from(filledPdf), {
+    access: "public",
+    contentType: "application/pdf",
+  });
+
+  return { pdfUrl: blob.url, customFields: signingFields };
+}
+
 function requireUniqueSignerEmails(signers: NewSigner[]) {
   const duplicateEmail = signers.find((signer, index) =>
     signers.findIndex((candidate) => candidate.email.toLowerCase() === signer.email.toLowerCase()) !== index
@@ -135,7 +190,28 @@ export async function createAgreement(formData: FormData) {
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    if (shouldGeneratePdf()) {
+    const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
+      type,
+      seller2Name,
+      signerCount: signers.length,
+      values: {
+        agreementDate: agreementDate ?? today,
+        seller1Name,
+        seller2Name,
+        buyerName: buyerSignerName,
+        propertyAddress: address,
+        purchasePrice: offerPrice,
+        earnestMoney,
+        cashAtClosing,
+        inspectionPeriod,
+        titleOffice,
+        daysToClosing,
+      },
+    }) : null;
+    if (mappedTemplate) {
+      pdfUrl = mappedTemplate.pdfUrl;
+      customFields = mappedTemplate.customFields;
+    } else if (shouldGeneratePdf()) {
       const { generateFlexEquityPDF } = await import("./pdf-templates/generateFlexEquityPDF");
       const pdfBuffer = await generateFlexEquityPDF({
         agreementDate:    agreementDate ?? today,
@@ -183,7 +259,27 @@ export async function createAgreement(formData: FormData) {
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    if (shouldGeneratePdf()) {
+    const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
+      type,
+      seller2Name,
+      signerCount: signers.length,
+      values: {
+        agreementDate: agreementDate ?? today,
+        seller1Name,
+        seller2Name,
+        buyerName: buyerSignerName,
+        propertyAddress: address,
+        purchasePrice: offerPrice,
+        earnestMoney,
+        cashAtClosing,
+        titleOffice,
+        daysToClosing,
+      },
+    }) : null;
+    if (mappedTemplate) {
+      pdfUrl = mappedTemplate.pdfUrl;
+      customFields = mappedTemplate.customFields;
+    } else if (shouldGeneratePdf()) {
       const { generateCashOfferPDF } = await import("./pdf-templates/generateCashOfferPDF");
       const pdfBuffer = await generateCashOfferPDF({
         agreementDate: agreementDate ?? today,
@@ -222,62 +318,29 @@ export async function createAgreement(formData: FormData) {
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    const template = await prisma.agreementTemplate.findUnique({
-      where: { type: "aif_novation" },
-      include: { fields: { orderBy: { page: "asc" } } },
-    });
-    if (!template?.pdfUrl) {
-      throw new Error("Upload the AIF / Novation Agreement template PDF before creating an agreement.");
-    }
-    if (template.fields.length === 0) {
-      throw new Error("Add and save signing fields on the AIF / Novation Agreement template before creating an agreement.");
-    }
-
-    const resolvedFields = resolveAgreementFields(template.fields.map((field) => ({
-      id: field.id,
-      type: field.type,
-      label: field.label ?? undefined,
-      page: field.page,
-      x: field.x,
-      y: field.y,
-      width: field.width,
-      height: field.height,
-      signerIndex: field.signerIndex,
-    })), {
+    const mappedTemplate = await createFromMappedTemplate({
       type,
       seller2Name,
       signerCount: signers.length,
+      values: {
+        agreementDate: agreementDate ?? today,
+        seller1Name,
+        seller2Name,
+        buyerName: buyerSignerName,
+        propertyAddress: address,
+        purchasePrice: offerPrice,
+        earnestMoney,
+        cashAtClosing,
+        inspectionPeriod,
+        titleOffice,
+        daysToClosing,
+      },
     });
-    customFields = resolvedFields.filter((field) => !isAgreementDataField(field));
-
-    const fieldIssues = getAgreementFieldIssues(customFields, signers.length);
-    if (fieldIssues.length > 0) {
-      throw new Error(`AIF / Novation template is not ready: ${fieldIssues[0]}`);
+    if (!mappedTemplate) {
+      throw new Error("Upload the AIF / Novation Agreement template PDF before creating an agreement.");
     }
-
-    const templateResponse = await fetch(template.pdfUrl);
-    if (!templateResponse.ok) throw new Error("The AIF / Novation template PDF could not be loaded.");
-    const filledPdf = await stampAgreementData(await templateResponse.arrayBuffer(), resolvedFields.map((field, index) => ({
-      ...field,
-      id: field.id ?? `field-${index}`,
-    })), {
-      agreementDate: agreementDate ?? today,
-      seller1Name,
-      seller2Name,
-      buyerName: buyerSignerName,
-      propertyAddress: address,
-      purchasePrice: offerPrice,
-      earnestMoney,
-      cashAtClosing,
-      inspectionPeriod,
-      titleOffice,
-      daysToClosing,
-    });
-    const blob = await put(`agreements/aif-novation-${Date.now()}.pdf`, Buffer.from(filledPdf), {
-      access: "public",
-      contentType: "application/pdf",
-    });
-    pdfUrl = blob.url;
+    pdfUrl = mappedTemplate.pdfUrl;
+    customFields = mappedTemplate.customFields;
 
   } else {
     // Listing Agreement
@@ -310,7 +373,22 @@ export async function createAgreement(formData: FormData) {
 
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    if (shouldGeneratePdf()) {
+    const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
+      type,
+      seller2Name,
+      signerCount: signers.length,
+      values: {
+        agreementDate: agreementDate ?? today,
+        seller1Name,
+        seller2Name,
+        buyerName: buyerSignerName,
+        propertyAddress: address,
+      },
+    }) : null;
+    if (mappedTemplate) {
+      pdfUrl = mappedTemplate.pdfUrl;
+      customFields = mappedTemplate.customFields;
+    } else if (shouldGeneratePdf()) {
       const { generateListingAgreementPDF } = await import("./pdf-templates/generateListingAgreementPDF");
       const pdfBuffer = await generateListingAgreementPDF({
         agreementDate: agreementDate ?? today,
