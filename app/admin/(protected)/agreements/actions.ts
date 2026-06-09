@@ -113,13 +113,6 @@ async function createFromMappedTemplate({
   return { pdfUrl: blob.url, customFields: signingFields };
 }
 
-function requireUniqueSignerEmails(signers: NewSigner[]) {
-  const duplicateEmail = signers.find((signer, index) =>
-    signers.findIndex((candidate) => candidate.email.toLowerCase() === signer.email.toLowerCase()) !== index
-  );
-  if (duplicateEmail) throw new Error(`Each signer needs a unique email address. ${duplicateEmail.email} was entered more than once.`);
-}
-
 export async function createAgreement(formData: FormData) {
   await requireAdmin();
 
@@ -186,8 +179,6 @@ export async function createAgreement(formData: FormData) {
     signers.push({ name: seller1Name, email: seller1Email });
     if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
     addBuyerSigner();
-    requireUniqueSignerEmails(signers);
-
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
     const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
@@ -255,8 +246,6 @@ export async function createAgreement(formData: FormData) {
     signers.push({ name: seller1Name, email: seller1Email });
     if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
     addBuyerSigner();
-    requireUniqueSignerEmails(signers);
-
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
     const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
@@ -314,8 +303,6 @@ export async function createAgreement(formData: FormData) {
     signers.push({ name: seller1Name, email: seller1Email });
     if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
     addBuyerSigner();
-    requireUniqueSignerEmails(signers);
-
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
     const mappedTemplate = await createFromMappedTemplate({
@@ -369,8 +356,6 @@ export async function createAgreement(formData: FormData) {
     signers.push({ name: seller1Name, email: seller1Email });
     if (seller2Name && seller2Email) signers.push({ name: seller2Name, email: seller2Email });
     addBuyerSigner();
-    requireUniqueSignerEmails(signers);
-
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
     const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({

@@ -221,7 +221,9 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
             {type && (
               <div>
                 <div style={secHead}>BUYER SIGNER</div>
-                <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "12px" }}>Required for every agreement. This can be Highlander REI or one of your partner buyers.</div>
+                <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "12px" }}>
+                  Required for every agreement. Shared or test inboxes are allowed; each signer role receives its own signing link.
+                </div>
                 <div className="new-agreement-grid-2">
                   <div>
                     <label style={lbl}>Buyer Full Name *</label>
