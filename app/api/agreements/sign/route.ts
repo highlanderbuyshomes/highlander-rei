@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stampPdf } from "@/lib/stamp-pdf";
 import { put } from "@vercel/blob";
 import { Resend } from "resend";
-import { resolveAgreementFields, type AgreementField } from "@/lib/agreement-fields";
+import { getInitialSigningFields, isAgreementDataField, type AgreementField } from "@/lib/agreement-fields";
 
 const MAX_REQUEST_SIZE = 750_000;
 const MAX_SIGNATURE_SIZE = 500_000;
@@ -52,9 +52,10 @@ async function finalizeAgreement(agreementId: string) {
   if (agreement.pdfUrl && process.env.BLOB_READ_WRITE_TOKEN) {
     try {
       // Use per-agreement custom fields if saved, otherwise fall back to template fields
-      const customFields = Array.isArray(agreement.customFields)
-        ? (agreement.customFields as AgreementField[])
-        : null;
+      const savedCustomFields = Array.isArray(agreement.customFields)
+        ? (agreement.customFields as AgreementField[]).filter((field) => !isAgreementDataField(field))
+        : [];
+      const customFields = savedCustomFields.length > 0 ? savedCustomFields : null;
 
       let stampFields: { id: string; type: string; page: number; x: number; y: number; width: number; height: number; signerIndex: number }[];
 
@@ -65,7 +66,7 @@ async function finalizeAgreement(agreementId: string) {
           where: { type: agreement.type },
           include: { fields: { orderBy: { page: "asc" } } },
         });
-        stampFields = resolveAgreementFields((template?.fields ?? []).map((field) => ({
+        stampFields = getInitialSigningFields((template?.fields ?? []).map((field) => ({
           ...field,
           label: field.label ?? undefined,
         })), {

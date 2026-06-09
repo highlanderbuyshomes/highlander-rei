@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import SignatureForm from "./SignatureForm";
-import { resolveAgreementFields, type AgreementField } from "@/lib/agreement-fields";
+import { getInitialSigningFields, isAgreementDataField, type AgreementField } from "@/lib/agreement-fields";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:   "Cash Offer",
@@ -27,10 +27,13 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
       include: { fields: { orderBy: { page: "asc" } } },
     });
     const signerCount = await prisma.agreementSigner.count({ where: { agreementId: a.id } });
-    const customFields = Array.isArray(a.customFields)
-      ? (a.customFields as AgreementField[]).map((field, index) => ({ ...field, id: field.id ?? `cf-${index}` }))
-      : null;
-    const agreementFields = customFields ?? resolveAgreementFields((template?.fields ?? []).map((field) => ({
+    const savedCustomFields = Array.isArray(a.customFields)
+      ? (a.customFields as AgreementField[])
+          .filter((field) => !isAgreementDataField(field))
+          .map((field, index) => ({ ...field, id: field.id ?? `cf-${index}` }))
+      : [];
+    const customFields = savedCustomFields.length > 0 ? savedCustomFields : null;
+    const agreementFields = customFields ?? getInitialSigningFields((template?.fields ?? []).map((field) => ({
       ...field,
       label: field.label ?? undefined,
     })), {
@@ -50,8 +53,8 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
         alreadySigned={alreadySigned}
         signedAt={signer.signedAt ? signer.signedAt.toISOString() : null}
         token={token}
-        fields={signerFields.map(f => ({
-          id: f.id, type: f.type, label: f.label ?? f.type,
+        fields={signerFields.map((f, index) => ({
+          id: f.id ?? `field-${index}`, type: f.type, label: f.label ?? f.type,
           page: f.page, x: f.x, y: f.y, width: f.width, height: f.height,
         }))}
       />

@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import { Resend } from "resend";
-import { getAgreementFieldIssues, isAgreementDataField, resolveAgreementFields, type AgreementField } from "@/lib/agreement-fields";
+import { getAgreementFieldIssues, getInitialSigningFields, isAgreementDataField, resolveAgreementFields, type AgreementField } from "@/lib/agreement-fields";
 import { stampAgreementData } from "@/lib/stamp-pdf";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -333,6 +333,30 @@ export async function createAgreement(formData: FormData) {
     }
   }
 
+  if (!customFields) {
+    const template = await prisma.agreementTemplate.findUnique({
+      where: { type },
+      include: { fields: { orderBy: { page: "asc" } } },
+    });
+    if (template?.fields.length) {
+      customFields = getInitialSigningFields(template.fields.map((field) => ({
+        id: field.id,
+        type: field.type,
+        label: field.label ?? undefined,
+        page: field.page,
+        x: field.x,
+        y: field.y,
+        width: field.width,
+        height: field.height,
+        signerIndex: field.signerIndex,
+      })), {
+        type,
+        seller2Name,
+        signerCount: signers.length,
+      });
+    }
+  }
+
   const agreement = await prisma.agreement.create({
     data: {
       type,
@@ -481,11 +505,39 @@ export async function sendSigningLinks(agreementId: string) {
   if (!agreement) return { ok: false, error: "Agreement not found." };
   if (agreement.signers.length === 0) return { ok: false, error: "Add at least one signer before sending." };
   if (!agreement.pdfUrl) return { ok: false, error: "Attach or generate the agreement PDF before sending signing links." };
-  const fields = Array.isArray(agreement.customFields)
-    ? agreement.customFields as AgreementField[]
-    : null;
+  const savedFields = Array.isArray(agreement.customFields)
+    ? (agreement.customFields as AgreementField[]).filter((field) => !isAgreementDataField(field))
+    : [];
+  let fields: AgreementField[] | null = savedFields.length > 0 ? savedFields : null;
+  if (!fields) {
+    const template = await prisma.agreementTemplate.findUnique({
+      where: { type: agreement.type },
+      include: { fields: { orderBy: { page: "asc" } } },
+    });
+    fields = getInitialSigningFields(template?.fields.map((field) => ({
+      id: field.id,
+      type: field.type,
+      label: field.label ?? undefined,
+      page: field.page,
+      x: field.x,
+      y: field.y,
+      width: field.width,
+      height: field.height,
+      signerIndex: field.signerIndex,
+    })) ?? [], {
+      type: agreement.type,
+      seller2Name: agreement.seller2Name,
+      signerCount: agreement.signers.length,
+    });
+  }
   const fieldIssues = getAgreementFieldIssues(fields, agreement.signers.length);
   if (fieldIssues.length > 0) return { ok: false, error: fieldIssues[0] };
+  if (savedFields.length === 0 && fields.length > 0) {
+    await prisma.agreement.update({
+      where: { id: agreementId },
+      data: { customFields: fields },
+    });
+  }
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
   const resendKey = process.env.RESEND_API_KEY;
@@ -561,11 +613,12 @@ export async function saveAgreementFields(
 ) {
   await requireAdmin();
   const signerCount = await prisma.agreementSigner.count({ where: { agreementId } });
-  const issues = getAgreementFieldIssues(fields, signerCount);
+  const signingFields = fields.filter((field) => !isAgreementDataField(field));
+  const issues = getAgreementFieldIssues(signingFields, signerCount);
   if (issues.length > 0) throw new Error(issues[0]);
   await prisma.agreement.update({
     where: { id: agreementId },
-    data:  { customFields: fields },
+    data:  { customFields: signingFields },
   });
   revalidatePath(`/admin/agreements/${agreementId}`);
 }

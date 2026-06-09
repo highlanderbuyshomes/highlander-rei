@@ -8,7 +8,7 @@ import SignerSection from "./SignerSection";
 import DeleteAgreementForm from "./DeleteAgreementForm";
 import FieldEditorWrapper from "./FieldEditorWrapper";
 import type { FieldInput } from "./AgreementFieldEditor";
-import { getAgreementFieldIssues, getAgreementSignerLabels, getDefaultAgreementFields, resolveAgreementFields } from "@/lib/agreement-fields";
+import { getAgreementFieldIssues, getAgreementSignerLabels, getInitialSigningFields, isAgreementDataField } from "@/lib/agreement-fields";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:   "Cash Offer",
@@ -68,7 +68,10 @@ export default async function AgreementDetailPage({
   const canComplete = a.signers.length > 0
     ? a.signers.every((signer) => !!signer.signedAt)
     : !!a.signedAt;
-  const savedFields = Array.isArray(a.customFields) ? a.customFields as FieldInput[] : null;
+  const savedSigningFields = Array.isArray(a.customFields)
+    ? (a.customFields as FieldInput[]).filter((field) => !isAgreementDataField(field))
+    : [];
+  const savedFields = savedSigningFields.length > 0 ? savedSigningFields : null;
   const sendBlockedReasons = getAgreementFieldIssues(savedFields, a.signers.length);
 
   return (
@@ -127,13 +130,16 @@ export default async function AgreementDetailPage({
 
       {/* The field editor is the only inline PDF view before sending. */}
       {a.pdfUrl && (() => {
-        const customFields = Array.isArray(a.customFields) ? (a.customFields as FieldInput[]) : null;
+        const savedCustomFields = Array.isArray(a.customFields)
+          ? (a.customFields as FieldInput[]).filter((field) => !isAgreementDataField(field))
+          : [];
+        const customFields = savedCustomFields.length > 0 ? savedCustomFields : null;
         const context = {
           type: a.type,
           seller2Name: a.seller2Name,
           signerCount: a.signers.length,
         };
-        const templateFields = getDefaultAgreementFields(context) ?? resolveAgreementFields((template?.fields ?? []).map(f => ({
+        const templateFields = getInitialSigningFields((template?.fields ?? []).map(f => ({
           type: f.type, label: f.label ?? undefined,
           page: f.page, x: f.x, y: f.y, width: f.width, height: f.height,
           signerIndex: f.signerIndex,

@@ -312,8 +312,8 @@ export default function PdfFieldEditor({
                 <img src={dataUrl} alt={`Page ${pageIndex + 1}`} style={{ display: "block", maxWidth: "700px", width: "100%", height: "auto" }} draggable={false} />
 
                 {pageFields.map(field => {
-                  const color = SIGNER_COLORS[field.signerIndex % 4];
                   const dataField = AGREEMENT_DATA_FIELDS.find(([key]) => key === field.type);
+                  const color = dataField ? DATA_FIELD_META.color : SIGNER_COLORS[field.signerIndex % 4];
                   const meta = dataField ? { ...DATA_FIELD_META, label: dataField[1] } : FIELD_META[field.type as FieldType] ?? FIELD_META.text;
                   const roleLabel = dataField ? "AUTO-FILL" : signerLabels[field.signerIndex] ?? `S${field.signerIndex + 1}`;
                   const isDraggingThis = dragging?.id === field.id;

@@ -72,6 +72,21 @@ export function resolveAgreementFields<T extends AgreementField>(
   return [...dataFields, ...signerFields.filter((field) => field.signerIndex < context.signerCount)];
 }
 
+export function getResolvedSigningFields<T extends AgreementField>(
+  fields: T[],
+  context: AgreementFieldContext
+): T[] {
+  return resolveAgreementFields(fields, context).filter((field) => !isAgreementDataField(field));
+}
+
+export function getInitialSigningFields<T extends AgreementField>(
+  templateFields: T[],
+  context: AgreementFieldContext
+): AgreementField[] {
+  const mappedFields = getResolvedSigningFields(templateFields, context);
+  return mappedFields.length > 0 ? mappedFields : getDefaultAgreementFields(context) ?? [];
+}
+
 export function getAgreementSignerLabels(context: AgreementFieldContext): string[] {
   const labels = ["Seller 1"];
   if (context.seller2Name?.trim()) labels.push("Seller 2");
