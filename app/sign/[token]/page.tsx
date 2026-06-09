@@ -149,7 +149,7 @@ function SignLayout({
                 Signed on {new Date(signedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </div>
             )}
-            <div style={{ fontSize: "12px", color: "#4ade80", marginTop: "6px" }}>You'll receive a copy once all parties have signed.</div>
+            <div style={{ fontSize: "12px", color: "#4ade80", marginTop: "6px" }}>You&apos;ll receive a copy once all parties have signed.</div>
           </div>
         ) : (
           <SignatureForm

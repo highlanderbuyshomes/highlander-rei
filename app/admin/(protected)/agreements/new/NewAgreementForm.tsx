@@ -77,7 +77,7 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
                 <div>
                   <label style={lbl}>Agreement Date</label>
                   <input name="agreementDate" placeholder={new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} style={inp} />
-                  <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "4px" }}>Leave blank to use today's date.</div>
+                  <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "4px" }}>Leave blank to use today&apos;s date.</div>
                 </div>
               </div>
             </div>

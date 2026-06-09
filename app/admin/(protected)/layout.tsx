@@ -3,6 +3,7 @@ import Link from "next/link";
 import { deleteSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import AdminProfileMenu from "./AdminProfileMenu";
+import AdminMobileNav from "./AdminMobileNav";
 
 export const metadata: Metadata = { title: "Highlander REI — Admin" };
 
@@ -73,15 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {children}
       </div>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="admin-mobile-nav">
-        {navLinks.map(({ href, label, icon }) => (
-          <Link key={href} href={href}>
-            {icon}
-            {label}
-          </Link>
-        ))}
-      </nav>
+      <AdminMobileNav />
     </div>
   );
 }

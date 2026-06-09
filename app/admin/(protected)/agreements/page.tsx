@@ -54,7 +54,7 @@ function EmptyState({ folder, hasSearch }: { folder: Folder; hasSearch: boolean 
   };
   const { title, sub } = messages[folder];
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center", flex: 1 }}>
+    <div className="agreements-empty-state" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center", flex: 1 }}>
       <svg width="130" height="155" viewBox="0 0 130 155" fill="none" style={{ marginBottom: "28px" }}>
         <rect x="18" y="8" width="76" height="102" rx="4" fill="#E8D9A0" opacity="0.2"/>
         <rect x="22" y="12" width="76" height="102" rx="4" fill="#fefefe" stroke="#E8D9A0" strokeWidth="1.5"/>
@@ -82,7 +82,7 @@ function EmptyState({ folder, hasSearch }: { folder: Folder; hasSearch: boolean 
         {hasSearch ? "Try adjusting your search or filters." : sub}
       </div>
       {!hasSearch && (
-        <Link href="/admin/agreements/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#B8962E", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
+        <Link className="agreements-empty-new" href="/admin/agreements/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#B8962E", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           New Agreement
         </Link>
