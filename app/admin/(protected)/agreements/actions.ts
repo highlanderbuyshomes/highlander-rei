@@ -71,11 +71,14 @@ async function createFromMappedTemplate({
   signerCount: number;
   values: TemplateValues;
 }) {
+  requireBlobToken();
   const template = await prisma.agreementTemplate.findUnique({
     where: { type },
     include: { fields: { orderBy: { page: "asc" } } },
   });
-  if (!template?.pdfUrl) return null;
+  if (!template?.pdfUrl) {
+    throw new Error(`Upload and map the ${TYPE_LABELS[type] ?? "agreement"} template before creating an agreement.`);
+  }
 
   const resolvedFields = resolveAgreementFields(template.fields.map((field) => ({
     id: field.id,
@@ -181,7 +184,7 @@ export async function createAgreement(formData: FormData) {
     addBuyerSigner();
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
+    const mappedTemplate = await createFromMappedTemplate({
       type,
       seller2Name,
       signerCount: signers.length,
@@ -198,7 +201,7 @@ export async function createAgreement(formData: FormData) {
         titleOffice,
         daysToClosing,
       },
-    }) : null;
+    });
     if (mappedTemplate) {
       pdfUrl = mappedTemplate.pdfUrl;
       customFields = mappedTemplate.customFields;
@@ -248,7 +251,7 @@ export async function createAgreement(formData: FormData) {
     addBuyerSigner();
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
+    const mappedTemplate = await createFromMappedTemplate({
       type,
       seller2Name,
       signerCount: signers.length,
@@ -264,7 +267,7 @@ export async function createAgreement(formData: FormData) {
         titleOffice,
         daysToClosing,
       },
-    }) : null;
+    });
     if (mappedTemplate) {
       pdfUrl = mappedTemplate.pdfUrl;
       customFields = mappedTemplate.customFields;
@@ -358,7 +361,7 @@ export async function createAgreement(formData: FormData) {
     addBuyerSigner();
     sellers = seller2Name ? `${seller1Name}, ${seller2Name}` : seller1Name;
 
-    const mappedTemplate = shouldGeneratePdf() ? await createFromMappedTemplate({
+    const mappedTemplate = await createFromMappedTemplate({
       type,
       seller2Name,
       signerCount: signers.length,
@@ -369,7 +372,7 @@ export async function createAgreement(formData: FormData) {
         buyerName: buyerSignerName,
         propertyAddress: address,
       },
-    }) : null;
+    });
     if (mappedTemplate) {
       pdfUrl = mappedTemplate.pdfUrl;
       customFields = mappedTemplate.customFields;
@@ -488,15 +491,6 @@ export async function updateAgreementStatus(id: string, formData: FormData) {
 export async function updateAgreement(id: string, formData: FormData) {
   await requireAdmin();
 
-  const file = formData.get("pdfFile") as File | null;
-  let pdfUrl: string | undefined;
-  if (file && file.size > 0) {
-    requireBlobToken();
-    validatePdf(file);
-    const blob = await put(`agreements/${Date.now()}-${file.name.replace(/\s+/g, "-")}`, file, { access: "public" });
-    pdfUrl = blob.url;
-  }
-
   await prisma.agreement.update({
     where: { id },
     data: {
@@ -505,7 +499,6 @@ export async function updateAgreement(id: string, formData: FormData) {
       signerName:  formData.get("signerName")  ? String(formData.get("signerName"))  : null,
       signerEmail: formData.get("signerEmail") ? String(formData.get("signerEmail")) : null,
       notes:       formData.get("notes")       ? String(formData.get("notes"))       : null,
-      ...(pdfUrl ? { pdfUrl } : {}),
     },
   });
 

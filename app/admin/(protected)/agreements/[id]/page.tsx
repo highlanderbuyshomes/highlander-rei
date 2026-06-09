@@ -2,13 +2,12 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, removeSigner, sendSigningLinks, saveAgreementFields } from "../actions";
+import { updateAgreementStatus, deleteAgreement, updateAgreement, addSigner, removeSigner, sendSigningLinks } from "../actions";
 import CopyButton from "../CopyButton";
 import SignerSection from "./SignerSection";
 import DeleteAgreementForm from "./DeleteAgreementForm";
-import FieldEditorWrapper from "./FieldEditorWrapper";
 import type { FieldInput } from "./AgreementFieldEditor";
-import { getAgreementFieldIssues, getAgreementSignerLabels, getInitialSigningFields, isAgreementDataField } from "@/lib/agreement-fields";
+import { getAgreementFieldIssues, isAgreementDataField } from "@/lib/agreement-fields";
 
 const TYPE_LABELS: Record<string, string> = {
   cash_offer:   "Cash Offer",
@@ -49,11 +48,6 @@ export default async function AgreementDetailPage({
   ]);
   if (!a) notFound();
 
-  const template = await prisma.agreementTemplate.findUnique({
-    where: { type: a.type },
-    include: { fields: { orderBy: { page: "asc" } } },
-  }).catch(() => null);
-
   const statusCfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.draft;
   const currentFlowIdx = a.status === "signed" ? 2 : STATUS_FLOW.indexOf(a.status as typeof STATUS_FLOW[number]);
   const updateStatusWithId = updateAgreementStatus.bind(null, a.id);
@@ -61,7 +55,6 @@ export default async function AgreementDetailPage({
   const updateWithId       = updateAgreement.bind(null, a.id);
   const addSignerWithId    = addSigner.bind(null, a.id);
   const sendLinksWithId    = sendSigningLinks.bind(null, a.id);
-  const saveFieldsWithId   = saveAgreementFields.bind(null, a.id);
 
   const signingUrl = a.signerToken ? `https://highlanderrei.com/sign/${a.signerToken}` : null;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://highlanderrei.com";
@@ -115,47 +108,32 @@ export default async function AgreementDetailPage({
       {!a.pdfUrl && (
         <div style={{ background: "#ffffff", border: "2px dashed #d0cfc8", borderRadius: "14px", padding: "36px 24px", marginBottom: "16px", textAlign: "center" }}>
           <div style={{ fontSize: "32px", marginBottom: "10px", opacity: 0.25 }}>📄</div>
-          <div style={{ fontSize: "14px", fontWeight: 600, color: "#5a5a54", marginBottom: "6px" }}>No PDF attached</div>
-          <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Upload a PDF below to enable the signing flow and field editor.</div>
-          <form action={updateWithId} style={{ display: "inline-flex", gap: "10px", alignItems: "center" }}>
-            <input name="address" type="hidden" value={a.address} />
-            <input name="sellers" type="hidden" value={a.sellers} />
-            <input name="pdfFile" type="file" accept="application/pdf" style={{ fontSize: "12px", color: "#5a5a54" }} />
-            <button type="submit" style={{ padding: "8px 18px", background: "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              Upload
-            </button>
-          </form>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "#5a5a54", marginBottom: "6px" }}>No fixed template PDF attached</div>
+          <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Upload and map this agreement type under Templates, then create a new agreement from it.</div>
+          <Link href={`/admin/templates/${a.type}`} style={{ display: "inline-flex", padding: "9px 18px", background: "#111110", color: "#fff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+            Open Template Mapping
+          </Link>
         </div>
       )}
 
-      {/* The field editor is the only inline PDF view before sending. */}
-      {a.pdfUrl && (() => {
-        const savedCustomFields = Array.isArray(a.customFields)
-          ? (a.customFields as FieldInput[]).filter((field) => !isAgreementDataField(field))
-          : [];
-        const customFields = savedCustomFields.length > 0 ? savedCustomFields : null;
-        const context = {
-          type: a.type,
-          seller2Name: a.seller2Name,
-          signerCount: a.signers.length,
-        };
-        const templateFields = getInitialSigningFields((template?.fields ?? []).map(f => ({
-          type: f.type, label: f.label ?? undefined,
-          page: f.page, x: f.x, y: f.y, width: f.width, height: f.height,
-          signerIndex: f.signerIndex,
-        })), context);
-        const initialFields = customFields ?? templateFields;
-        const labels = getAgreementSignerLabels(context);
-        return (
-          <FieldEditorWrapper
-            agreementId={a.id}
-            pdfUrl={a.pdfUrl}
-            initialFields={initialFields}
-            signerLabels={labels}
-            saveAction={saveFieldsWithId}
-          />
-        );
-      })()}
+      {a.pdfUrl && (
+        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#111110", marginBottom: "4px" }}>Fixed template document</div>
+            <div style={{ fontSize: "12px", color: "#8a8a84", lineHeight: 1.5 }}>
+              This agreement uses an immutable copy of the uploaded template. Field positions can only be changed from Templates.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <a href={a.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ padding: "9px 16px", background: "#111110", color: "#ffffff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+              Open Exact PDF
+            </a>
+            <Link href={`/admin/templates/${a.type}`} style={{ padding: "9px 16px", background: "#ffffff", color: "#111110", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+              Edit Template Mappings
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Status progression */}
       {a.status !== "void" && (
@@ -235,7 +213,6 @@ export default async function AgreementDetailPage({
             <div style={{ display: "grid", gap: "14px" }}>
               <div><label style={lbl}>Property Address *</label><input name="address" required defaultValue={a.address} style={inp} /></div>
               <div><label style={lbl}>Seller(s)</label><input name="sellers" required defaultValue={a.sellers} style={inp} /></div>
-              <div><label style={lbl}>Replace PDF (optional)</label><input name="pdfFile" type="file" accept="application/pdf" style={{ ...inp, padding: "8px 12px" }} /></div>
               <div><label style={lbl}>Notes (internal)</label><textarea name="notes" rows={2} defaultValue={a.notes ?? ""} style={{ ...inp, resize: "vertical" }} /></div>
             </div>
           </div>
