@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createAgreement } from "../actions";
 
 const inp: React.CSSProperties = { width: "100%", padding: "12px 14px", fontSize: "15px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "8px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
@@ -9,6 +10,7 @@ const lbl: React.CSSProperties = { fontSize: "12px", color: "#5a5a54", textTrans
 const secHead: React.CSSProperties = { fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#111110", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e8e7e2" };
 
 export default function NewAgreementForm({ defaultType }: { defaultType: string }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<"draft" | "review" | null>(null);
   const [type, setType] = useState(defaultType);
@@ -30,7 +32,13 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
     try {
       const formData = new FormData(e.currentTarget);
       formData.set("intent", intent);
-      await createAgreement(formData);
+      const result = await createAgreement(formData);
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
+      router.push(result.redirectTo);
+      router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Agreement could not be created. Please try again.");
     } finally {
@@ -257,7 +265,12 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
 
             {submitError && (
               <div role="alert" style={{ fontSize: "12px", color: "#c0392b", background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.2)", borderRadius: "8px", padding: "10px 14px" }}>
-                {submitError}
+                <div>{submitError}</div>
+                {submitError.includes("template is not ready") && (
+                  <Link href={`/admin/templates/${type}`} style={{ display: "inline-block", marginTop: "8px", color: "#8f2c21", fontWeight: 700 }}>
+                    Map template signing fields
+                  </Link>
+                )}
               </div>
             )}
           </div>

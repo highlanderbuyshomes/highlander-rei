@@ -65,11 +65,13 @@ async function createFromMappedTemplate({
   seller2Name,
   signerCount,
   values,
+  allowIncomplete = false,
 }: {
   type: string;
   seller2Name: string | null;
   signerCount: number;
   values: TemplateValues;
+  allowIncomplete?: boolean;
 }) {
   requireBlobToken();
   const template = await prisma.agreementTemplate.findUnique({
@@ -97,7 +99,7 @@ async function createFromMappedTemplate({
   });
   const signingFields = resolvedFields.filter((field) => !isAgreementDataField(field));
   const fieldIssues = getAgreementFieldIssues(signingFields, signerCount);
-  if (fieldIssues.length > 0) {
+  if (fieldIssues.length > 0 && !allowIncomplete) {
     throw new Error(`${TYPE_LABELS[type] ?? "Agreement"} template is not ready: ${fieldIssues[0]}`);
   }
 
@@ -113,12 +115,23 @@ async function createFromMappedTemplate({
     contentType: "application/pdf",
   });
 
-  return { pdfUrl: blob.url, customFields: signingFields };
+  return { pdfUrl: blob.url, customFields: fieldIssues.length > 0 ? [] : signingFields };
 }
 
 export async function createAgreement(formData: FormData) {
   await requireAdmin();
+  try {
+    return await createAgreementRecord(formData);
+  } catch (error) {
+    console.error("Agreement creation failed:", error);
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Agreement could not be created. Please try again.",
+    };
+  }
+}
 
+async function createAgreementRecord(formData: FormData) {
   const type    = String(formData.get("type")    ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
   if (!AGREEMENT_TYPES.has(type) || !address) throw new Error("Missing or invalid required fields");
@@ -188,6 +201,7 @@ export async function createAgreement(formData: FormData) {
       type,
       seller2Name,
       signerCount: signers.length,
+      allowIncomplete: intent === "draft",
       values: {
         agreementDate: agreementDate ?? today,
         seller1Name,
@@ -255,6 +269,7 @@ export async function createAgreement(formData: FormData) {
       type,
       seller2Name,
       signerCount: signers.length,
+      allowIncomplete: intent === "draft",
       values: {
         agreementDate: agreementDate ?? today,
         seller1Name,
@@ -312,6 +327,7 @@ export async function createAgreement(formData: FormData) {
       type,
       seller2Name,
       signerCount: signers.length,
+      allowIncomplete: intent === "draft",
       values: {
         agreementDate: agreementDate ?? today,
         seller1Name,
@@ -365,6 +381,7 @@ export async function createAgreement(formData: FormData) {
       type,
       seller2Name,
       signerCount: signers.length,
+      allowIncomplete: intent === "draft",
       values: {
         agreementDate: agreementDate ?? today,
         seller1Name,
@@ -465,7 +482,10 @@ export async function createAgreement(formData: FormData) {
   });
 
   revalidatePath("/admin/agreements");
-  redirect(`/admin/agreements/${agreement.id}${intent === "review" ? "?review=send" : ""}`);
+  return {
+    ok: true as const,
+    redirectTo: `/admin/agreements/${agreement.id}${intent === "review" ? "?review=send" : ""}`,
+  };
 }
 
 export async function updateAgreementStatus(id: string, formData: FormData) {
