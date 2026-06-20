@@ -132,3 +132,297 @@ model TemplateField {
 
   @@index([templateId])
 }
+
+// ─── Acquisition Pipeline ──────────────────────────────────────────
+
+model AcquisitionArea {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  polygon     Json?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  buyBoxes    BuyBox[]
+}
+
+model BuyBox {
+  id                   String           @id @default(cuid())
+  name                 String
+  areaId               String?
+  area                 AcquisitionArea? @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  active               Boolean          @default(true)
+  zips                 Json             @default("[]")
+  mlsAreaIds           Json             @default("[]")
+  subdivisions         Json             @default("[]")
+  propertyTypes        Json             @default("[]")
+  priceMin             Float?
+  priceMax             Float?
+  bedsMin              Int?
+  bedsMax              Int?
+  bathsMin             Float?
+  bathsMax             Float?
+  sqftMin              Int?
+  sqftMax              Int?
+  lotSqftMin           Int?
+  lotSqftMax           Int?
+  yearBuiltMin         Int?
+  yearBuiltMax         Int?
+  ownershipDurationMin Int?
+  minEquityPct         Float?
+  ownerOccupied        String           @default("any")
+  mlsStatuses          Json             @default("[]")
+  maxDom               Int?
+  buyerName            String?
+  dispositionStrategy  String?
+  priority             Int              @default(0)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  matches              BuyerMatch[]
+
+  @@index([areaId])
+  @@index([active])
+}
+
+model Property {
+  id                 String               @id @default(cuid())
+  apn                String?              @unique
+  addressFingerprint String?              @unique
+  streetAddress      String
+  city               String
+  state              String               @default("AZ")
+  zip                String
+  county             String?
+  subdivision        String?
+  propertyType       String?
+  beds               Int?
+  baths              Float?
+  sqft               Int?
+  lotSqft            Int?
+  yearBuilt          Int?
+  estimatedValue     Float?
+  lastSaleDate       DateTime?
+  lastSalePrice      Float?
+  latitude           Float?
+  longitude          Float?
+  source             String
+  sourceId           String?
+  rawJson            Json?
+  importRunId        String?
+  importRun          ImportRun?           @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  lastRefreshedAt    DateTime?
+  owners             PropertyOwner[]
+  mlsListings        MlsListing[]
+  agentRelationships PropertyAgentRelationship[]
+  matches            BuyerMatch[]
+  enrichments        EnrichmentRecord[]
+  acquisitionLeads   AcquisitionLead[]
+
+  @@index([zip])
+  @@index([city, state])
+  @@index([source])
+  @@index([importRunId])
+}
+
+model PropertyOwner {
+  id                 String    @id @default(cuid())
+  propertyId         String
+  property           Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  firstName          String?
+  lastName           String?
+  fullName           String?
+  mailingAddress     String?
+  mailingCity        String?
+  mailingState       String?
+  mailingZip         String?
+  ownerOccupied      Boolean?
+  ownershipStartDate DateTime?
+  estimatedEquity    Float?
+  estimatedEquityPct Float?
+  phone              String?
+  email              String?
+  rawJson            Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([propertyId])
+}
+
+model MlsAgent {
+  id            String                     @id @default(cuid())
+  mlsId         String?                    @unique
+  licenseNumber String?                    @unique
+  firstName     String?
+  lastName      String?
+  fullName      String?
+  email         String?
+  phone         String?
+  brokerageName String?
+  rawJson       Json?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  listings      MlsListing[]
+  propertyRelationships PropertyAgentRelationship[]
+}
+
+model MlsListing {
+  id                 String               @id @default(cuid())
+  propertyId         String
+  property           Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  mlsNumber          String               @unique
+  mlsStatus          String?
+  listPrice          Float?
+  listDate           DateTime?
+  pendingDate        DateTime?
+  soldDate           DateTime?
+  soldPrice          Float?
+  dom                Int?
+  agentId            String?
+  agent              MlsAgent?            @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  source             String
+  sourceId           String?
+  rawJson            Json?
+  importRunId        String?
+  importRun          ImportRun?           @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  agentRelationships PropertyAgentRelationship[]
+
+  @@index([propertyId])
+  @@index([agentId])
+  @@index([mlsStatus])
+  @@index([importRunId])
+}
+
+model PropertyAgentRelationship {
+  id           String      @id @default(cuid())
+  propertyId   String
+  property     Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  agentId      String
+  agent        MlsAgent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  mlsListingId String?
+  mlsListing   MlsListing? @relation(fields: [mlsListingId], references: [id], onDelete: SetNull)
+  role         String      @default("listing")
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([propertyId])
+  @@index([agentId])
+}
+
+model BuyerMatch {
+  id               String            @id @default(cuid())
+  propertyId       String
+  property         Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buyBoxId         String
+  buyBox           BuyBox            @relation(fields: [buyBoxId], references: [id], onDelete: Cascade)
+  score            Float             @default(0)
+  matchExplanation Json?
+  status           String            @default("new")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  acquisitionLeads AcquisitionLead[]
+
+  @@unique([propertyId, buyBoxId])
+  @@index([buyBoxId])
+  @@index([status])
+  @@index([score(sort: Desc)])
+}
+
+model ImportRun {
+  id           String       @id @default(cuid())
+  source       String
+  actorId      String?
+  runId        String?
+  status       String       @default("pending")
+  itemCount    Int?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?
+  rawMeta      Json?
+  createdAt    DateTime     @default(now())
+  properties   Property[]
+  mlsListings  MlsListing[]
+
+  @@index([source])
+  @@index([status])
+}
+
+model EnrichmentRecord {
+  id             String   @id @default(cuid())
+  propertyId     String
+  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  source         String
+  enrichmentType String
+  payload        Json
+  createdAt      DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model AcquisitionLead {
+  id              String           @id @default(cuid())
+  propertyId      String
+  property        Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buyerMatchId    String?
+  buyerMatch      BuyerMatch?      @relation(fields: [buyerMatchId], references: [id], onDelete: SetNull)
+  status          String           @default("new")
+  assignee        String?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  callAssignments CallAssignment[]
+  contactAttempts ContactAttempt[]
+
+  @@index([propertyId])
+  @@index([status])
+}
+
+model CallAssignment {
+  id                String           @id @default(cuid())
+  acquisitionLeadId String
+  acquisitionLead   AcquisitionLead  @relation(fields: [acquisitionLeadId], references: [id], onDelete: Cascade)
+  assignee          String
+  priority          Int              @default(0)
+  dueDate           DateTime?
+  status            String           @default("pending")
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  contactAttempts   ContactAttempt[]
+
+  @@index([acquisitionLeadId])
+  @@index([assignee])
+  @@index([status])
+}
+
+model ContactAttempt {
+  id                String           @id @default(cuid())
+  acquisitionLeadId String
+  acquisitionLead   AcquisitionLead  @relation(fields: [acquisitionLeadId], references: [id], onDelete: Cascade)
+  callAssignmentId  String?
+  callAssignment    CallAssignment?  @relation(fields: [callAssignmentId], references: [id], onDelete: SetNull)
+  channel           String
+  outcome           String?
+  notes             String?
+  attemptedAt       DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+
+  @@index([acquisitionLeadId])
+  @@index([callAssignmentId])
+}
+
+model SuppressionRecord {
+  id        String   @id @default(cuid())
+  type      String
+  value     String
+  reason    String?
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@unique([type, value])
+}
