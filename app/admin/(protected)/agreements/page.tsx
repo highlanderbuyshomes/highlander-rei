@@ -67,11 +67,11 @@ function EmptyState({ folder, hasSearch }: { folder: Folder; hasSearch: boolean 
         <rect x="32" y="68" width="48" height="2.5" rx="1.25" fill="#e8e7e2"/>
         <rect x="32" y="75" width="36" height="2.5" rx="1.25" fill="#e8e7e2"/>
         <rect x="32" y="92" width="50" height="1" rx="0.5" fill="#d0cfc8"/>
-        <path d="M34 88 C36 85, 40 91, 44 88 C48 85, 51 90, 55 88" stroke="#B8962E" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+        <path d="M34 88 C36 85, 40 91, 44 88 C48 85, 51 90, 55 88" stroke="#111110" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
         <g transform="translate(82, 70) rotate(-35)">
-          <rect x="-4" y="0" width="8" height="28" rx="2" fill="#B8962E"/>
-          <polygon points="-4,28 4,28 0,40" fill="#8a6f22"/>
-          <rect x="-4" y="0" width="8" height="5" rx="1" fill="#8a6f22"/>
+          <rect x="-4" y="0" width="8" height="28" rx="2" fill="#111110"/>
+          <polygon points="-4,28 4,28 0,40" fill="#5a5a54"/>
+          <rect x="-4" y="0" width="8" height="5" rx="1" fill="#5a5a54"/>
           <rect x="-4" y="5" width="8" height="2" fill="#FAF6EC" opacity="0.4"/>
         </g>
       </svg>
@@ -82,7 +82,7 @@ function EmptyState({ folder, hasSearch }: { folder: Folder; hasSearch: boolean 
         {hasSearch ? "Try adjusting your search or filters." : sub}
       </div>
       {!hasSearch && (
-        <Link className="agreements-empty-new" href="/admin/agreements/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#B8962E", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
+        <Link className="agreements-empty-new" href="/admin/agreements/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#111110", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           New Agreement
         </Link>
@@ -182,11 +182,11 @@ export default async function AgreementsPage({
     <div className="agreements-shell" style={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
 
       {/* ── Sidebar ── */}
-      <aside className="agreements-sidebar" style={{ width: "236px", background: "#1C1C1B", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
+      <aside className="agreements-sidebar" style={{ width: "236px", background: "#ffffff", borderRight: "1px solid #e8e7e2", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
 
         {/* New Agreement CTA */}
         <div className="agreements-sidebar-section agreements-new-section" style={{ padding: "16px 14px 12px" }}>
-          <Link href="/admin/agreements/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "#B8962E", color: "#ffffff", padding: "11px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
+          <Link href="/admin/agreements/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "#111110", color: "#ffffff", padding: "11px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             New Agreement
           </Link>
@@ -194,17 +194,17 @@ export default async function AgreementsPage({
 
         {/* Envelopes */}
         <div className="agreements-sidebar-section" style={{ padding: "8px 10px 0" }}>
-          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>ENVELOPES</div>
+          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "#8a8a84", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>ENVELOPES</div>
           {FOLDERS.map(({ key, label, count, icon }) => {
             const active = folder === key;
             return (
-              <Link key={key} href={folderHref(key)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "rgba(184,150,46,0.12)" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #B8962E" : "2px solid transparent", color: active ? "#E8D9A0" : "rgba(255,255,255,0.5)", transition: "all 0.1s" }}>
+              <Link key={key} href={folderHref(key)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84", transition: "all 0.1s" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ opacity: active ? 1 : 0.7 }}>{icon}</span>
+                  <span style={{ opacity: active ? 1 : 0.5 }}>{icon}</span>
                   <span style={{ fontSize: "13px", fontWeight: active ? 600 : 400 }}>{label}</span>
                 </div>
                 {count > 0 && (
-                  <span style={{ fontSize: "10px", background: active ? "#B8962E" : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.4)", borderRadius: "20px", padding: "1px 7px", fontWeight: 600 }}>
+                  <span style={{ fontSize: "10px", background: active ? "#111110" : "#f0efeb", color: active ? "#fff" : "#8a8a84", borderRadius: "20px", padding: "1px 7px", fontWeight: 600 }}>
                     {count}
                   </span>
                 )}
@@ -215,15 +215,15 @@ export default async function AgreementsPage({
 
         {/* Agreement Types */}
         <div className="agreements-sidebar-section" style={{ padding: "20px 10px 0" }}>
-          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>AGREEMENT TYPES</div>
+          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "#8a8a84", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>AGREEMENT TYPES</div>
           {TYPES.map(({ key, label, icon }) => {
             const active = typeFilter === key;
             const href = active
               ? `/admin/agreements?folder=${folder}${q ? `&q=${q}` : ""}`
               : `/admin/agreements?folder=${folder}&type=${key}${q ? `&q=${q}` : ""}`;
             return (
-              <Link key={key} href={href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "rgba(184,150,46,0.12)" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #B8962E" : "2px solid transparent", color: active ? "#E8D9A0" : "rgba(255,255,255,0.4)", transition: "all 0.1s" }}>
-                <span style={{ opacity: active ? 1 : 0.7 }}>{icon}</span>
+              <Link key={key} href={href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84", transition: "all 0.1s" }}>
+                <span style={{ opacity: active ? 1 : 0.5 }}>{icon}</span>
                 <span style={{ fontSize: "12.5px", fontWeight: active ? 500 : 400 }}>{label}</span>
               </Link>
             );
