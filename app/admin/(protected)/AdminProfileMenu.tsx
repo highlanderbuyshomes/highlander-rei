@@ -21,7 +21,7 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
         onClick={() => setOpen((o) => !o)}
         style={{
           width: 34, height: 34, borderRadius: "50%",
-          background: "#B8962E", border: "2px solid rgba(184,150,46,0.4)",
+          background: "#111110", border: "2px solid #d0cfc8",
           color: "#fff", fontSize: "12px", fontWeight: 700, letterSpacing: "0.5px",
           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
           fontFamily: "inherit",
@@ -34,20 +34,20 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
-          background: "#1a1a19", border: "1px solid rgba(255,255,255,0.1)",
+          background: "#ffffff", border: "1px solid #e8e7e2",
           borderRadius: "10px", padding: "6px", minWidth: "180px",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 100,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.1)", zIndex: 100,
         }}>
-          <div style={{ padding: "8px 12px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", marginBottom: "4px" }}>
-            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", letterSpacing: "0.5px" }}>Signed in as</div>
-            <div style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.8)", fontWeight: 500, marginTop: "2px" }}>Admin</div>
+          <div style={{ padding: "8px 12px 10px", borderBottom: "1px solid #e8e7e2", marginBottom: "4px" }}>
+            <div style={{ fontSize: "11px", color: "#8a8a84", letterSpacing: "0.5px" }}>Signed in as</div>
+            <div style={{ fontSize: "12.5px", color: "#111110", fontWeight: 500, marginTop: "2px" }}>Admin</div>
           </div>
 
           <Link
             href="/admin/password"
             onClick={() => setOpen(false)}
-            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "rgba(255,255,255,0.7)", textDecoration: "none", borderRadius: "6px" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", borderRadius: "6px" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Change Password
@@ -56,11 +56,11 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
           <form action={logoutAction}>
             <button type="submit" style={{
               display: "block", width: "100%", textAlign: "left",
-              padding: "8px 12px", fontSize: "13px", color: "rgba(255,255,255,0.7)",
+              padding: "8px 12px", fontSize: "13px", color: "#5a5a54",
               background: "transparent", border: "none", borderRadius: "6px",
               cursor: "pointer", fontFamily: "inherit",
             }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               Sign Out

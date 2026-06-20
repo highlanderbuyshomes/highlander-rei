@@ -685,7 +685,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     border-radius: 50%;
     background: #111110;
     color: #ffffff;
-    box-shadow: 0 12px 30px rgba(17, 17, 16, 0.24);
+    box-shadow: 0 12px 30px rgba(17, 17, 16, 0.16);
     pointer-events: auto;
   }
 
@@ -693,7 +693,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   .admin-content-wrap {
     min-height: 100vh !important;
     padding-bottom: 110px;
-    background: #ffffff !important;
+    background: #f8f7f4 !important;
   }
 
   /* Main tabs replace dense desktop sidebars on mobile. */

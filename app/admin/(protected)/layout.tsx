@@ -35,13 +35,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
     )},
+    { href: "/admin/underwriting", label: "Underwriting", icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+    )},
+    { href: "/admin/acquisitions", label: "Acquisitions", icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    )},
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#111110", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
       <header className="admin-header" style={{
-        background: "#111110",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        background: "#ffffff",
+        borderBottom: "1px solid #e8e7e2",
         padding: "0 28px",
         height: "56px",
         display: "flex",
@@ -52,13 +62,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         zIndex: 50,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-          <span className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#f5f4f0" }}>
+          <span className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#111110" }}>
             HIGHLANDER REI
           </span>
           <nav className="admin-nav" style={{ display: "flex", gap: "2px" }}>
             {navLinks.map(({ href, label }) => (
               <Link key={href} href={href} style={{
-                fontSize: "12.5px", color: "rgba(255,255,255,0.55)",
+                fontSize: "12.5px", color: "#8a8a84",
                 textDecoration: "none", padding: "6px 14px",
                 borderRadius: "5px", letterSpacing: "0.3px",
               }}>
@@ -70,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <AdminProfileMenu logoutAction={logout} />
       </header>
 
-      <div className="admin-content-wrap" style={{ background: "#f5f4f0", minHeight: "calc(100vh - 56px)" }}>
+      <div className="admin-content-wrap" style={{ background: "#f8f7f4", minHeight: "calc(100vh - 56px)" }}>
         {children}
       </div>
 
