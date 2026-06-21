@@ -326,22 +326,30 @@ export default async function AcquisitionsPage({
               </div>
 
               <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.5fr 0.5fr 0.7fr 1fr 1fr", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
-                  {["Address", "City / ZIP", "Beds", "Baths", "Sqft", "Value", "Owner"].map((h) => (
+                <div style={{ display: "grid", gridTemplateColumns: "1.8fr 0.8fr 0.5fr 0.6fr 0.8fr 0.7fr 0.6fr 1fr", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+                  {["Address", "City / ZIP", "Beds", "Sqft", "Value", "Equity", "Owned", "Owner"].map((h) => (
                     <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
                   ))}
                 </div>
-                {importedProperties.map((p, i) => (
-                  <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.5fr 0.5fr 0.7fr 1fr 1fr", padding: "13px 20px", borderBottom: i < importedProperties.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
-                    <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{p.streetAddress}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.city}, {p.zip}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.beds ?? "—"}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.baths ?? "—"}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.sqft ? fmt(p.sqft) : "—"}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{fmtPrice(p.estimatedValue)}</div>
-                    <div style={{ fontSize: "11px", color: "#8a8a84" }}>{p.owners[0]?.fullName ?? [p.owners[0]?.firstName, p.owners[0]?.lastName].filter(Boolean).join(" ") ?? "—"}</div>
-                  </div>
-                ))}
+                {importedProperties.map((p, i) => {
+                  const o = p.owners[0];
+                  const eqPct = o?.estimatedEquityPct;
+                  const ownedYears = p.lastSaleDate ? Math.round((Date.now() - new Date(p.lastSaleDate).getTime()) / (1000 * 60 * 60 * 24 * 365)) : null;
+                  return (
+                    <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.8fr 0.8fr 0.5fr 0.6fr 0.8fr 0.7fr 0.6fr 1fr", padding: "13px 20px", borderBottom: i < importedProperties.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
+                      <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{p.streetAddress}</div>
+                      <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.city}, {p.zip}</div>
+                      <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.beds ?? "—"}</div>
+                      <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.sqft ? fmt(p.sqft) : "—"}</div>
+                      <div style={{ fontSize: "12px", color: "#5a5a54" }}>{fmtPrice(p.estimatedValue)}</div>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: eqPct != null && eqPct >= 50 ? "#3a7a50" : eqPct != null && eqPct >= 20 ? "#b45309" : "#8a8a84" }}>
+                        {eqPct != null ? `${Math.round(eqPct)}%` : "—"}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#5a5a54" }}>{ownedYears != null ? `${ownedYears}yr` : "—"}</div>
+                      <div style={{ fontSize: "11px", color: "#8a8a84" }}>{o?.fullName ?? [o?.firstName, o?.lastName].filter(Boolean).join(" ") ?? "—"}</div>
+                    </div>
+                  );
+                })}
               </div>
 
               {filteredPropertyCount > PAGE_SIZE && (

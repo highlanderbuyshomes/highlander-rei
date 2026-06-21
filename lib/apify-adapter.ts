@@ -189,6 +189,26 @@ export async function ingestApifyDataset(
         continue;
       }
 
+      const lastSaleDate = fieldMapping.lastSaleDate ? toDate(pluck(record, fieldMapping.lastSaleDate)) : null;
+      const equityPct = fieldMapping.estimatedEquityPct ? toFloat(pluck(record, fieldMapping.estimatedEquityPct)) : null;
+
+      // Skip recently sold (< 12 months) — these owners just bought
+      if (lastSaleDate) {
+        const monthsOwned = (Date.now() - lastSaleDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+        if (monthsOwned < 12) {
+          errors++;
+          errorMessages.push(`Skipped ${street}: sold ${Math.round(monthsOwned)} months ago`);
+          continue;
+        }
+      }
+
+      // Skip negative or very low equity (< 10%)
+      if (equityPct != null && equityPct < 10) {
+        errors++;
+        errorMessages.push(`Skipped ${street}: only ${equityPct.toFixed(0)}% equity`);
+        continue;
+      }
+
       const apn = fieldMapping.apn ? toStr(pluck(record, fieldMapping.apn)) : null;
       const fingerprint = addressFingerprint(street, city, state, zip);
 
@@ -226,7 +246,7 @@ export async function ingestApifyDataset(
           lotSqft: fieldMapping.lotSqft ? toInt(pluck(record, fieldMapping.lotSqft)) : null,
           yearBuilt: fieldMapping.yearBuilt ? toInt(pluck(record, fieldMapping.yearBuilt)) : null,
           estimatedValue: fieldMapping.estimatedValue ? toFloat(pluck(record, fieldMapping.estimatedValue)) : null,
-          lastSaleDate: fieldMapping.lastSaleDate ? toDate(pluck(record, fieldMapping.lastSaleDate)) : null,
+          lastSaleDate,
           lastSalePrice: fieldMapping.lastSalePrice ? toFloat(pluck(record, fieldMapping.lastSalePrice)) : null,
           latitude: fieldMapping.latitude ? toFloat(pluck(record, fieldMapping.latitude)) : null,
           longitude: fieldMapping.longitude ? toFloat(pluck(record, fieldMapping.longitude)) : null,
@@ -254,10 +274,11 @@ export async function ingestApifyDataset(
             mailingState: fieldMapping.ownerMailingState ? toStr(pluck(record, fieldMapping.ownerMailingState)) : null,
             mailingZip: fieldMapping.ownerMailingZip ? toStr(pluck(record, fieldMapping.ownerMailingZip)) : null,
             ownerOccupied: fieldMapping.ownerOccupied ? toBool(pluck(record, fieldMapping.ownerOccupied)) : null,
+            ownershipStartDate: lastSaleDate,
             phone: fieldMapping.ownerPhone ? toStr(pluck(record, fieldMapping.ownerPhone)) : null,
             email: fieldMapping.ownerEmail ? toStr(pluck(record, fieldMapping.ownerEmail)) : null,
             estimatedEquity: fieldMapping.estimatedEquity ? toFloat(pluck(record, fieldMapping.estimatedEquity)) : null,
-            estimatedEquityPct: fieldMapping.estimatedEquityPct ? toFloat(pluck(record, fieldMapping.estimatedEquityPct)) : null,
+            estimatedEquityPct: equityPct,
             rawJson: record as Json,
           },
         });

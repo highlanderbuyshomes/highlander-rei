@@ -70,7 +70,7 @@ export default function ImportRunner() {
   const [location, setLocation] = useState("Scottsdale, AZ");
   const [maxItems, setMaxItems] = useState("100");
   const [description, setDescription] = useState("");
-  const [selectedLeadTypes, setSelectedLeadTypes] = useState<string[]>([]);
+  const [selectedLeadTypes, setSelectedLeadTypes] = useState<string[]>(["high_equity", "free_and_clear"]);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
