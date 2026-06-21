@@ -3,16 +3,20 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { matchPropertyToBuyBox } from "@/lib/buy-box-matcher";
+
+function revalidate() {
+  revalidatePath("/admin/acquisitions");
+}
 
 // ─── Buyer Searches ────────────────────────────────────────────────
 
 export async function createArea(formData: FormData) {
   await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) throw new Error("Name is required");
+  if (!name) return;
 
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const slug = `${base}-${Date.now().toString(36)}`;
 
   await prisma.acquisitionArea.create({
     data: {
@@ -23,191 +27,80 @@ export async function createArea(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin/acquisitions");
+  revalidate();
 }
 
 export async function toggleArea(id: string) {
   await requireAdmin();
-  const area = await prisma.acquisitionArea.findUniqueOrThrow({ where: { id } });
+  const area = await prisma.acquisitionArea.findUnique({ where: { id } });
+  if (!area) return;
   await prisma.acquisitionArea.update({ where: { id }, data: { active: !area.active } });
-  revalidatePath("/admin/acquisitions");
+  revalidate();
 }
 
 export async function deleteArea(id: string) {
   await requireAdmin();
+  await prisma.buyBox.updateMany({ where: { areaId: id }, data: { areaId: null } });
   await prisma.acquisitionArea.delete({ where: { id } });
-  revalidatePath("/admin/acquisitions");
+  revalidate();
 }
 
-// ─── Buy Boxes ─────────────────────────────────────────────────────
+// ─── Acquisition Machines ──────────────────────────────────────────
 
-function parseJsonArray(val: FormDataEntryValue | null): string[] {
+function parseList(val: FormDataEntryValue | null): string[] {
   const raw = String(val ?? "").trim();
   if (!raw) return [];
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-function parseOptionalFloat(val: FormDataEntryValue | null): number | null {
+function optFloat(val: FormDataEntryValue | null): number | null {
   const n = parseFloat(String(val ?? ""));
   return isNaN(n) ? null : n;
 }
 
-function parseOptionalInt(val: FormDataEntryValue | null): number | null {
+function optInt(val: FormDataEntryValue | null): number | null {
   const n = parseInt(String(val ?? ""), 10);
   return isNaN(n) ? null : n;
 }
 
-function buyBoxDataFromForm(formData: FormData) {
+function machineDataFromForm(formData: FormData) {
   return {
     name: String(formData.get("name") ?? "").trim(),
     areaId: String(formData.get("areaId") ?? "") || null,
-    active: formData.get("active") !== "false",
-    zips: parseJsonArray(formData.get("zips")),
-    mlsAreaIds: parseJsonArray(formData.get("mlsAreaIds")),
-    subdivisions: parseJsonArray(formData.get("subdivisions")),
-    propertyTypes: parseJsonArray(formData.get("propertyTypes")),
-    priceMin: parseOptionalFloat(formData.get("priceMin")),
-    priceMax: parseOptionalFloat(formData.get("priceMax")),
-    bedsMin: parseOptionalInt(formData.get("bedsMin")),
-    bedsMax: parseOptionalInt(formData.get("bedsMax")),
-    bathsMin: parseOptionalFloat(formData.get("bathsMin")),
-    bathsMax: parseOptionalFloat(formData.get("bathsMax")),
-    sqftMin: parseOptionalInt(formData.get("sqftMin")),
-    sqftMax: parseOptionalInt(formData.get("sqftMax")),
-    lotSqftMin: parseOptionalInt(formData.get("lotSqftMin")),
-    lotSqftMax: parseOptionalInt(formData.get("lotSqftMax")),
-    yearBuiltMin: parseOptionalInt(formData.get("yearBuiltMin")),
-    yearBuiltMax: parseOptionalInt(formData.get("yearBuiltMax")),
-    ownershipDurationMin: parseOptionalInt(formData.get("ownershipDurationMin")),
-    minEquityPct: parseOptionalFloat(formData.get("minEquityPct")),
-    ownerOccupied: String(formData.get("ownerOccupied") ?? "any"),
-    mlsStatuses: parseJsonArray(formData.get("mlsStatuses")),
-    maxDom: parseOptionalInt(formData.get("maxDom")),
-    buyerName: String(formData.get("buyerName") ?? "") || null,
-    dispositionStrategy: String(formData.get("dispositionStrategy") ?? "") || null,
-    priority: parseOptionalInt(formData.get("priority")) ?? 0,
+    active: true,
+    zips: parseList(formData.get("zips")),
+    propertyTypes: parseList(formData.get("propertyTypes")),
+    priceMin: optFloat(formData.get("priceMin")),
+    priceMax: optFloat(formData.get("priceMax")),
+    bedsMin: optInt(formData.get("bedsMin")),
+    bedsMax: optInt(formData.get("bedsMax")),
+    sqftMin: optInt(formData.get("sqftMin")),
+    sqftMax: optInt(formData.get("sqftMax")),
   };
 }
 
 export async function createBuyBox(formData: FormData) {
   await requireAdmin();
-  const data = buyBoxDataFromForm(formData);
-  if (!data.name) throw new Error("Name is required");
+  const data = machineDataFromForm(formData);
+  if (!data.name) return;
 
   await prisma.buyBox.create({ data });
-  revalidatePath("/admin/acquisitions");
-}
-
-export async function updateBuyBox(id: string, formData: FormData) {
-  await requireAdmin();
-  const data = buyBoxDataFromForm(formData);
-  if (!data.name) throw new Error("Name is required");
-
-  await prisma.buyBox.update({ where: { id }, data });
-  revalidatePath("/admin/acquisitions");
+  revalidate();
 }
 
 export async function toggleBuyBox(id: string) {
   await requireAdmin();
-  const bb = await prisma.buyBox.findUniqueOrThrow({ where: { id } });
+  const bb = await prisma.buyBox.findUnique({ where: { id } });
+  if (!bb) return;
   await prisma.buyBox.update({ where: { id }, data: { active: !bb.active } });
-  revalidatePath("/admin/acquisitions");
+  revalidate();
 }
 
 export async function deleteBuyBox(id: string) {
   await requireAdmin();
+  await prisma.buyerMatch.deleteMany({ where: { buyBoxId: id } });
   await prisma.buyBox.delete({ where: { id } });
-  revalidatePath("/admin/acquisitions");
-}
-
-// ─── Match Runner ──────────────────────────────────────────────────
-
-export async function runMatchesForBuyBox(buyBoxId: string) {
-  await requireAdmin();
-
-  const buyBox = await prisma.buyBox.findUniqueOrThrow({ where: { id: buyBoxId } });
-  const zips = Array.isArray(buyBox.zips) ? buyBox.zips as string[] : [];
-
-  const properties = await prisma.property.findMany({
-    where: zips.length > 0 ? { zip: { in: zips } } : {},
-    include: { owners: { take: 1 } },
-  });
-
-  let created = 0;
-  let updated = 0;
-
-  for (const prop of properties) {
-    const owner = prop.owners[0];
-    const result = matchPropertyToBuyBox(
-      {
-        zip: prop.zip,
-        subdivision: prop.subdivision,
-        propertyType: prop.propertyType,
-        beds: prop.beds,
-        baths: prop.baths,
-        sqft: prop.sqft,
-        lotSqft: prop.lotSqft,
-        yearBuilt: prop.yearBuilt,
-        estimatedValue: prop.estimatedValue,
-        lastSalePrice: prop.lastSalePrice,
-        lastSaleDate: prop.lastSaleDate,
-        listPrice: null,
-        mlsStatus: null,
-        dom: null,
-        ownerOccupied: owner?.ownerOccupied ?? null,
-        ownershipStartDate: owner?.ownershipStartDate ?? null,
-        estimatedEquityPct: owner?.estimatedEquityPct ?? null,
-      },
-      {
-        zips: Array.isArray(buyBox.zips) ? buyBox.zips as string[] : [],
-        subdivisions: Array.isArray(buyBox.subdivisions) ? buyBox.subdivisions as string[] : [],
-        propertyTypes: Array.isArray(buyBox.propertyTypes) ? buyBox.propertyTypes as string[] : [],
-        priceMin: buyBox.priceMin,
-        priceMax: buyBox.priceMax,
-        bedsMin: buyBox.bedsMin,
-        bedsMax: buyBox.bedsMax,
-        bathsMin: buyBox.bathsMin,
-        bathsMax: buyBox.bathsMax,
-        sqftMin: buyBox.sqftMin,
-        sqftMax: buyBox.sqftMax,
-        lotSqftMin: buyBox.lotSqftMin,
-        lotSqftMax: buyBox.lotSqftMax,
-        yearBuiltMin: buyBox.yearBuiltMin,
-        yearBuiltMax: buyBox.yearBuiltMax,
-        ownershipDurationMin: buyBox.ownershipDurationMin,
-        minEquityPct: buyBox.minEquityPct,
-        ownerOccupied: buyBox.ownerOccupied,
-        mlsStatuses: Array.isArray(buyBox.mlsStatuses) ? buyBox.mlsStatuses as string[] : [],
-        maxDom: buyBox.maxDom,
-      },
-    );
-
-    if (!result.matched) continue;
-
-    const existing = await prisma.buyerMatch.findUnique({
-      where: { propertyId_buyBoxId: { propertyId: prop.id, buyBoxId } },
-    });
-
-    if (existing) {
-      await prisma.buyerMatch.update({
-        where: { id: existing.id },
-        data: { score: result.score, matchExplanation: JSON.parse(JSON.stringify(result.reasons)) },
-      });
-      updated++;
-    } else {
-      await prisma.buyerMatch.create({
-        data: {
-          propertyId: prop.id,
-          buyBoxId,
-          score: result.score,
-          matchExplanation: JSON.parse(JSON.stringify(result.reasons)),
-        },
-      });
-      created++;
-    }
-  }
-
-  revalidatePath("/admin/acquisitions");
+  revalidate();
 }
 
 // ─── Delete Import Run ─────────────────────────────────────────────
@@ -215,5 +108,5 @@ export async function runMatchesForBuyBox(buyBoxId: string) {
 export async function deleteImportRun(id: string) {
   await requireAdmin();
   await prisma.importRun.delete({ where: { id } });
-  revalidatePath("/admin/acquisitions");
+  revalidate();
 }

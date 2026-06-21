@@ -91,7 +91,7 @@ export default async function AcquisitionsPage({
     prisma.property.count(),
     prisma.acquisitionLead.count(),
     prisma.importRun.count(),
-    prisma.acquisitionArea.findMany({ orderBy: { name: "asc" } }),
+    prisma.acquisitionArea.findMany({ orderBy: { name: "asc" }, include: { _count: { select: { buyBoxes: true } } } }),
     prisma.buyBox.findMany({
       include: { area: { select: { name: true, buyerContact: true } } },
       orderBy: [{ priority: "desc" }, { name: "asc" }],
@@ -207,6 +207,7 @@ export default async function AcquisitionsPage({
                       )}
                     </div>
                     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <span style={{ fontSize: "11px", color: "#8a8a84" }}>{s._count.buyBoxes} machine{s._count.buyBoxes !== 1 ? "s" : ""}</span>
                       <ToggleButton id={s.id} active={s.active} action={toggleArea} />
                       <DeleteButton id={s.id} action={deleteArea} label="Delete" />
                     </div>
