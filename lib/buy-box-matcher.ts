@@ -370,6 +370,124 @@ export function matchPropertyToBuyBox(
   return { matched, score, totalCriteria, passedCriteria, failedRequired, reasons };
 }
 
+// ── Weighted Scoring ─────────────────────────────────────────────
+
+export const DEFAULT_WEIGHTS: ScoreWeights = {
+  buyBoxFit: 30,
+  geographicPriority: 15,
+  estimatedEquity: 15,
+  ownershipDuration: 10,
+  absenteeStatus: 5,
+  mlsStatus: 5,
+  daysOnMarket: 5,
+  priceReduction: 5,
+  dataFreshness: 5,
+  contactability: 5,
+};
+
+export interface ScoreWeights {
+  buyBoxFit: number;
+  geographicPriority: number;
+  estimatedEquity: number;
+  ownershipDuration: number;
+  absenteeStatus: number;
+  mlsStatus: number;
+  daysOnMarket: number;
+  priceReduction: number;
+  dataFreshness: number;
+  contactability: number;
+}
+
+export interface WeightedScoreBreakdown {
+  totalScore: number;
+  maxPossible: number;
+  components: { name: string; weight: number; earned: number; detail: string }[];
+}
+
+export function computeWeightedScore(
+  property: MatchableProperty & {
+    priceReduction?: number | null;
+    lastRefreshedAt?: Date | string | null;
+    hasPhone?: boolean;
+    hasEmail?: boolean;
+    buyBoxPriority?: number;
+  },
+  matchResult: MatchResult,
+  weights: ScoreWeights = DEFAULT_WEIGHTS,
+): WeightedScoreBreakdown {
+  const components: WeightedScoreBreakdown["components"] = [];
+  let total = 0;
+
+  // Buy-box fit: use the base match score
+  const fitScore = (matchResult.score / 100) * weights.buyBoxFit;
+  total += fitScore;
+  components.push({ name: "Buy-Box Fit", weight: weights.buyBoxFit, earned: Math.round(fitScore * 10) / 10, detail: `${matchResult.passedCriteria}/${matchResult.totalCriteria} criteria passed` });
+
+  // Geographic priority: based on buy-box priority level
+  const geoPriority = property.buyBoxPriority ?? 0;
+  const geoScore = Math.min(geoPriority / 5, 1) * weights.geographicPriority;
+  total += geoScore;
+  components.push({ name: "Geographic Priority", weight: weights.geographicPriority, earned: Math.round(geoScore * 10) / 10, detail: `Priority level ${geoPriority}` });
+
+  // Estimated equity
+  const eqPct = property.estimatedEquityPct;
+  const eqScore = eqPct != null ? Math.min(eqPct / 60, 1) * weights.estimatedEquity : 0;
+  total += eqScore;
+  components.push({ name: "Estimated Equity", weight: weights.estimatedEquity, earned: Math.round(eqScore * 10) / 10, detail: eqPct != null ? `${eqPct.toFixed(1)}% equity` : "Unknown" });
+
+  // Ownership duration
+  const ownerStart = property.ownershipStartDate ? new Date(property.ownershipStartDate) : null;
+  let ownerMonths = 0;
+  if (ownerStart && !isNaN(ownerStart.getTime())) {
+    ownerMonths = (Date.now() - ownerStart.getTime()) / (1000 * 60 * 60 * 24 * 30);
+  }
+  const ownerScore = ownerMonths > 0 ? Math.min(ownerMonths / 120, 1) * weights.ownershipDuration : 0;
+  total += ownerScore;
+  components.push({ name: "Ownership Duration", weight: weights.ownershipDuration, earned: Math.round(ownerScore * 10) / 10, detail: ownerMonths > 0 ? `${Math.round(ownerMonths)} months` : "Unknown" });
+
+  // Absentee status
+  const absenteeScore = property.ownerOccupied === false ? weights.absenteeStatus : 0;
+  total += absenteeScore;
+  components.push({ name: "Absentee Status", weight: weights.absenteeStatus, earned: absenteeScore, detail: property.ownerOccupied === false ? "Absentee owner" : property.ownerOccupied === true ? "Owner-occupied" : "Unknown" });
+
+  // MLS status bonus (expired/withdrawn = higher motivation)
+  const status = property.mlsStatus?.toLowerCase();
+  const mlsScore = status && ["expired", "withdrawn", "canceled"].includes(status) ? weights.mlsStatus : status === "active" ? weights.mlsStatus * 0.3 : 0;
+  total += mlsScore;
+  components.push({ name: "MLS Status", weight: weights.mlsStatus, earned: Math.round(mlsScore * 10) / 10, detail: property.mlsStatus ?? "Off-market" });
+
+  // Days on market
+  const dom = property.dom;
+  const domScore = dom != null ? Math.min(dom / 180, 1) * weights.daysOnMarket : 0;
+  total += domScore;
+  components.push({ name: "Days on Market", weight: weights.daysOnMarket, earned: Math.round(domScore * 10) / 10, detail: dom != null ? `${dom} days` : "N/A" });
+
+  // Price reduction
+  const reduction = property.priceReduction;
+  const reductionScore = reduction != null && reduction > 0 ? Math.min(reduction / 10, 1) * weights.priceReduction : 0;
+  total += reductionScore;
+  components.push({ name: "Price Reduction", weight: weights.priceReduction, earned: Math.round(reductionScore * 10) / 10, detail: reduction != null ? `${reduction.toFixed(1)}% reduced` : "None" });
+
+  // Data freshness
+  const refreshed = property.lastRefreshedAt ? new Date(property.lastRefreshedAt) : null;
+  let freshnessScore = 0;
+  if (refreshed && !isNaN(refreshed.getTime())) {
+    const daysOld = (Date.now() - refreshed.getTime()) / (1000 * 60 * 60 * 24);
+    freshnessScore = Math.max(0, 1 - daysOld / 90) * weights.dataFreshness;
+  }
+  total += freshnessScore;
+  components.push({ name: "Data Freshness", weight: weights.dataFreshness, earned: Math.round(freshnessScore * 10) / 10, detail: refreshed ? `Updated ${Math.round((Date.now() - refreshed.getTime()) / 86400000)}d ago` : "Never" });
+
+  // Contactability
+  const contactScore = (property.hasPhone || property.hasEmail) ? weights.contactability : 0;
+  total += contactScore;
+  components.push({ name: "Contactability", weight: weights.contactability, earned: contactScore, detail: property.hasPhone ? "Phone available" : property.hasEmail ? "Email only" : "No contact info" });
+
+  const maxPossible = Object.values(weights).reduce((a, b) => a + b, 0);
+
+  return { totalScore: Math.round(total), maxPossible, components };
+}
+
 export function matchPropertyToAllBuyBoxes(
   property: MatchableProperty,
   buyBoxes: (MatchableBuyBox & { id: string; name: string })[],

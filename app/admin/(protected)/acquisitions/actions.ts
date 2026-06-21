@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { matchPropertyToBuyBox } from "@/lib/buy-box-matcher";
 
 // ─── Areas ─────────────────────────────────────────────────────────
 
@@ -111,5 +112,103 @@ export async function toggleBuyBox(id: string) {
 export async function deleteBuyBox(id: string) {
   await requireAdmin();
   await prisma.buyBox.delete({ where: { id } });
+  revalidatePath("/admin/acquisitions");
+}
+
+// ─── Match Runner ──────────────────────────────────────────────────
+
+export async function runMatchesForBuyBox(buyBoxId: string) {
+  await requireAdmin();
+
+  const buyBox = await prisma.buyBox.findUniqueOrThrow({ where: { id: buyBoxId } });
+  const zips = Array.isArray(buyBox.zips) ? buyBox.zips as string[] : [];
+
+  const properties = await prisma.property.findMany({
+    where: zips.length > 0 ? { zip: { in: zips } } : {},
+    include: { owners: { take: 1 } },
+  });
+
+  let created = 0;
+  let updated = 0;
+
+  for (const prop of properties) {
+    const owner = prop.owners[0];
+    const result = matchPropertyToBuyBox(
+      {
+        zip: prop.zip,
+        subdivision: prop.subdivision,
+        propertyType: prop.propertyType,
+        beds: prop.beds,
+        baths: prop.baths,
+        sqft: prop.sqft,
+        lotSqft: prop.lotSqft,
+        yearBuilt: prop.yearBuilt,
+        estimatedValue: prop.estimatedValue,
+        lastSalePrice: prop.lastSalePrice,
+        lastSaleDate: prop.lastSaleDate,
+        listPrice: null,
+        mlsStatus: null,
+        dom: null,
+        ownerOccupied: owner?.ownerOccupied ?? null,
+        ownershipStartDate: owner?.ownershipStartDate ?? null,
+        estimatedEquityPct: owner?.estimatedEquityPct ?? null,
+      },
+      {
+        zips: Array.isArray(buyBox.zips) ? buyBox.zips as string[] : [],
+        subdivisions: Array.isArray(buyBox.subdivisions) ? buyBox.subdivisions as string[] : [],
+        propertyTypes: Array.isArray(buyBox.propertyTypes) ? buyBox.propertyTypes as string[] : [],
+        priceMin: buyBox.priceMin,
+        priceMax: buyBox.priceMax,
+        bedsMin: buyBox.bedsMin,
+        bedsMax: buyBox.bedsMax,
+        bathsMin: buyBox.bathsMin,
+        bathsMax: buyBox.bathsMax,
+        sqftMin: buyBox.sqftMin,
+        sqftMax: buyBox.sqftMax,
+        lotSqftMin: buyBox.lotSqftMin,
+        lotSqftMax: buyBox.lotSqftMax,
+        yearBuiltMin: buyBox.yearBuiltMin,
+        yearBuiltMax: buyBox.yearBuiltMax,
+        ownershipDurationMin: buyBox.ownershipDurationMin,
+        minEquityPct: buyBox.minEquityPct,
+        ownerOccupied: buyBox.ownerOccupied,
+        mlsStatuses: Array.isArray(buyBox.mlsStatuses) ? buyBox.mlsStatuses as string[] : [],
+        maxDom: buyBox.maxDom,
+      },
+    );
+
+    if (!result.matched) continue;
+
+    const existing = await prisma.buyerMatch.findUnique({
+      where: { propertyId_buyBoxId: { propertyId: prop.id, buyBoxId } },
+    });
+
+    if (existing) {
+      await prisma.buyerMatch.update({
+        where: { id: existing.id },
+        data: { score: result.score, matchExplanation: JSON.parse(JSON.stringify(result.reasons)) },
+      });
+      updated++;
+    } else {
+      await prisma.buyerMatch.create({
+        data: {
+          propertyId: prop.id,
+          buyBoxId,
+          score: result.score,
+          matchExplanation: JSON.parse(JSON.stringify(result.reasons)),
+        },
+      });
+      created++;
+    }
+  }
+
+  revalidatePath("/admin/acquisitions");
+}
+
+// ─── Delete Import Run ─────────────────────────────────────────────
+
+export async function deleteImportRun(id: string) {
+  await requireAdmin();
+  await prisma.importRun.delete({ where: { id } });
   revalidatePath("/admin/acquisitions");
 }
