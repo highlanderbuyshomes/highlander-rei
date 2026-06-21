@@ -16,14 +16,17 @@ const label: React.CSSProperties = {
 };
 
 const PRESETS = [
-  { label: "Arcadia", location: "Arcadia, AZ" },
+  { label: "Arcadia (85018)", location: "85018" },
+  { label: "Arcadia (85008)", location: "85008" },
   { label: "Scottsdale", location: "Scottsdale, AZ" },
   { label: "Paradise Valley", location: "Paradise Valley, AZ" },
-  { label: "Phoenix (85018)", location: "85018" },
-  { label: "Phoenix (85016)", location: "85016" },
-  { label: "Scottsdale (85251)", location: "85251" },
-  { label: "Scottsdale (85253)", location: "85253" },
-  { label: "Scottsdale (85254)", location: "85254" },
+  { label: "Cactus Corridor (85254)", location: "85254" },
+  { label: "Biltmore (85016)", location: "85016" },
+  { label: "Old Town (85251)", location: "85251" },
+  { label: "N Scottsdale (85255)", location: "85255" },
+  { label: "McCormick (85258)", location: "85258" },
+  { label: "DC Ranch (85255)", location: "85255" },
+  { label: "PV (85253)", location: "85253" },
 ];
 
 const LEAD_TYPES: { key: string; label: string; group: string }[] = [
