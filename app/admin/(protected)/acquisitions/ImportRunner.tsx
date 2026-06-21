@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const inp: React.CSSProperties = {
   width: "100%", padding: "9px 12px", fontSize: "13px",
@@ -23,27 +24,73 @@ const PRESETS = [
   { label: "Scottsdale (85251)", location: "85251" },
   { label: "Scottsdale (85253)", location: "85253" },
   { label: "Scottsdale (85254)", location: "85254" },
-  { label: "PV (85253)", location: "85253" },
+];
+
+const LEAD_TYPES: { key: string; label: string; group: string }[] = [
+  { key: "vacant_home", label: "Vacant Homes", group: "Property" },
+  { key: "vacant_lot", label: "Vacant Lots", group: "Property" },
+  { key: "abandoned_homes", label: "Abandoned", group: "Property" },
+  { key: "zombie_property", label: "Zombie Property", group: "Property" },
+  { key: "code_violation", label: "Code Violation", group: "Property" },
+
+  { key: "preforeclosure", label: "Pre-Foreclosure", group: "Distress" },
+  { key: "bank_owned", label: "Bank Owned", group: "Distress" },
+  { key: "auction", label: "Auction", group: "Distress" },
+  { key: "lien_tax", label: "Tax Lien", group: "Distress" },
+  { key: "bankruptcy", label: "Bankruptcy", group: "Distress" },
+  { key: "divorce", label: "Divorce", group: "Distress" },
+
+  { key: "absentee_owner", label: "Absentee Owner", group: "Owner" },
+  { key: "out_of_state_owner", label: "Out of State Owner", group: "Owner" },
+  { key: "tired_landlord", label: "Tired Landlord", group: "Owner" },
+  { key: "empty_nester", label: "Empty Nester", group: "Owner" },
+
+  { key: "high_equity", label: "High Equity", group: "Equity" },
+  { key: "free_and_clear", label: "Free & Clear", group: "Equity" },
+  { key: "low_equity", label: "Low Equity", group: "Equity" },
+  { key: "negative_equity", label: "Negative Equity", group: "Equity" },
+
+  { key: "bargain_properties", label: "Bargain Properties", group: "Deal" },
+  { key: "flipped_property", label: "Flipped Property", group: "Deal" },
+  { key: "cash_buyer", label: "Cash Buyer", group: "Deal" },
+  { key: "creative_financing", label: "Creative Financing", group: "Deal" },
+
+  { key: "mls_failed", label: "MLS Failed / Expired", group: "MLS" },
+  { key: "mls_active", label: "MLS Active", group: "MLS" },
+  { key: "mls_pending", label: "MLS Pending", group: "MLS" },
 ];
 
 type Status = "idle" | "starting" | "running" | "ingesting" | "done" | "error";
 
 export default function ImportRunner() {
+  const router = useRouter();
   const [location, setLocation] = useState("Scottsdale, AZ");
   const [maxItems, setMaxItems] = useState("100");
+  const [description, setDescription] = useState("");
+  const [selectedLeadTypes, setSelectedLeadTypes] = useState<string[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+
+  function toggleLeadType(key: string) {
+    setSelectedLeadTypes((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  }
 
   async function handleRun() {
     setStatus("starting");
     setMessage("Starting Propwire scraper...");
     setResult(null);
 
-    const input = {
+    const input: Record<string, unknown> = {
       locations: [location],
       maxItems: parseInt(maxItems, 10) || 100,
     };
+
+    if (selectedLeadTypes.length > 0) {
+      input.leadTypes = selectedLeadTypes;
+    }
 
     try {
       const startRes = await fetch("/api/acquisitions/import", {
@@ -85,6 +132,7 @@ export default function ImportRunner() {
       setResult(ingestData);
       setStatus("done");
       setMessage(`Done — ${ingestData.imported} imported, ${ingestData.duplicates} duplicates, ${ingestData.errors} errors`);
+      router.refresh();
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : String(err));
@@ -92,6 +140,7 @@ export default function ImportRunner() {
   }
 
   const running = status === "starting" || status === "running" || status === "ingesting";
+  const groups = [...new Set(LEAD_TYPES.map((t) => t.group))];
 
   return (
     <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
@@ -125,6 +174,51 @@ export default function ImportRunner() {
         <div>
           <span style={label}>Max Records</span>
           <input value={maxItems} onChange={(e) => setMaxItems(e.target.value)} type="number" min="1" max="1000" style={inp} />
+        </div>
+      </div>
+
+      {/* Description */}
+      <div style={{ marginBottom: "14px" }}>
+        <span style={label}>Description / Notes</span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What are you looking for? e.g. Vacant homes in Arcadia under $800K, tired landlords with high equity in 85251..."
+          rows={2}
+          style={{ ...inp, resize: "vertical" }}
+        />
+      </div>
+
+      {/* Lead type filters */}
+      <div style={{ marginBottom: "16px" }}>
+        <span style={label}>Lead Types (leave blank for all)</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "6px" }}>
+          {groups.map((group) => (
+            <div key={group}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "#b0b0a8", letterSpacing: "1px", marginBottom: "4px" }}>{group.toUpperCase()}</div>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {LEAD_TYPES.filter((t) => t.group === group).map((t) => {
+                  const selected = selectedLeadTypes.includes(t.key);
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => toggleLeadType(t.key)}
+                      style={{
+                        padding: "4px 11px", fontSize: "11px", fontWeight: 500,
+                        borderRadius: "20px", cursor: "pointer", fontFamily: "inherit",
+                        background: selected ? "#111110" : "#ffffff",
+                        color: selected ? "#ffffff" : "#5a5a54",
+                        border: selected ? "1px solid #111110" : "1px solid #d0cfc8",
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
