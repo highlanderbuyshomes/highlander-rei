@@ -151,52 +151,6 @@ export default function BuyBoxForm({ areas, action, defaults = {}, submitLabel =
         </div>
       </div>
 
-      {/* Occupancy / DOM / MLS Statuses */}
-      <div style={row2}>
-        <div>
-          <span style={label}>Owner Occupied</span>
-          <select name="ownerOccupied" defaultValue={d("ownerOccupied", "any")} style={inp}>
-            <option value="any">Any</option>
-            <option value="owner">Owner-Occupied</option>
-            <option value="absentee">Absentee</option>
-          </select>
-        </div>
-        <div>
-          <span style={label}>Max Days on Market</span>
-          <input name="maxDom" type="number" placeholder="90" defaultValue={d("maxDom")} style={inp} />
-        </div>
-      </div>
-
-      <div style={row2}>
-        <div>
-          <span style={label}>MLS Statuses</span>
-          <input name="mlsStatuses" placeholder="Active, Coming Soon" defaultValue={d("mlsStatuses")} style={inp} />
-        </div>
-        <div>
-          <span style={label}>Priority (0 = lowest)</span>
-          <input name="priority" type="number" defaultValue={d("priority", "0")} style={inp} />
-        </div>
-      </div>
-
-      {/* Buyer / Strategy */}
-      <div style={row2}>
-        <div>
-          <span style={label}>Buyer / Disposition</span>
-          <input name="buyerName" placeholder="Buyer name or fund" defaultValue={d("buyerName")} style={inp} />
-        </div>
-        <div>
-          <span style={label}>Strategy</span>
-          <select name="dispositionStrategy" defaultValue={d("dispositionStrategy")} style={inp}>
-            <option value="">None</option>
-            <option value="flip">Flip</option>
-            <option value="rental">Rental</option>
-            <option value="wholesale">Wholesale</option>
-            <option value="owner_finance">Owner Finance</option>
-            <option value="novation">Novation</option>
-          </select>
-        </div>
-      </div>
-
       <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "8px" }}>
         <button type="submit" style={{
           padding: "10px 24px", background: "#111110", color: "#ffffff",
