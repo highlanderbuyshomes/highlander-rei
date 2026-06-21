@@ -44,6 +44,28 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
           </div>
 
           <Link
+            href="/admin/contacts"
+            onClick={() => setOpen(false)}
+            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", borderRadius: "6px" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            Contacts
+          </Link>
+
+          <Link
+            href="/admin/leads"
+            onClick={() => setOpen(false)}
+            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", borderRadius: "6px" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            Leads
+          </Link>
+
+          <div style={{ height: "1px", background: "#e8e7e2", margin: "4px 12px" }} />
+
+          <Link
             href="/admin/password"
             onClick={() => setOpen(false)}
             style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", borderRadius: "6px" }}

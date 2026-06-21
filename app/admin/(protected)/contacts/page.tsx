@@ -69,27 +69,27 @@ export default async function ContactsPage({
     <div className="admin-workspace-shell" style={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
 
       {/* ── Sidebar ── */}
-      <aside className="admin-workspace-sidebar" style={{ width: "236px", background: "#1C1C1B", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
+      <aside className="admin-workspace-sidebar" style={{ width: "236px", background: "#ffffff", borderRight: "1px solid #e8e7e2", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
 
         <div className="admin-workspace-sidebar-section" style={{ padding: "16px 14px 12px" }}>
-          <Link href="/admin/contacts/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "#B8962E", color: "#ffffff", padding: "11px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
+          <Link href="/admin/contacts/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "#111110", color: "#ffffff", padding: "11px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             Add Contact
           </Link>
         </div>
 
         <div className="admin-workspace-sidebar-section" style={{ padding: "8px 10px 0" }}>
-          <div className="admin-workspace-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>CONTACTS</div>
+          <div className="admin-workspace-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "#8a8a84", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>CONTACTS</div>
           {FILTERS.map(({ key, label, count, icon }) => {
             const active = filter === key;
             return (
-              <Link key={key} href={filterHref(key)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "rgba(184,150,46,0.12)" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #B8962E" : "2px solid transparent", color: active ? "#E8D9A0" : "rgba(255,255,255,0.5)" }}>
+              <Link key={key} href={filterHref(key)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ opacity: active ? 1 : 0.7 }}>{icon}</span>
+                  <span style={{ opacity: active ? 1 : 0.5 }}>{icon}</span>
                   <span style={{ fontSize: "13px", fontWeight: active ? 600 : 400 }}>{label}</span>
                 </div>
                 {count > 0 && (
-                  <span style={{ fontSize: "10px", background: active ? "#B8962E" : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.4)", borderRadius: "20px", padding: "1px 7px", fontWeight: 600 }}>
+                  <span style={{ fontSize: "10px", background: active ? "#111110" : "#f0efeb", color: active ? "#fff" : "#8a8a84", borderRadius: "20px", padding: "1px 7px", fontWeight: 600 }}>
                     {count}
                   </span>
                 )}
@@ -98,9 +98,9 @@ export default async function ContactsPage({
           })}
         </div>
 
-        <div className="admin-workspace-sidebar-divider" style={{ margin: "20px 14px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }} />
+        <div className="admin-workspace-sidebar-divider" style={{ margin: "20px 14px 0", borderTop: "1px solid #e8e7e2" }} />
         <div className="admin-workspace-sidebar-section" style={{ padding: "12px 10px 0" }}>
-          <Link href="/admin/agreements" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", textDecoration: "none", color: "rgba(255,255,255,0.35)" }}>
+          <Link href="/admin/agreements" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", textDecoration: "none", color: "#8a8a84" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
             <span style={{ fontSize: "12.5px" }}>Agreements</span>
           </Link>
@@ -142,7 +142,7 @@ export default async function ContactsPage({
               <div style={{ fontSize: "13px", color: "#8a8a84", marginBottom: "24px" }}>
                 {q ? "Try adjusting your search." : "Add contacts to quickly attach signers to agreements."}
               </div>
-              <Link href="/admin/contacts/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#B8962E", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+              <Link href="/admin/contacts/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#111110", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                 Add Contact
               </Link>
