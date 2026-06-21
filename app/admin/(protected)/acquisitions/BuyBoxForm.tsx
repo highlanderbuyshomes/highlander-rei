@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 const inp: React.CSSProperties = {
   width: "100%", padding: "9px 12px", fontSize: "13px",
@@ -14,9 +14,20 @@ const label: React.CSSProperties = {
   textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px",
 };
 
-const row2: React.CSSProperties = {
-  display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px",
-};
+const AREA_SHORTCUTS: { label: string; value: string }[] = [
+  { label: "Arcadia", value: "85018, 85008" },
+  { label: "Biltmore", value: "85016" },
+  { label: "Scottsdale", value: "Scottsdale, AZ" },
+  { label: "Old Town Scottsdale", value: "85251" },
+  { label: "N Scottsdale", value: "85255, 85262" },
+  { label: "McCormick Ranch", value: "85258" },
+  { label: "Cactus Corridor", value: "85254" },
+  { label: "Paradise Valley", value: "Paradise Valley, AZ" },
+  { label: "PV (85253)", value: "85253" },
+  { label: "Tempe", value: "Tempe, AZ" },
+  { label: "Mesa", value: "Mesa, AZ" },
+  { label: "Chandler", value: "Chandler, AZ" },
+];
 
 interface Props {
   buyerSearches: { id: string; name: string; buyerContact: string | null }[];
@@ -27,6 +38,11 @@ interface Props {
 
 export default function BuyBoxForm({ buyerSearches, action, defaults = {}, submitLabel = "Create" }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [locations, setLocations] = useState(() => {
+    const v = defaults.zips;
+    if (Array.isArray(v)) return v.join(", ");
+    return v != null ? String(v) : "";
+  });
 
   const d = (key: string, fallback = "") => {
     const v = defaults[key];
@@ -34,15 +50,23 @@ export default function BuyBoxForm({ buyerSearches, action, defaults = {}, submi
     return v != null ? String(v) : fallback;
   };
 
+  function addLocation(value: string) {
+    const current = locations.split(",").map((s) => s.trim()).filter(Boolean);
+    const adding = value.split(",").map((s) => s.trim()).filter(Boolean);
+    const merged = [...new Set([...current, ...adding])];
+    setLocations(merged.join(", "));
+  }
+
   async function handleSubmit(formData: FormData) {
     await action(formData);
     formRef.current?.reset();
+    setLocations("");
   }
 
   return (
     <form ref={formRef} action={handleSubmit}>
       {/* Name + Buyer Search link */}
-      <div style={row2}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
         <div>
           <span style={label}>Name</span>
           <input name="name" required placeholder="e.g. Arcadia SFR under 800K" defaultValue={d("name")} style={inp} />
@@ -60,11 +84,35 @@ export default function BuyBoxForm({ buyerSearches, action, defaults = {}, submi
         </div>
       </div>
 
-      {/* ZIP codes — the primary targeting field */}
+      {/* Locations — areas + ZIPs */}
       <div style={{ marginBottom: "12px" }}>
-        <span style={label}>Target ZIP Codes (comma-separated)</span>
-        <input name="zips" placeholder="85018, 85253, 85251, 85254" defaultValue={d("zips")} style={inp} />
-        <div style={{ fontSize: "10px", color: "#b0b0a8", marginTop: "3px" }}>This is what drives the Propwire search. Use ZIPs for neighborhoods (Arcadia = 85018, 85008).</div>
+        <span style={label}>Target Locations</span>
+        <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", marginBottom: "8px" }}>
+          {AREA_SHORTCUTS.map((a) => (
+            <button
+              key={a.label}
+              type="button"
+              onClick={() => addLocation(a.value)}
+              style={{
+                padding: "3px 10px", fontSize: "10.5px", fontWeight: 500,
+                borderRadius: "20px", cursor: "pointer", fontFamily: "inherit",
+                background: locations.includes(a.value) ? "#111110" : "#f5f4f0",
+                color: locations.includes(a.value) ? "#ffffff" : "#5a5a54",
+                border: locations.includes(a.value) ? "1px solid #111110" : "1px solid #e8e7e2",
+              }}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+        <input
+          name="zips"
+          value={locations}
+          onChange={(e) => setLocations(e.target.value)}
+          placeholder="ZIP codes, cities, or areas — e.g. 85018, Scottsdale, AZ, 85253"
+          style={inp}
+        />
+        <div style={{ fontSize: "10px", color: "#b0b0a8", marginTop: "3px" }}>Click areas above to add them, or type ZIPs and city names directly. Comma-separated.</div>
       </div>
 
       {/* Property type + price */}
@@ -83,7 +131,7 @@ export default function BuyBoxForm({ buyerSearches, action, defaults = {}, submi
         </div>
       </div>
 
-      {/* Beds / Baths / Sqft */}
+      {/* Beds / Sqft */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
         <div>
           <span style={label}>Beds Min</span>

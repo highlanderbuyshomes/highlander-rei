@@ -177,10 +177,7 @@ export default async function AcquisitionsPage({
                 </div>
                 <div>
                   <span style={{ display: "block", fontSize: "10px", fontWeight: 700, color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Buyer Contact</span>
-                  <select name="buyerContact" style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}>
-                    <option value="">Select a contact...</option>
-                    {contacts.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
+                  <input name="buyerContact" placeholder="e.g. John Smith" style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                 </div>
               </div>
               <div style={{ marginBottom: "12px" }}>
