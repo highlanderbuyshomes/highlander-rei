@@ -117,6 +117,7 @@ export interface ImportResult {
   total: number;
   imported: number;
   duplicates: number;
+  skipped: number;
   errors: number;
   errorMessages: string[];
 }
@@ -172,6 +173,7 @@ export async function ingestApifyDataset(
 
   let imported = 0;
   let duplicates = 0;
+  let skipped = 0;
   let errors = 0;
   const errorMessages: string[] = [];
 
@@ -184,8 +186,7 @@ export async function ingestApifyDataset(
       const zip = toStr(pluck(record, fieldMapping.zip));
 
       if (!street || !city || !zip) {
-        errors++;
-        errorMessages.push(`Missing address fields: ${JSON.stringify({ street, city, zip })}`);
+        skipped++;
         continue;
       }
 
@@ -196,16 +197,14 @@ export async function ingestApifyDataset(
       if (lastSaleDate) {
         const monthsOwned = (Date.now() - lastSaleDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
         if (monthsOwned < 12) {
-          errors++;
-          errorMessages.push(`Skipped ${street}: sold ${Math.round(monthsOwned)} months ago`);
+          skipped++;
           continue;
         }
       }
 
       // Skip negative or very low equity (< 10%)
       if (equityPct != null && equityPct < 10) {
-        errors++;
-        errorMessages.push(`Skipped ${street}: only ${equityPct.toFixed(0)}% equity`);
+        skipped++;
         continue;
       }
 
@@ -294,17 +293,18 @@ export async function ingestApifyDataset(
   await prisma.importRun.update({
     where: { id: importRunId },
     data: {
-      status: errors > 0 && imported === 0 ? "failed" : "completed",
+      status: errors > 0 && imported === 0 && duplicates === 0 ? "failed" : "completed",
       completedAt: new Date(),
-      itemCount: items.length,
+      itemCount: imported,
       rawMeta: {
         imported,
         duplicates,
+        skipped,
         errors,
         errorMessages: errorMessages.slice(0, 50),
       } as Json,
     },
   });
 
-  return { importRunId, total: items.length, imported, duplicates, errors, errorMessages };
+  return { importRunId, total: items.length, imported, duplicates, skipped, errors, errorMessages };
 }

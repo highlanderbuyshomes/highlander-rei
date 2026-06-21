@@ -134,7 +134,7 @@ export default function ImportRunner() {
 
       setResult(ingestData);
       setStatus("done");
-      setMessage(`Done — ${ingestData.imported} imported, ${ingestData.duplicates} duplicates, ${ingestData.errors} errors`);
+      setMessage(`Done — ${ingestData.imported} imported, ${ingestData.duplicates} duplicates, ${ingestData.skipped ?? 0} filtered out`);
       router.refresh();
     } catch (err) {
       setStatus("error");
@@ -247,10 +247,11 @@ export default function ImportRunner() {
 
       {result && (
         <div style={{ marginTop: "16px", padding: "16px", background: "#f8f7f4", borderRadius: "8px", fontSize: "12.5px", color: "#5a5a54" }}>
-          <div>Total records: <strong>{String(result.total)}</strong></div>
+          <div>Total scraped: <strong>{String(result.total)}</strong></div>
           <div>Imported: <strong style={{ color: "#3a7a50" }}>{String(result.imported)}</strong></div>
-          <div>Duplicates: <strong>{String(result.duplicates)}</strong></div>
-          <div>Errors: <strong style={{ color: result.errors ? "#c0392b" : "inherit" }}>{String(result.errors)}</strong></div>
+          <div>Already in DB: <strong>{String(result.duplicates)}</strong></div>
+          <div>Filtered out (recent sale / low equity): <strong>{String(result.skipped ?? 0)}</strong></div>
+          {Number(result.errors) > 0 && <div>Errors: <strong style={{ color: "#c0392b" }}>{String(result.errors)}</strong></div>}
         </div>
       )}
     </div>

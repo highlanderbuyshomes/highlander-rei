@@ -202,7 +202,7 @@ export default async function AcquisitionsPage({
                   <div key={run.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 1fr 80px", padding: "13px 20px", borderBottom: i < imports.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
                     <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{run.source}</div>
                     <div><StatusBadge status={run.status} /></div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{run.itemCount ?? (meta?.imported != null ? `${meta.imported}` : "—")}</div>
+                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{meta?.imported != null ? `${meta.imported} new` : run.itemCount ?? "—"}</div>
                     <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>{new Date(run.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
                     <div><DeleteButton id={run.id} action={deleteImportRun} label="Delete" /></div>
                   </div>
