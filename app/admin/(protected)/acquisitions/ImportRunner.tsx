@@ -14,31 +14,48 @@ const label: React.CSSProperties = {
   textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px",
 };
 
+const PRESETS = [
+  { label: "Arcadia", location: "Arcadia, AZ" },
+  { label: "Scottsdale", location: "Scottsdale, AZ" },
+  { label: "Paradise Valley", location: "Paradise Valley, AZ" },
+  { label: "Phoenix (85018)", location: "85018" },
+  { label: "Phoenix (85016)", location: "85016" },
+  { label: "Scottsdale (85251)", location: "85251" },
+  { label: "Scottsdale (85253)", location: "85253" },
+  { label: "Scottsdale (85254)", location: "85254" },
+  { label: "PV (85253)", location: "85253" },
+];
+
 type Status = "idle" | "starting" | "running" | "ingesting" | "done" | "error";
 
 export default function ImportRunner() {
-  const [actorId, setActorId] = useState(process.env.NEXT_PUBLIC_APIFY_ACTOR_ID ?? "");
-  const [inputJson, setInputJson] = useState("{}");
+  const [location, setLocation] = useState("Scottsdale, AZ");
+  const [maxItems, setMaxItems] = useState("100");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
 
   async function handleRun() {
     setStatus("starting");
-    setMessage("Starting Apify actor...");
+    setMessage("Starting Propwire scraper...");
     setResult(null);
+
+    const input = {
+      locations: [location],
+      maxItems: parseInt(maxItems, 10) || 100,
+    };
 
     try {
       const startRes = await fetch("/api/acquisitions/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", actorId, input: JSON.parse(inputJson) }),
+        body: JSON.stringify({ action: "start", actorId: "crawlerbros/propwire-leads-scraper", input }),
       });
       if (!startRes.ok) throw new Error(await startRes.text());
       const { importRunId, apifyRunId } = await startRes.json();
 
       setStatus("running");
-      setMessage("Actor running, polling for completion...");
+      setMessage("Scraper running, polling for completion...");
 
       let finished = false;
       while (!finished) {
@@ -51,7 +68,7 @@ export default function ImportRunner() {
         if (!pollRes.ok) throw new Error(await pollRes.text());
         const pollData = await pollRes.json();
         finished = pollData.finished;
-        setMessage(`Actor status: ${pollData.status}`);
+        setMessage(`Scraper status: ${pollData.status}`);
       }
 
       setStatus("ingesting");
@@ -78,23 +95,43 @@ export default function ImportRunner() {
 
   return (
     <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-      <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "16px" }}>Run Apify Import</div>
+      <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "4px" }}>Import Off-Market Homeowners</div>
+      <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Propwire — owner info, equity, MLS data, lead-type flags</div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+      {/* Location presets */}
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "14px" }}>
+        {PRESETS.map((p) => (
+          <button
+            key={p.location}
+            onClick={() => setLocation(p.location)}
+            style={{
+              padding: "5px 12px", fontSize: "11.5px", fontWeight: 500,
+              borderRadius: "20px", cursor: "pointer", fontFamily: "inherit",
+              background: location === p.location ? "#111110" : "#f5f4f0",
+              color: location === p.location ? "#ffffff" : "#5a5a54",
+              border: location === p.location ? "1px solid #111110" : "1px solid #e8e7e2",
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", marginBottom: "12px" }}>
         <div>
-          <span style={label}>Actor ID</span>
-          <input value={actorId} onChange={(e) => setActorId(e.target.value)} placeholder="username/actor-name" style={inp} />
+          <span style={label}>Location</span>
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, ST or ZIP code" style={inp} />
         </div>
         <div>
-          <span style={label}>Actor Input (JSON)</span>
-          <input value={inputJson} onChange={(e) => setInputJson(e.target.value)} placeholder='{"location": "Scottsdale, AZ"}' style={inp} />
+          <span style={label}>Max Records</span>
+          <input value={maxItems} onChange={(e) => setMaxItems(e.target.value)} type="number" min="1" max="1000" style={inp} />
         </div>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
         <button
           onClick={handleRun}
-          disabled={running || !actorId}
+          disabled={running || !location}
           style={{
             padding: "10px 24px", background: running ? "#8a8a84" : "#111110", color: "#ffffff",
             border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
