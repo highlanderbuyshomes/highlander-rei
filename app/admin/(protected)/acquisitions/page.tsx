@@ -85,7 +85,7 @@ export default async function AcquisitionsPage({
   const currentPage = Math.max(1, Number(pageParam) || 1);
   const PAGE_SIZE = 50;
 
-  const [areaCount, buyBoxCount, propertyCount, leadCount, importRunCount, areas, buyBoxes, contacts] = await Promise.all([
+  const [searchCount, machineCount, propertyCount, leadCount, importRunCount, searches, machines, contacts] = await Promise.all([
     prisma.acquisitionArea.count(),
     prisma.buyBox.count({ where: { active: true } }),
     prisma.property.count(),
@@ -93,48 +93,35 @@ export default async function AcquisitionsPage({
     prisma.importRun.count(),
     prisma.acquisitionArea.findMany({ orderBy: { name: "asc" } }),
     prisma.buyBox.findMany({
-      include: { area: { select: { name: true } }, _count: { select: { matches: true } } },
+      include: { area: { select: { name: true, buyerContact: true } } },
       orderBy: [{ priority: "desc" }, { name: "asc" }],
     }),
     prisma.contact.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
-  // Imports tab: load runs + filtered properties
-  const imports = activeTab === "imports" ? await prisma.importRun.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  }) : [];
+  const imports = activeTab === "imports" ? await prisma.importRun.findMany({ orderBy: { createdAt: "desc" }, take: 50 }) : [];
 
   const propertyWhere: Record<string, unknown> = {};
   if (filterZip) propertyWhere.zip = filterZip;
   if (filterCity) propertyWhere.city = { contains: filterCity, mode: "insensitive" };
-
   const filteredPropertyCount = activeTab === "imports" ? await prisma.property.count({ where: propertyWhere }) : 0;
   const importedProperties = activeTab === "imports" ? await prisma.property.findMany({
-    where: propertyWhere,
-    orderBy: { createdAt: "desc" },
-    skip: (currentPage - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
+    where: propertyWhere, orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * PAGE_SIZE, take: PAGE_SIZE,
     include: { owners: { take: 1 } },
   }) : [];
-
-  // Distinct zips for filter dropdown
-  const distinctZips = activeTab === "imports" ? await prisma.property.findMany({
-    select: { zip: true },
-    distinct: ["zip"],
-    orderBy: { zip: "asc" },
-  }) : [];
+  const distinctZips = activeTab === "imports" ? await prisma.property.findMany({ select: { zip: true }, distinct: ["zip"], orderBy: { zip: "asc" } }) : [];
 
   const tabs = [
     { key: "overview", label: "Overview" },
-    { key: "areas", label: `Areas (${areaCount})` },
-    { key: "buyboxes", label: `Buy Boxes (${buyBoxCount})` },
+    { key: "searches", label: `Buyer Search (${searchCount})` },
+    { key: "machines", label: `Acquisition Machine (${machineCount})` },
     { key: "imports", label: `Imports (${propertyCount})` },
   ];
 
   return (
     <div style={{ maxWidth: "1100px", padding: "32px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
         <div>
           <div style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#111110", letterSpacing: "2px", lineHeight: 1 }}>ACQUISITIONS</div>
           <div style={{ fontSize: "12px", color: "#8a8a84", marginTop: "4px" }}>Property search pipeline &amp; deal matching</div>
@@ -159,18 +146,17 @@ export default async function AcquisitionsPage({
       {activeTab === "overview" && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "28px" }}>
-            <StatCard label="Areas" value={areaCount} sub="Target markets" />
-            <StatCard label="Active Buy Boxes" value={buyBoxCount} sub="Criteria sets" />
+            <StatCard label="Buyer Searches" value={searchCount} sub="Active search requests" />
+            <StatCard label="Machines" value={machineCount} sub="Acquisition criteria" />
             <StatCard label="Properties" value={propertyCount} sub="In database" />
-            <StatCard label="Leads" value={leadCount} sub="Acquisition leads" />
-            <StatCard label="Import Runs" value={importRunCount} sub="Apify & MLS" />
+            <StatCard label="Import Runs" value={importRunCount} sub="Completed imports" />
           </div>
           {propertyCount === 0 && (
             <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO PROPERTIES YET</div>
-              <div style={{ fontSize: "13px", color: "#8a8a84", maxWidth: "460px", margin: "0 auto", lineHeight: 1.6 }}>Set up areas and buy boxes, then import properties from Apify to start matching.</div>
+              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>GET STARTED</div>
+              <div style={{ fontSize: "13px", color: "#8a8a84", maxWidth: "460px", margin: "0 auto", lineHeight: 1.6 }}>Create a Buyer Search for your client, set up an Acquisition Machine with their criteria, then run an import.</div>
               <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "20px" }}>
-                <Link href="/admin/acquisitions?tab=areas" style={{ padding: "10px 20px", background: "#111110", color: "#ffffff", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>Set Up Areas</Link>
+                <Link href="/admin/acquisitions?tab=searches" style={{ padding: "10px 20px", background: "#111110", color: "#ffffff", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>New Buyer Search</Link>
                 <Link href="/admin/acquisitions?tab=imports" style={{ padding: "10px 20px", background: "#ffffff", color: "#111110", border: "1px solid #d0cfc8", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>Run Import</Link>
               </div>
             </div>
@@ -178,41 +164,59 @@ export default async function AcquisitionsPage({
         </>
       )}
 
-      {/* ── Areas ── */}
-      {activeTab === "areas" && (
+      {/* ── Buyer Search ── */}
+      {activeTab === "searches" && (
         <>
           <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "16px" }}>Add Area</div>
-            <form action={createArea} style={{ display: "flex", gap: "12px", alignItems: "flex-end", flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: "200px" }}>
-                <span style={{ display: "block", fontSize: "10px", fontWeight: 700, color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Name</span>
-                <input name="name" required placeholder="e.g. Arcadia" style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "16px" }}>New Buyer Search</div>
+            <form action={createArea}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div>
+                  <span style={{ display: "block", fontSize: "10px", fontWeight: 700, color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Search Name</span>
+                  <input name="name" required placeholder="e.g. Smith Family — Arcadia SFR" style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <span style={{ display: "block", fontSize: "10px", fontWeight: 700, color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Buyer Contact</span>
+                  <select name="buyerContact" style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}>
+                    <option value="">Select a contact...</option>
+                    {contacts.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
               </div>
-              <div style={{ flex: 2, minWidth: "200px" }}>
+              <div style={{ marginBottom: "12px" }}>
                 <span style={{ display: "block", fontSize: "10px", fontWeight: 700, color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Description</span>
-                <input name="description" placeholder="Optional description" style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                <textarea name="description" rows={3} placeholder="What is this buyer looking for? e.g. First-time investor looking for a 3+ bed SFR in Arcadia under $700K, preferably a fixer-upper or tired landlord situation with high equity..." style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box", resize: "vertical" }} />
               </div>
-              <button type="submit" style={{ padding: "10px 20px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add</button>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button type="submit" style={{ padding: "10px 24px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Create Buyer Search</button>
+              </div>
             </form>
           </div>
-          {areas.length === 0 ? (
+
+          {searches.length === 0 ? (
             <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO AREAS</div>
-              <div style={{ fontSize: "13px", color: "#8a8a84" }}>Add your target markets — Arcadia, Scottsdale, Paradise Valley, Cactus Corridor.</div>
+              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO BUYER SEARCHES</div>
+              <div style={{ fontSize: "13px", color: "#8a8a84" }}>Create a search above — name the search, assign the buyer contact, and describe what they&apos;re looking for.</div>
             </div>
           ) : (
-            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 100px 100px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
-                {["Name", "Description", "Status", ""].map((h) => (
-                  <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
-                ))}
-              </div>
-              {areas.map((area, i) => (
-                <div key={area.id} style={{ display: "grid", gridTemplateColumns: "1fr 2fr 100px 100px", padding: "14px 20px", borderBottom: i < areas.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>{area.name}</div>
-                  <div style={{ fontSize: "12.5px", color: "#5a5a54" }}>{area.description ?? "—"}</div>
-                  <div><ToggleButton id={area.id} active={area.active} action={toggleArea} /></div>
-                  <div><DeleteButton id={area.id} action={deleteArea} label="Delete" /></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {searches.map((s) => (
+                <div key={s.id} style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ fontSize: "14px", fontWeight: 600, color: "#111110" }}>{s.name}</span>
+                      {s.buyerContact && (
+                        <span style={{ fontSize: "10.5px", color: "#1a56db", background: "rgba(26,86,219,0.08)", padding: "2px 8px", borderRadius: "20px", fontWeight: 600 }}>{s.buyerContact}</span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <ToggleButton id={s.id} active={s.active} action={toggleArea} />
+                      <DeleteButton id={s.id} action={deleteArea} label="Delete" />
+                    </div>
+                  </div>
+                  {s.description && (
+                    <div style={{ fontSize: "12.5px", color: "#5a5a54", lineHeight: 1.6 }}>{s.description}</div>
+                  )}
                 </div>
               ))}
             </div>
@@ -220,46 +224,46 @@ export default async function AcquisitionsPage({
         </>
       )}
 
-      {/* ── Buy Boxes ── */}
-      {activeTab === "buyboxes" && (
+      {/* ── Acquisition Machine ── */}
+      {activeTab === "machines" && (
         <>
           <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "16px" }}>New Buy Box</div>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "4px" }}>New Acquisition Machine</div>
+            <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Define the criteria to source properties. ZIPs drive the Propwire search; other fields filter the results.</div>
             <BuyBoxForm
-              areas={areas.filter((a) => a.active).map((a) => ({ id: a.id, name: a.name }))}
-              contacts={contacts}
+              buyerSearches={searches.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, buyerContact: s.buyerContact }))}
               action={createBuyBox}
             />
           </div>
-          {buyBoxes.length === 0 ? (
+          {machines.length === 0 ? (
             <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO BUY BOXES</div>
-              <div style={{ fontSize: "13px", color: "#8a8a84" }}>Create your first buy box above.</div>
+              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO MACHINES</div>
+              <div style={{ fontSize: "13px", color: "#8a8a84" }}>Create your first acquisition machine above to start sourcing properties.</div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {buyBoxes.map((bb) => {
-                const zips = Array.isArray(bb.zips) ? bb.zips : [];
-                const types = Array.isArray(bb.propertyTypes) ? bb.propertyTypes : [];
+              {machines.map((m) => {
+                const zips = Array.isArray(m.zips) ? m.zips : [];
+                const types = Array.isArray(m.propertyTypes) ? m.propertyTypes : [];
                 return (
-                  <div key={bb.id} style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px" }}>
+                  <div key={m.id} style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "14px", fontWeight: 600, color: "#111110" }}>{bb.name}</span>
-                        {bb.area && <span style={{ fontSize: "10.5px", color: "#8a8a84", background: "#f5f4f0", padding: "2px 8px", borderRadius: "20px" }}>{bb.area.name}</span>}
-                        {bb.buyerName && <span style={{ fontSize: "10.5px", color: "#1a56db", background: "rgba(26,86,219,0.08)", padding: "2px 8px", borderRadius: "20px", fontWeight: 600 }}>{bb.buyerName}</span>}
+                        <span style={{ fontSize: "14px", fontWeight: 600, color: "#111110" }}>{m.name}</span>
+                        {m.area && <span style={{ fontSize: "10.5px", color: "#8a8a84", background: "#f5f4f0", padding: "2px 8px", borderRadius: "20px" }}>{m.area.name}</span>}
+                        {m.area?.buyerContact && <span style={{ fontSize: "10.5px", color: "#1a56db", background: "rgba(26,86,219,0.08)", padding: "2px 8px", borderRadius: "20px", fontWeight: 600 }}>{m.area.buyerContact}</span>}
                       </div>
                       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                        <ToggleButton id={bb.id} active={bb.active} action={toggleBuyBox} />
-                        <DeleteButton id={bb.id} action={deleteBuyBox} label="Delete" />
+                        <ToggleButton id={m.id} active={m.active} action={toggleBuyBox} />
+                        <DeleteButton id={m.id} action={deleteBuyBox} label="Delete" />
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", fontSize: "12px", color: "#5a5a54" }}>
-                      {(bb.priceMin != null || bb.priceMax != null) && <span>Price: {fmtPrice(bb.priceMin)}–{fmtPrice(bb.priceMax)}</span>}
-                      {(bb.bedsMin != null || bb.bedsMax != null) && <span>Beds: {bb.bedsMin ?? "any"}–{bb.bedsMax ?? "any"}</span>}
-                      {(bb.sqftMin != null || bb.sqftMax != null) && <span>Sqft: {bb.sqftMin ? fmt(bb.sqftMin) : "any"}–{bb.sqftMax ? fmt(bb.sqftMax) : "any"}</span>}
                       {zips.length > 0 && <span>ZIPs: {(zips as string[]).join(", ")}</span>}
                       {types.length > 0 && <span>Types: {(types as string[]).join(", ")}</span>}
+                      {(m.priceMin != null || m.priceMax != null) && <span>Price: {fmtPrice(m.priceMin)}–{fmtPrice(m.priceMax)}</span>}
+                      {(m.bedsMin != null || m.bedsMax != null) && <span>Beds: {m.bedsMin ?? "any"}–{m.bedsMax ?? "any"}</span>}
+                      {(m.sqftMin != null || m.sqftMax != null) && <span>Sqft: {m.sqftMin ? fmt(m.sqftMin) : "any"}–{m.sqftMax ? fmt(m.sqftMax) : "any"}</span>}
                     </div>
                   </div>
                 );
@@ -274,7 +278,6 @@ export default async function AcquisitionsPage({
         <>
           <ImportRunner />
 
-          {/* Import history */}
           {imports.length > 0 && (
             <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden", marginBottom: "20px" }}>
               <div style={{ padding: "14px 20px", borderBottom: "1px solid #e8e7e2", fontSize: "13px", fontWeight: 600, color: "#111110" }}>Import History</div>
@@ -299,13 +302,11 @@ export default async function AcquisitionsPage({
             </div>
           )}
 
-          {/* Filter + property results */}
           {propertyCount > 0 && (
             <>
               <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px" }}>
                 <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>Filter Properties</span>
-
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>Properties</span>
                   <form method="GET" action="/admin/acquisitions" style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
                     <input type="hidden" name="tab" value="imports" />
                     <select name="zip" defaultValue={filterZip ?? ""} style={{ padding: "7px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit" }}>
@@ -318,12 +319,8 @@ export default async function AcquisitionsPage({
                       <Link href="/admin/acquisitions?tab=imports" style={{ padding: "7px 12px", fontSize: "12px", color: "#8a8a84", textDecoration: "none", border: "1px solid #d0cfc8", borderRadius: "6px" }}>Clear</Link>
                     )}
                   </form>
-
                   <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
-                    <ImportActions
-                      exportUrl={`/api/acquisitions/export?${filterZip ? `zip=${filterZip}&` : ""}${filterCity ? `city=${filterCity}` : ""}`}
-                      propertyCount={filteredPropertyCount}
-                    />
+                    <ImportActions exportUrl={`/api/acquisitions/export?${filterZip ? `zip=${filterZip}&` : ""}${filterCity ? `city=${filterCity}` : ""}`} propertyCount={filteredPropertyCount} />
                   </div>
                 </div>
                 <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "8px" }}>
@@ -331,7 +328,6 @@ export default async function AcquisitionsPage({
                 </div>
               </div>
 
-              {/* Property table */}
               <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.5fr 0.5fr 0.7fr 1fr 1fr", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
                   {["Address", "City / ZIP", "Beds", "Baths", "Sqft", "Value", "Owner"].map((h) => (

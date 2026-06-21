@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { matchPropertyToBuyBox } from "@/lib/buy-box-matcher";
 
-// ─── Areas ─────────────────────────────────────────────────────────
+// ─── Buyer Searches ────────────────────────────────────────────────
 
 export async function createArea(formData: FormData) {
   await requireAdmin();
@@ -15,7 +15,12 @@ export async function createArea(formData: FormData) {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
   await prisma.acquisitionArea.create({
-    data: { name, slug, description: String(formData.get("description") ?? "") || null },
+    data: {
+      name,
+      slug,
+      buyerContact: String(formData.get("buyerContact") ?? "") || null,
+      description: String(formData.get("description") ?? "") || null,
+    },
   });
 
   revalidatePath("/admin/acquisitions");

@@ -136,15 +136,16 @@ model TemplateField {
 // ─── Acquisition Pipeline ──────────────────────────────────────────
 
 model AcquisitionArea {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  polygon     Json?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  buyBoxes    BuyBox[]
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  buyerContact String?
+  polygon      Json?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  buyBoxes     BuyBox[]
 }
 
 model BuyBox {
