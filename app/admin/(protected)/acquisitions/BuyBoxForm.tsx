@@ -20,12 +20,13 @@ const row2: React.CSSProperties = {
 
 interface Props {
   areas: { id: string; name: string }[];
+  contacts: { id: string; name: string }[];
   action: (formData: FormData) => Promise<void>;
   defaults?: Record<string, unknown>;
   submitLabel?: string;
 }
 
-export default function BuyBoxForm({ areas, action, defaults = {}, submitLabel = "Create Buy Box" }: Props) {
+export default function BuyBoxForm({ areas, contacts, action, defaults = {}, submitLabel = "Create Buy Box" }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
 
   const d = (key: string, fallback = "") => {
@@ -41,8 +42,8 @@ export default function BuyBoxForm({ areas, action, defaults = {}, submitLabel =
 
   return (
     <form ref={formRef} action={handleSubmit}>
-      {/* Name + Area */}
-      <div style={row2}>
+      {/* Name + Area + Buyer Contact */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
         <div>
           <span style={label}>Name</span>
           <input name="name" required placeholder="e.g. Arcadia SFR under 800K" defaultValue={d("name")} style={inp} />
@@ -52,6 +53,13 @@ export default function BuyBoxForm({ areas, action, defaults = {}, submitLabel =
           <select name="areaId" defaultValue={d("areaId")} style={inp}>
             <option value="">No area</option>
             {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <span style={label}>Buyer Contact</span>
+          <select name="buyerName" defaultValue={d("buyerName")} style={inp}>
+            <option value="">No buyer assigned</option>
+            {contacts.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
         </div>
       </div>

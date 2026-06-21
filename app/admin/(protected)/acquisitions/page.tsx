@@ -2,10 +2,11 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { createArea, toggleArea, deleteArea, toggleBuyBox, deleteBuyBox, runMatchesForBuyBox, deleteImportRun } from "./actions";
+import { createArea, toggleArea, deleteArea, toggleBuyBox, deleteBuyBox, deleteImportRun } from "./actions";
 import BuyBoxForm from "./BuyBoxForm";
 import { createBuyBox } from "./actions";
 import ImportRunner from "./ImportRunner";
+import ImportActions from "./ImportActions";
 
 export const metadata: Metadata = { title: "Acquisitions | Highlander REI" };
 
@@ -37,24 +38,19 @@ function ToggleButton({ id, active, action }: { id: string; active: boolean; act
   );
 }
 
-function ActionButton({ id, action, label, style: s }: { id: string; action: (id: string) => Promise<void>; label: string; style?: React.CSSProperties }) {
-  const boundAction = action.bind(null, id);
+function DeleteButton({ id, action, label }: { id: string; action: (id: string) => Promise<void>; label: string }) {
+  const deleteWithId = action.bind(null, id);
   return (
-    <form action={boundAction} style={{ display: "inline" }}>
+    <form action={deleteWithId} style={{ display: "inline" }}>
       <button type="submit" style={{
         padding: "3px 10px", borderRadius: "20px", fontSize: "10.5px", fontWeight: 600,
+        background: "transparent", color: "#c0392b", border: "1px solid rgba(192,57,43,0.2)",
         cursor: "pointer", fontFamily: "inherit",
-        background: "transparent", color: "#111110", border: "1px solid #d0cfc8",
-        ...s,
       }}>
         {label}
       </button>
     </form>
   );
-}
-
-function DeleteButton({ id, action, label }: { id: string; action: (id: string) => Promise<void>; label: string }) {
-  return <ActionButton id={id} action={action} label={label} style={{ color: "#c0392b", border: "1px solid rgba(192,57,43,0.2)" }} />;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -81,19 +77,18 @@ function fmtPrice(n: number | null | undefined): string {
 export default async function AcquisitionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; page?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string; zip?: string; city?: string }>;
 }) {
   await requireAdmin();
-  const { tab, page: pageParam } = await searchParams;
+  const { tab, page: pageParam, zip: filterZip, city: filterCity } = await searchParams;
   const activeTab = tab ?? "overview";
   const currentPage = Math.max(1, Number(pageParam) || 1);
   const PAGE_SIZE = 50;
 
-  const [areaCount, buyBoxCount, propertyCount, matchCount, leadCount, importRunCount, areas, buyBoxes] = await Promise.all([
+  const [areaCount, buyBoxCount, propertyCount, leadCount, importRunCount, areas, buyBoxes, contacts] = await Promise.all([
     prisma.acquisitionArea.count(),
     prisma.buyBox.count({ where: { active: true } }),
     prisma.property.count(),
-    prisma.buyerMatch.count(),
     prisma.acquisitionLead.count(),
     prisma.importRun.count(),
     prisma.acquisitionArea.findMany({ orderBy: { name: "asc" } }),
@@ -101,36 +96,40 @@ export default async function AcquisitionsPage({
       include: { area: { select: { name: true } }, _count: { select: { matches: true } } },
       orderBy: [{ priority: "desc" }, { name: "asc" }],
     }),
+    prisma.contact.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
-  const properties = activeTab === "properties" ? await prisma.property.findMany({
-    orderBy: { createdAt: "desc" },
-    skip: (currentPage - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
-    include: { owners: { take: 1 }, _count: { select: { matches: true } } },
-  }) : [];
-
+  // Imports tab: load runs + filtered properties
   const imports = activeTab === "imports" ? await prisma.importRun.findMany({
     orderBy: { createdAt: "desc" },
     take: 50,
   }) : [];
 
-  const matches = activeTab === "matches" ? await prisma.buyerMatch.findMany({
-    orderBy: { score: "desc" },
-    take: 100,
-    include: {
-      property: { select: { streetAddress: true, city: true, zip: true, beds: true, baths: true, sqft: true, estimatedValue: true } },
-      buyBox: { select: { name: true } },
-    },
+  const propertyWhere: Record<string, unknown> = {};
+  if (filterZip) propertyWhere.zip = filterZip;
+  if (filterCity) propertyWhere.city = { contains: filterCity, mode: "insensitive" };
+
+  const filteredPropertyCount = activeTab === "imports" ? await prisma.property.count({ where: propertyWhere }) : 0;
+  const importedProperties = activeTab === "imports" ? await prisma.property.findMany({
+    where: propertyWhere,
+    orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+    include: { owners: { take: 1 } },
+  }) : [];
+
+  // Distinct zips for filter dropdown
+  const distinctZips = activeTab === "imports" ? await prisma.property.findMany({
+    select: { zip: true },
+    distinct: ["zip"],
+    orderBy: { zip: "asc" },
   }) : [];
 
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "areas", label: `Areas (${areaCount})` },
     { key: "buyboxes", label: `Buy Boxes (${buyBoxCount})` },
-    { key: "properties", label: `Properties (${propertyCount})` },
-    { key: "imports", label: `Imports (${importRunCount})` },
-    { key: "matches", label: `Matches (${matchCount})` },
+    { key: "imports", label: `Imports (${propertyCount})` },
   ];
 
   return (
@@ -163,7 +162,6 @@ export default async function AcquisitionsPage({
             <StatCard label="Areas" value={areaCount} sub="Target markets" />
             <StatCard label="Active Buy Boxes" value={buyBoxCount} sub="Criteria sets" />
             <StatCard label="Properties" value={propertyCount} sub="In database" />
-            <StatCard label="Matches" value={matchCount} sub="Buy-box hits" />
             <StatCard label="Leads" value={leadCount} sub="Acquisition leads" />
             <StatCard label="Import Runs" value={importRunCount} sub="Apify & MLS" />
           </div>
@@ -227,7 +225,11 @@ export default async function AcquisitionsPage({
         <>
           <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
             <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "16px" }}>New Buy Box</div>
-            <BuyBoxForm areas={areas.filter((a) => a.active).map((a) => ({ id: a.id, name: a.name }))} action={createBuyBox} />
+            <BuyBoxForm
+              areas={areas.filter((a) => a.active).map((a) => ({ id: a.id, name: a.name }))}
+              contacts={contacts}
+              action={createBuyBox}
+            />
           </div>
           {buyBoxes.length === 0 ? (
             <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
@@ -245,11 +247,9 @@ export default async function AcquisitionsPage({
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <span style={{ fontSize: "14px", fontWeight: 600, color: "#111110" }}>{bb.name}</span>
                         {bb.area && <span style={{ fontSize: "10.5px", color: "#8a8a84", background: "#f5f4f0", padding: "2px 8px", borderRadius: "20px" }}>{bb.area.name}</span>}
-                        {bb.priority > 0 && <span style={{ fontSize: "10.5px", color: "#1a56db", background: "rgba(26,86,219,0.08)", padding: "2px 8px", borderRadius: "20px", fontWeight: 600 }}>P{bb.priority}</span>}
+                        {bb.buyerName && <span style={{ fontSize: "10.5px", color: "#1a56db", background: "rgba(26,86,219,0.08)", padding: "2px 8px", borderRadius: "20px", fontWeight: 600 }}>{bb.buyerName}</span>}
                       </div>
                       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                        <span style={{ fontSize: "11px", color: "#8a8a84" }}>{bb._count.matches} match{bb._count.matches !== 1 ? "es" : ""}</span>
-                        <ActionButton id={bb.id} action={runMatchesForBuyBox} label="Run Matches" />
                         <ToggleButton id={bb.id} active={bb.active} action={toggleBuyBox} />
                         <DeleteButton id={bb.id} action={deleteBuyBox} label="Delete" />
                       </div>
@@ -260,8 +260,6 @@ export default async function AcquisitionsPage({
                       {(bb.sqftMin != null || bb.sqftMax != null) && <span>Sqft: {bb.sqftMin ? fmt(bb.sqftMin) : "any"}–{bb.sqftMax ? fmt(bb.sqftMax) : "any"}</span>}
                       {zips.length > 0 && <span>ZIPs: {(zips as string[]).join(", ")}</span>}
                       {types.length > 0 && <span>Types: {(types as string[]).join(", ")}</span>}
-                      {bb.buyerName && <span>Buyer: {bb.buyerName}</span>}
-                      {bb.dispositionStrategy && <span>Strategy: {bb.dispositionStrategy}</span>}
                     </div>
                   </div>
                 );
@@ -271,64 +269,17 @@ export default async function AcquisitionsPage({
         </>
       )}
 
-      {/* ── Properties ── */}
-      {activeTab === "properties" && (
-        <>
-          {properties.length === 0 ? (
-            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO PROPERTIES</div>
-              <div style={{ fontSize: "13px", color: "#8a8a84" }}>Import properties from the Imports tab to populate this list.</div>
-            </div>
-          ) : (
-            <>
-              <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.6fr 0.6fr 0.8fr 1fr 80px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
-                  {["Address", "City / ZIP", "Beds", "Baths", "Sqft", "Value", "Matches"].map((h) => (
-                    <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
-                  ))}
-                </div>
-                {properties.map((p, i) => (
-                  <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.6fr 0.6fr 0.8fr 1fr 80px", padding: "13px 20px", borderBottom: i < properties.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{p.streetAddress}</div>
-                      {p.owners[0] && <div style={{ fontSize: "11px", color: "#8a8a84" }}>{p.owners[0].fullName ?? [p.owners[0].firstName, p.owners[0].lastName].filter(Boolean).join(" ")}</div>}
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.city}, {p.zip}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.beds ?? "—"}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.baths ?? "—"}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.sqft ? fmt(p.sqft) : "—"}</div>
-                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{fmtPrice(p.estimatedValue)}</div>
-                    <div style={{ fontSize: "12px", color: p._count.matches > 0 ? "#3a7a50" : "#8a8a84", fontWeight: p._count.matches > 0 ? 600 : 400 }}>{p._count.matches}</div>
-                  </div>
-                ))}
-              </div>
-              {propertyCount > PAGE_SIZE && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px", fontSize: "12px", color: "#8a8a84" }}>
-                  <span>Page {currentPage} of {Math.ceil(propertyCount / PAGE_SIZE)}</span>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    {currentPage > 1 && <Link href={`/admin/acquisitions?tab=properties&page=${currentPage - 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>Previous</Link>}
-                    {currentPage < Math.ceil(propertyCount / PAGE_SIZE) && <Link href={`/admin/acquisitions?tab=properties&page=${currentPage + 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>Next</Link>}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </>
-      )}
-
       {/* ── Imports ── */}
       {activeTab === "imports" && (
         <>
           <ImportRunner />
-          {imports.length === 0 ? (
-            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO IMPORTS YET</div>
-              <div style={{ fontSize: "13px", color: "#8a8a84" }}>Use the form above to run your first Apify import.</div>
-            </div>
-          ) : (
-            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
+
+          {/* Import history */}
+          {imports.length > 0 && (
+            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden", marginBottom: "20px" }}>
+              <div style={{ padding: "14px 20px", borderBottom: "1px solid #e8e7e2", fontSize: "13px", fontWeight: 600, color: "#111110" }}>Import History</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 100px 140px 80px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
-                {["Source", "Actor / Run ID", "Status", "Records", "Date", ""].map((h) => (
+                {["Source", "Actor", "Status", "Records", "Date", ""].map((h) => (
                   <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
                 ))}
               </div>
@@ -337,7 +288,7 @@ export default async function AcquisitionsPage({
                 return (
                   <div key={run.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 100px 140px 80px", padding: "13px 20px", borderBottom: i < imports.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
                     <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{run.source}</div>
-                    <div style={{ fontSize: "11px", color: "#8a8a84", fontFamily: "monospace" }}>{run.actorId ? `${run.actorId.slice(0, 20)}...` : "—"}</div>
+                    <div style={{ fontSize: "11px", color: "#8a8a84", fontFamily: "monospace" }}>{run.actorId ? `${run.actorId.slice(0, 25)}` : "—"}</div>
                     <div><StatusBadge status={run.status} /></div>
                     <div style={{ fontSize: "12px", color: "#5a5a54" }}>{run.itemCount ?? (meta?.imported != null ? `${meta.imported} new` : "—")}</div>
                     <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>{new Date(run.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
@@ -347,39 +298,69 @@ export default async function AcquisitionsPage({
               })}
             </div>
           )}
-        </>
-      )}
 
-      {/* ── Matches ── */}
-      {activeTab === "matches" && (
-        <>
-          {matches.length === 0 ? (
-            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO MATCHES</div>
-              <div style={{ fontSize: "13px", color: "#8a8a84" }}>Import properties and run matches from the Buy Boxes tab to see results here.</div>
-            </div>
-          ) : (
-            <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.8fr 0.8fr 0.8fr 80px 1fr", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
-                {["Address", "Buy Box", "Beds/Baths", "Sqft", "Value", "Score", "Status"].map((h) => (
-                  <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
+          {/* Filter + property results */}
+          {propertyCount > 0 && (
+            <>
+              <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px" }}>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>Filter Properties</span>
+
+                  <form method="GET" action="/admin/acquisitions" style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                    <input type="hidden" name="tab" value="imports" />
+                    <select name="zip" defaultValue={filterZip ?? ""} style={{ padding: "7px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit" }}>
+                      <option value="">All ZIPs</option>
+                      {distinctZips.map((z) => <option key={z.zip} value={z.zip}>{z.zip}</option>)}
+                    </select>
+                    <input name="city" defaultValue={filterCity ?? ""} placeholder="City..." style={{ padding: "7px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", width: "140px" }} />
+                    <button type="submit" style={{ padding: "7px 16px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Filter</button>
+                    {(filterZip || filterCity) && (
+                      <Link href="/admin/acquisitions?tab=imports" style={{ padding: "7px 12px", fontSize: "12px", color: "#8a8a84", textDecoration: "none", border: "1px solid #d0cfc8", borderRadius: "6px" }}>Clear</Link>
+                    )}
+                  </form>
+
+                  <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+                    <ImportActions
+                      exportUrl={`/api/acquisitions/export?${filterZip ? `zip=${filterZip}&` : ""}${filterCity ? `city=${filterCity}` : ""}`}
+                      propertyCount={filteredPropertyCount}
+                    />
+                  </div>
+                </div>
+                <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "8px" }}>
+                  {filteredPropertyCount} properties{filterZip ? ` in ${filterZip}` : ""}{filterCity ? ` in ${filterCity}` : ""}
+                </div>
+              </div>
+
+              {/* Property table */}
+              <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.5fr 0.5fr 0.7fr 1fr 1fr", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+                  {["Address", "City / ZIP", "Beds", "Baths", "Sqft", "Value", "Owner"].map((h) => (
+                    <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
+                  ))}
+                </div>
+                {importedProperties.map((p, i) => (
+                  <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.5fr 0.5fr 0.7fr 1fr 1fr", padding: "13px 20px", borderBottom: i < importedProperties.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
+                    <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{p.streetAddress}</div>
+                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.city}, {p.zip}</div>
+                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.beds ?? "—"}</div>
+                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.baths ?? "—"}</div>
+                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.sqft ? fmt(p.sqft) : "—"}</div>
+                    <div style={{ fontSize: "12px", color: "#5a5a54" }}>{fmtPrice(p.estimatedValue)}</div>
+                    <div style={{ fontSize: "11px", color: "#8a8a84" }}>{p.owners[0]?.fullName ?? [p.owners[0]?.firstName, p.owners[0]?.lastName].filter(Boolean).join(" ") ?? "—"}</div>
+                  </div>
                 ))}
               </div>
-              {matches.map((m, i) => (
-                <div key={m.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.8fr 0.8fr 0.8fr 80px 1fr", padding: "13px 20px", borderBottom: i < matches.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{m.property.streetAddress}</div>
-                    <div style={{ fontSize: "11px", color: "#8a8a84" }}>{m.property.city}, {m.property.zip}</div>
+
+              {filteredPropertyCount > PAGE_SIZE && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px", fontSize: "12px", color: "#8a8a84" }}>
+                  <span>Page {currentPage} of {Math.ceil(filteredPropertyCount / PAGE_SIZE)}</span>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {currentPage > 1 && <Link href={`/admin/acquisitions?tab=imports${filterZip ? `&zip=${filterZip}` : ""}${filterCity ? `&city=${filterCity}` : ""}&page=${currentPage - 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>Previous</Link>}
+                    {currentPage < Math.ceil(filteredPropertyCount / PAGE_SIZE) && <Link href={`/admin/acquisitions?tab=imports${filterZip ? `&zip=${filterZip}` : ""}${filterCity ? `&city=${filterCity}` : ""}&page=${currentPage + 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>Next</Link>}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{m.buyBox.name}</div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{m.property.beds ?? "—"} / {m.property.baths ?? "—"}</div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{m.property.sqft ? fmt(m.property.sqft) : "—"}</div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{fmtPrice(m.property.estimatedValue)}</div>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: m.score >= 80 ? "#3a7a50" : m.score >= 50 ? "#b45309" : "#c0392b" }}>{m.score}</div>
-                  <div><StatusBadge status={m.status} /></div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </>
       )}
