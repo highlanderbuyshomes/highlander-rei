@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
     },
   },
   serverExternalPackages: ["@react-pdf/renderer"],
+  async rewrites() {
+    return [
+      {
+        source: "/coldcalldogs/:path*",
+        destination: "https://coldcalldogs-io.vercel.app/coldcalldogs/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
