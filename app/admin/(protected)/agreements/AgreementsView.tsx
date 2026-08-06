@@ -1,10 +1,7 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import type { Metadata } from "next";
 import type { Prisma } from "@prisma/client";
-
-export const metadata: Metadata = { title: "Agreements | Highlander REI" };
 
 const PAGE_SIZE = 50;
 
@@ -95,13 +92,13 @@ const FOLDER_TITLES: Record<Folder, string> = {
   all: "All Agreements", inbox: "Inbox", sent: "Sent", completed: "Completed", void: "Voided",
 };
 
-export default async function AgreementsPage({
+export default async function AgreementsView({
   searchParams,
 }: {
-  searchParams: Promise<{ folder?: string; q?: string; type?: string; page?: string }>;
+  searchParams: { folder?: string; q?: string; type?: string; page?: string; tab?: string };
 }) {
   await requireAdmin();
-  const { folder: folderParam, q, type: typeFilter, page: pageParam } = await searchParams;
+  const { folder: folderParam, q, type: typeFilter, page: pageParam } = searchParams;
   const folder = (["all", "inbox", "sent", "completed", "void"].includes(folderParam ?? "") ? folderParam : "all") as Folder;
   const currentPage = Math.max(1, Number(pageParam) || 1);
 
@@ -179,7 +176,7 @@ export default async function AgreementsPage({
   ];
 
   return (
-    <div className="agreements-shell" style={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
+    <div className="agreements-shell" style={{ display: "flex", flex: 1, minHeight: 0 }}>
 
       {/* ── Sidebar ── */}
       <aside className="agreements-sidebar" style={{ width: "236px", background: "#ffffff", borderRight: "1px solid #e8e7e2", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
