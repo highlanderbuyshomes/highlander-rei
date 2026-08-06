@@ -493,7 +493,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     padding: 0 14px !important;
   }
 
-  .admin-nav {
+  .admin-sidebar {
     display: none !important;
   }
 
@@ -618,7 +618,11 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
 }
 
 /* ── ADMIN MOBILE BOTTOM TAB BAR ──────────────────────────── */
-.admin-mobile-nav {
+.admin-mobile-drawer-trigger {
+  display: none;
+}
+
+.admin-mobile-drawer-overlay {
   display: none;
 }
 
@@ -631,62 +635,70 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     display: none !important;
   }
 
-  .admin-mobile-nav {
+  .admin-mobile-drawer-trigger {
     display: flex;
     position: fixed;
     bottom: max(18px, env(safe-area-inset-bottom));
     left: 20px;
-    right: 20px;
     z-index: 100;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    pointer-events: none;
-  }
-
-  .admin-mobile-nav-tabs {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px;
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid #e8e8ed;
-    border-radius: 28px;
-    box-shadow: 0 12px 36px rgba(17, 17, 16, 0.14);
-    pointer-events: auto;
-  }
-
-  .admin-mobile-nav-tabs a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    min-width: 118px;
-    padding: 12px 14px;
-    border-radius: 23px;
-    text-decoration: none;
-    font-size: 12px;
-    font-weight: 650;
-    color: #777781;
-    transition: color 0.15s, background 0.15s;
-  }
-
-  .admin-mobile-nav-tabs a.active {
-    color: #111110;
-    background: #f0f0f3;
-  }
-
-  .admin-mobile-add {
-    width: 58px;
-    height: 58px;
-    display: flex;
+    width: 52px;
+    height: 52px;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     background: #111110;
     color: #ffffff;
+    border: none;
+    cursor: pointer;
     box-shadow: 0 12px 30px rgba(17, 17, 16, 0.16);
-    pointer-events: auto;
+  }
+
+  .admin-mobile-drawer-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 16, 0.4);
+    z-index: 110;
+  }
+
+  .admin-mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 78vw;
+    max-width: 300px;
+    background: #ffffff;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    overflow-y: auto;
+  }
+
+  .admin-mobile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 12px 18px;
+  }
+
+  .admin-mobile-drawer a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #5a5a54;
+  }
+
+  .admin-mobile-drawer a.active {
+    color: #111110;
+    font-weight: 600;
+    background: #f5f4f0;
   }
 
   /* Push content above tab bar */
