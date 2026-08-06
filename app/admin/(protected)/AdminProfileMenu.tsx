@@ -65,16 +65,6 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
 
           <div style={{ height: "1px", background: "#e8e7e2", margin: "4px 12px" }} />
 
-          <Link
-            href="/admin/password"
-            onClick={() => setOpen(false)}
-            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", borderRadius: "6px" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            Change Password
-          </Link>
-
           <form action={logoutAction}>
             <button type="submit" style={{
               display: "block", width: "100%", textAlign: "left",
