@@ -701,6 +701,28 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     background: #f5f4f0;
   }
 
+  .admin-mobile-drawer-divider {
+    height: 1px;
+    background: #e8e7e2;
+    margin: 8px 12px;
+  }
+
+  .admin-mobile-drawer-signout {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #5a5a54;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+  }
+
   /* Push content above tab bar */
   .admin-content-wrap {
     min-height: 100vh !important;
