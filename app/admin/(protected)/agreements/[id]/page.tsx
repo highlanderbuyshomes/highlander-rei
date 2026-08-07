@@ -130,7 +130,7 @@ export default async function AgreementDetailPage({
           <div style={{ fontSize: "32px", marginBottom: "10px", opacity: 0.25 }}>📄</div>
           <div style={{ fontSize: "14px", fontWeight: 600, color: "#5a5a54", marginBottom: "6px" }}>No fixed template PDF attached</div>
           <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Upload and map this agreement type under Templates, then create a new agreement from it.</div>
-          <Link href={`/admin/templates/${a.type}`} style={{ display: "inline-flex", padding: "9px 18px", background: "#111110", color: "#fff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+          <Link href={`/admin/agreements/templates/${a.type}`} style={{ display: "inline-flex", padding: "9px 18px", background: "#111110", color: "#fff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
             Open Template Mapping
           </Link>
         </div>
@@ -148,7 +148,7 @@ export default async function AgreementDetailPage({
             <a href={a.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ padding: "9px 16px", background: "#111110", color: "#ffffff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
               Open Exact PDF
             </a>
-            <Link href={`/admin/templates/${a.type}`} style={{ padding: "9px 16px", background: "#ffffff", color: "#111110", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+            <Link href={`/admin/agreements/templates/${a.type}`} style={{ padding: "9px 16px", background: "#ffffff", color: "#111110", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
               Edit Template Mappings
             </Link>
           </div>

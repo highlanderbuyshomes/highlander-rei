@@ -267,7 +267,7 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
               <div role="alert" style={{ fontSize: "12px", color: "#c0392b", background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.2)", borderRadius: "8px", padding: "10px 14px" }}>
                 <div>{submitError}</div>
                 {submitError.includes("template is not ready") && (
-                  <Link href={`/admin/templates/${type}`} style={{ display: "inline-block", marginTop: "8px", color: "#8f2c21", fontWeight: 700 }}>
+                  <Link href={`/admin/agreements/templates/${type}`} style={{ display: "inline-block", marginTop: "8px", color: "#8f2c21", fontWeight: 700 }}>
                     Map template signing fields
                   </Link>
                 )}

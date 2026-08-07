@@ -43,6 +43,6 @@ export async function saveTemplateFields(type: string, signerCount: number, fiel
     }),
   ]);
 
-  revalidatePath("/admin/templates");
-  revalidatePath(`/admin/templates/${type}`);
+  revalidatePath("/admin/agreements");
+  revalidatePath(`/admin/agreements/templates/${type}`);
 }
