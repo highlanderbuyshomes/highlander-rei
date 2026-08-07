@@ -64,7 +64,7 @@ export default function TemplateRow({
               Use
             </Link>
           ) : null}
-          <Link href={`/admin/templates/${type}`} style={{ fontSize: "12px", color: "#5a5a54", textDecoration: "none", padding: "6px 12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", whiteSpace: "nowrap" }}>
+          <Link href={`/admin/agreements/templates/${type}`} style={{ fontSize: "12px", color: "#5a5a54", textDecoration: "none", padding: "6px 12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", whiteSpace: "nowrap" }}>
             {hasPdf && fieldCount === 0 ? "Map Fields" : "Edit"}
           </Link>
           <button

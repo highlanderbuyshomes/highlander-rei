@@ -1,11 +1,8 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import type { Metadata } from "next";
-import { upsertTemplate } from "./actions";
+import { upsertTemplate } from "./template-actions";
 import TemplateRow from "./TemplateRow";
-
-export const metadata: Metadata = { title: "Templates | Highlander REI" };
 
 const TEMPLATE_TYPES = [
   {
@@ -61,13 +58,13 @@ const TEMPLATE_TYPES = [
   },
 ];
 
-export default async function TemplatesPage({
+export default async function TemplatesView({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; q?: string }>;
+  searchParams: { type?: string; q?: string; tab?: string };
 }) {
   await requireAdmin();
-  const { type: typeFilter, q } = await searchParams;
+  const { type: typeFilter, q } = searchParams;
 
   const templates = await prisma.agreementTemplate.findMany({
     include: { _count: { select: { fields: true } } },
@@ -83,7 +80,7 @@ export default async function TemplatesPage({
   const hasFilter = !!(typeFilter || q);
 
   return (
-    <div className="admin-workspace-shell" style={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
+    <div className="admin-workspace-shell" style={{ display: "flex", flex: 1, minHeight: 0 }}>
 
       {/* ── Sidebar ── */}
       <aside className="admin-workspace-sidebar" style={{ width: "236px", background: "#ffffff", borderRight: "1px solid #e8e7e2", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
@@ -104,7 +101,7 @@ export default async function TemplatesPage({
           {(() => {
             const active = !typeFilter;
             return (
-              <Link href="/admin/templates" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84" }}>
+              <Link href="/admin/agreements?tab=templates" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                   <span style={{ fontSize: "13px", fontWeight: active ? 600 : 400 }}>All Templates</span>
@@ -118,7 +115,7 @@ export default async function TemplatesPage({
 
           {TEMPLATE_TYPES.map(({ type, name, icon }) => {
             const active = typeFilter === type;
-            const href = active ? "/admin/templates" : `/admin/templates?type=${type}`;
+            const href = active ? "/admin/agreements?tab=templates" : `/admin/agreements?tab=templates&type=${type}`;
             return (
               <Link key={type} href={href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84" }}>
                 <span style={{ opacity: active ? 1 : 0.5 }}>{icon}</span>
@@ -150,7 +147,8 @@ export default async function TemplatesPage({
             <span style={{ fontSize: "12px", color: "#8a8a84" }}>{filtered.length} template{filtered.length !== 1 ? "s" : ""}</span>
           </div>
 
-          <form method="GET" action="/admin/templates" style={{ display: "flex", gap: "8px", paddingBottom: "20px" }}>
+          <form method="GET" action="/admin/agreements" style={{ display: "flex", gap: "8px", paddingBottom: "20px" }}>
+            <input type="hidden" name="tab" value="templates" />
             {typeFilter && <input type="hidden" name="type" value={typeFilter} />}
             <div style={{ display: "flex", flex: 1, alignItems: "center", background: "#f5f4f0", border: "1px solid #d0cfc8", borderRadius: "8px", padding: "0 14px", gap: "8px" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8a84" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -158,7 +156,7 @@ export default async function TemplatesPage({
             </div>
             <button type="submit" style={{ padding: "0 20px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "8px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Search</button>
             {hasFilter && (
-              <Link href="/admin/templates" style={{ padding: "0 14px", background: "#ffffff", color: "#8a8a84", border: "1px solid #d0cfc8", borderRadius: "8px", fontSize: "12.5px", display: "flex", alignItems: "center", textDecoration: "none" }}>
+              <Link href="/admin/agreements?tab=templates" style={{ padding: "0 14px", background: "#ffffff", color: "#8a8a84", border: "1px solid #d0cfc8", borderRadius: "8px", fontSize: "12.5px", display: "flex", alignItems: "center", textDecoration: "none" }}>
                 ✕ Clear
               </Link>
             )}
