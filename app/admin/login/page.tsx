@@ -13,7 +13,7 @@ async function login(formData: FormData) {
 
   if (valid && user) {
     await createSession(user.id, user.role);
-    redirect(user.role === "admin" ? "/admin/agreements" : "/admin/dialer");
+    redirect(user.role === "admin" ? "/admin/search" : "/admin/dialer");
   }
   redirect("/admin/login?error=1");
 }
