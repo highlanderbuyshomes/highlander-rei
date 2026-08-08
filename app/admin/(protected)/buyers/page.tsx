@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { createArea, deleteArea, toggleArea } from "../search/actions";
+import { createBuyBox, toggleBuyBox, deleteBuyBox } from "../offers/actions";
 import styles from "./buyers.module.css";
 
 export const metadata: Metadata = { title: "Our Buyers | Highlander REI" };
@@ -73,9 +74,23 @@ export default async function BuyersPage() {
           <div className={styles.buyBoxes}>
             <div className={styles.buyBoxHeading}><strong>Buy boxes</strong><span>{buyer.buyBoxes.length}</span></div>
             {buyer.buyBoxes.length ? buyer.buyBoxes.map((buyBox) => <section key={buyBox.id} className={styles.buyBox}>
-              <div><strong>{buyBox.name}</strong><span className={buyBox.active ? styles.boxActive : styles.boxPaused}>{buyBox.active ? "Active" : "Paused"}</span></div>
+              <div><strong>{buyBox.name}</strong><span className={buyBox.active ? styles.boxActive : styles.boxPaused}>{buyBox.active ? "Active" : "Paused"}</span>
+                <div className={styles.buyBoxActions}>
+                  <form action={toggleBuyBox.bind(null, buyBox.id)}><button type="submit">{buyBox.active ? "Pause" : "Activate"}</button></form>
+                  <form action={deleteBuyBox.bind(null, buyBox.id)}><button type="submit" className={styles.deleteButton}>Delete</button></form>
+                </div>
+              </div>
               <div className={styles.criteria}>{buyBoxCriteria(buyBox).map((criterion) => <span key={criterion}>{criterion}</span>)}</div>
             </section>) : <div className={styles.emptyBox}>No buy boxes linked yet.</div>}
+            <form className={styles.addBuyBoxForm} action={createBuyBox}>
+              <input type="hidden" name="areaId" value={buyer.id} />
+              <input name="name" required placeholder="Buy box name — e.g. Arcadia SFR under 800K" className={styles.fullWidth} />
+              <input name="zips" placeholder="ZIP codes or cities" />
+              <input name="propertyTypes" placeholder="Property types — SFR, Condo" />
+              <input name="priceMin" type="number" placeholder="Price min" />
+              <input name="priceMax" type="number" placeholder="Price max" />
+              <button type="submit">+ Add buy box</button>
+            </form>
           </div>
           <footer><form action={toggleArea.bind(null, buyer.id)}><button type="submit">{buyer.active ? "Pause buyer" : "Activate buyer"}</button></form><form action={deleteArea.bind(null, buyer.id)}><button type="submit" className={styles.deleteButton}>Delete</button></form></footer>
         </article>)}

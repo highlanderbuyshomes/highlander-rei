@@ -17,7 +17,7 @@ async function login(formData: FormData) {
 
   if (valid) {
     await createSession();
-    redirect("/admin/agreements");
+    redirect("/admin/search");
   }
   redirect("/admin/login?error=1");
 }

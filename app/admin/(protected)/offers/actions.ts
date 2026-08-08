@@ -15,6 +15,7 @@ function jsonObject(value: Prisma.JsonValue | null): Record<string, Prisma.Input
 
 function revalidate() {
   revalidatePath("/admin/offers");
+  revalidatePath("/admin/buyers");
 }
 
 function parseList(val: FormDataEntryValue | null): string[] {
