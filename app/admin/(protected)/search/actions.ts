@@ -7,6 +7,7 @@ import type { DrawnShape } from "@/lib/filter-listings";
 
 function revalidate() {
   revalidatePath("/admin/search");
+  revalidatePath("/admin/buyers");
 }
 
 const AREA_COLOR_PALETTE = ["#1a56db", "#3a7a50", "#b45309", "#8f2c21", "#6b46c1", "#0f766e", "#be185d", "#a16207"];

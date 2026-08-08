@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type MutableRefObject } from "react";
-import { saveAreaShape } from "./actions";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { loadGoogleMaps } from "./load-google-maps";
-import type { DrawnShape, ListingRecord, SavedSearchRecord } from "./MlsSearchWorkspace";
+import type { ListingRecord } from "./MlsSearchWorkspace";
 import styles from "./search.module.css";
 
 type DrawingMode = "pan" | "rectangle" | "circle" | "polygon";
@@ -45,14 +44,12 @@ export default function GoogleMapStage({
   targetIds,
   onSelect,
   onPocketChange,
-  activeBuyer,
 }: {
   listings: ListingRecord[];
   selected: ListingRecord | null;
   targetIds: Set<string>;
   onSelect: (id: string) => void;
   onPocketChange: (ids: string[] | null) => void;
-  activeBuyer: SavedSearchRecord | null;
 }) {
   const mapNode = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
@@ -68,9 +65,7 @@ export default function GoogleMapStage({
   const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("pan");
   const [drawPoints, setDrawPoints] = useState(0);
-  const [shapeData, setShapeData] = useState<DrawnShape | null>(null);
-  const [saveMessage, setSaveMessage] = useState("");
-  const [isSaving, startSaving] = useTransition();
+  const [shapeActive, setShapeActive] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -82,18 +77,6 @@ export default function GoogleMapStage({
   function removeListeners(listeners: MutableRefObject<google.maps.MapsEventListener[]>) {
     listeners.current.forEach((listener) => listener.remove());
     listeners.current = [];
-  }
-
-  function shapeToData(shape: MapShape): DrawnShape {
-    if (shape instanceof google.maps.Rectangle) {
-      const bounds = shape.getBounds()!;
-      return { type: "rectangle", bounds: { north: bounds.getNorthEast().lat(), east: bounds.getNorthEast().lng(), south: bounds.getSouthWest().lat(), west: bounds.getSouthWest().lng() } };
-    }
-    if (shape instanceof google.maps.Circle) {
-      const center = shape.getCenter()!;
-      return { type: "circle", center: { lat: center.lat(), lng: center.lng() }, radiusMeters: shape.getRadius() };
-    }
-    return { type: "polygon", path: shape.getPath().getArray().map((point) => ({ lat: point.lat(), lng: point.lng() })) };
   }
 
   function listingsInside(shape: MapShape) {
@@ -108,9 +91,7 @@ export default function GoogleMapStage({
 
   function refreshShape() {
     if (!activeShape.current) return;
-    const nextShape = shapeToData(activeShape.current);
-    setShapeData(nextShape);
-    setSaveMessage("");
+    setShapeActive(true);
     onPocketChangeRef.current(listingsInside(activeShape.current));
   }
 
@@ -123,20 +104,8 @@ export default function GoogleMapStage({
     map.current?.setOptions({ draggable: true, draggableCursor: null, disableDoubleClickZoom: false });
     setDrawingMode("pan");
     setDrawPoints(0);
-    setShapeData(null);
-    setSaveMessage("");
+    setShapeActive(false);
     if (notify) onPocketChangeRef.current(null);
-  }
-
-  function fitShape(shape: MapShape) {
-    if (!map.current) return;
-    const bounds = new google.maps.LatLngBounds();
-    if (shape instanceof google.maps.Polygon) shape.getPath().forEach((point) => bounds.extend(point));
-    else {
-      const shapeBounds = shape.getBounds();
-      if (shapeBounds) bounds.union(shapeBounds);
-    }
-    if (!bounds.isEmpty()) map.current.fitBounds(bounds, 56);
   }
 
   function makeEditable(shape: MapShape) {
@@ -217,32 +186,6 @@ export default function GoogleMapStage({
     );
   }
 
-  function renderSavedShape(shape: DrawnShape) {
-    if (!map.current) return;
-    const overlay: MapShape = shape.type === "rectangle"
-      ? new google.maps.Rectangle({ map: map.current, bounds: shape.bounds, ...shapeStyle })
-      : shape.type === "circle"
-        ? new google.maps.Circle({ map: map.current, center: shape.center, radius: shape.radiusMeters, ...shapeStyle })
-        : shape.type === "marker"
-          ? new google.maps.Circle({ map: map.current, center: shape.position, radius: shape.radiusMeters || 800, ...shapeStyle })
-        : new google.maps.Polygon({ map: map.current, paths: shape.path, ...shapeStyle });
-    activeShape.current = overlay;
-    makeEditable(overlay);
-    fitShape(overlay);
-  }
-
-  function saveToBuyer() {
-    if (!activeBuyer || !shapeData) return;
-    startSaving(async () => {
-      try {
-        await saveAreaShape(activeBuyer.id, shapeData);
-        setSaveMessage(`Saved to ${activeBuyer.name}`);
-      } catch {
-        setSaveMessage("Area could not be saved");
-      }
-    });
-  }
-
   useEffect(() => {
     let cancelled = false;
     loadGoogleMaps().then(() => {
@@ -270,15 +213,6 @@ export default function GoogleMapStage({
 
   useEffect(() => {
     if (!map.current || !mapReady) return;
-    clearShape(false);
-    if (activeBuyer?.polygon) renderSavedShape(activeBuyer.polygon);
-    else onPocketChangeRef.current(null);
-  // The buyer id is the intentional reset boundary; polygon updates are hydrated after a buyer switch.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBuyer?.id, mapReady]);
-
-  useEffect(() => {
-    if (!map.current || !mapReady) return;
     markers.current.forEach((marker) => marker.setMap(null));
     markers.current = [];
     const bounds = new google.maps.LatLngBounds();
@@ -302,7 +236,7 @@ export default function GoogleMapStage({
     if (activeShape.current) onPocketChangeRef.current(listingsInside(activeShape.current));
   }, [listings, mapReady, selected?.id, targetIds]);
 
-  const drawingText = drawingMode === "polygon" ? `Click boundary points (${drawPoints}); double-click or Finish to close.` : drawingMode === "rectangle" ? "Click and drag corner-to-corner." : drawingMode === "circle" ? "Click the center and drag to set the radius." : shapeData ? "Area filter active. Drag the shape or its handles to refine it." : "Choose a shape tool to isolate a buyer pocket.";
+  const drawingText = drawingMode === "polygon" ? `Click boundary points (${drawPoints}); double-click or Finish to close.` : drawingMode === "rectangle" ? "Click and drag corner-to-corner." : drawingMode === "circle" ? "Click the center and drag to set the radius." : shapeActive ? "Area filter active. Drag the shape or its handles to refine it." : "Choose a shape tool to isolate a search pocket.";
 
   return <div className={styles.realMapShell}>
     <div ref={mapNode} className={styles.realMap} aria-label="Interactive Phoenix property map" />
@@ -316,7 +250,7 @@ export default function GoogleMapStage({
       <button type="button" onClick={() => clearShape()} title="Clear drawn area"><span className={styles.clearIcon}>×</span><small>Clear</small></button>
     </div>
     <div className={styles.manualZoomControls} aria-label="Map zoom controls"><button type="button" onClick={() => map.current?.setZoom(Math.min(21, (map.current.getZoom() ?? 10) + 1))} aria-label="Zoom in">+</button><button type="button" onClick={() => map.current?.setZoom(Math.max(3, (map.current.getZoom() ?? 10) - 1))} aria-label="Zoom out">−</button></div>
-    <div className={styles.pocketPrompt}><strong>{shapeData ? `${listingsInside(activeShape.current!).length} properties in area` : drawingMode === "pan" ? "Draw a buyer search area" : "Drawing area"}</strong><span>{drawingText}</span><div>{drawingMode === "polygon" && <button type="button" onClick={finishPolygon} disabled={drawPoints < 3}>Finish shape</button>}{shapeData && activeBuyer && <button type="button" onClick={saveToBuyer} disabled={isSaving}>{isSaving ? "Saving…" : `Save to ${activeBuyer.name}`}</button>}{saveMessage && <em>{saveMessage}</em>}</div></div>
+    <div className={styles.pocketPrompt}><strong>{shapeActive ? `${listingsInside(activeShape.current!).length} properties in area` : drawingMode === "pan" ? "Draw a search area" : "Drawing area"}</strong><span>{drawingText}</span><div>{drawingMode === "polygon" && <button type="button" onClick={finishPolygon} disabled={drawPoints < 3}>Finish shape</button>}</div></div>
     <div className={styles.mapLegend}><span><i className={styles.standardDot} />Listing</span><span><i className={styles.targetDot} />≤70% ARV target</span></div>
     {selected && <article className={styles.mapCard}><button type="button" onClick={() => onSelect("")} aria-label="Close listing card">×</button><span>{normalizeStatus(selected.status)} · MLS #{selected.mlsNumber}</span><h2>{selected.address}</h2><p>{selected.city}, AZ {selected.zip}</p><div><strong>{money(selected.listPrice)}</strong><span>{selected.beds ?? "—"} bd · {selected.baths ?? "—"} ba · {selected.sqft?.toLocaleString() ?? "—"} sq ft</span></div><small>{selected.dwellingType} · {selected.pool === true ? "Private pool" : selected.pool === false ? "No private pool" : "Pool unknown"} · {selected.interiorLevels ?? "—"} level{selected.interiorLevels === 1 ? "" : "s"}</small></article>}
   </div>;

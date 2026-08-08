@@ -1,13 +1,9 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
-import MlsSearchWorkspace, { type ListingRecord, type SavedSearchRecord } from "./MlsSearchWorkspace";
+import MlsSearchWorkspace, { type ListingRecord } from "./MlsSearchWorkspace";
 
 export const metadata: Metadata = { title: "Deal Search | Highlander REI" };
-
-function jsonStrings(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
 
 function rawValue(raw: unknown, keys: string[]) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -61,23 +57,14 @@ function rawLevels(raw: unknown) {
 export default async function SearchPage() {
   await requireAdmin();
 
-  const [properties, searches] = await Promise.all([
-    prisma.property.findMany({
-      orderBy: { updatedAt: "desc" },
-      take: 250,
-      include: {
-        owners: { take: 1, orderBy: { updatedAt: "desc" } },
-        mlsListings: { take: 1, orderBy: { updatedAt: "desc" }, include: { agent: true } },
-      },
-    }),
-    prisma.acquisitionArea.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        buyBoxes: { where: { active: true }, orderBy: [{ priority: "desc" }, { createdAt: "desc" }] },
-        _count: { select: { buyBoxes: true } },
-      },
-    }),
-  ]);
+  const properties = await prisma.property.findMany({
+    orderBy: { updatedAt: "desc" },
+    take: 250,
+    include: {
+      owners: { take: 1, orderBy: { updatedAt: "desc" } },
+      mlsListings: { take: 1, orderBy: { updatedAt: "desc" }, include: { agent: true } },
+    },
+  });
 
   const listings: ListingRecord[] = properties.map((property) => {
     const listing = property.mlsListings[0];
@@ -118,37 +105,5 @@ export default async function SearchPage() {
     };
   });
 
-  const savedSearches: SavedSearchRecord[] = searches.map((search) => ({
-    id: search.id,
-    name: search.name,
-    buyerContact: search.buyerContact,
-    description: search.description,
-    active: search.active,
-    buyBoxCount: search._count.buyBoxes,
-    polygon: search.polygon as SavedSearchRecord["polygon"],
-    buyBoxes: search.buyBoxes.map((buyBox) => ({
-      id: buyBox.id,
-      name: buyBox.name,
-      zips: jsonStrings(buyBox.zips),
-      subdivisions: jsonStrings(buyBox.subdivisions),
-      propertyTypes: jsonStrings(buyBox.propertyTypes),
-      priceMin: buyBox.priceMin,
-      priceMax: buyBox.priceMax,
-      bedsMin: buyBox.bedsMin,
-      bedsMax: buyBox.bedsMax,
-      bathsMin: buyBox.bathsMin,
-      bathsMax: buyBox.bathsMax,
-      sqftMin: buyBox.sqftMin,
-      sqftMax: buyBox.sqftMax,
-      lotSqftMin: buyBox.lotSqftMin,
-      lotSqftMax: buyBox.lotSqftMax,
-      mlsStatuses: jsonStrings(buyBox.mlsStatuses),
-      maxDom: buyBox.maxDom,
-      buyerName: buyBox.buyerName,
-      dispositionStrategy: buyBox.dispositionStrategy,
-      priority: buyBox.priority,
-    })),
-  }));
-
-  return <MlsSearchWorkspace listings={listings} savedSearches={savedSearches} />;
+  return <MlsSearchWorkspace listings={listings} />;
 }
