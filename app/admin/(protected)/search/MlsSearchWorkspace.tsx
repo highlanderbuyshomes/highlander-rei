@@ -43,6 +43,22 @@ export type SavedSearchRecord = {
   description: string | null;
   active: boolean;
   buyBoxCount: number;
+  polygon: DrawnShape | null;
+  buyBoxes: BuyBoxRecord[];
+};
+
+export type DrawnShape =
+  | { type: "rectangle"; bounds: { north: number; south: number; east: number; west: number } }
+  | { type: "circle"; center: { lat: number; lng: number }; radiusMeters: number }
+  | { type: "polygon"; path: { lat: number; lng: number }[] }
+  | { type: "marker"; position: { lat: number; lng: number }; radiusMeters: number };
+
+export type BuyBoxRecord = {
+  id: string; name: string; zips: string[]; subdivisions: string[]; propertyTypes: string[];
+  priceMin: number | null; priceMax: number | null; bedsMin: number | null; bedsMax: number | null;
+  bathsMin: number | null; bathsMax: number | null; sqftMin: number | null; sqftMax: number | null;
+  lotSqftMin: number | null; lotSqftMax: number | null; mlsStatuses: string[]; maxDom: number | null;
+  buyerName: string | null; dispositionStrategy: string | null; priority: number;
 };
 
 type CriteriaKey = "status" | "price" | "dwelling" | "beds" | "baths" | "sqft" | "lot" | "pool" | "levels" | "zip";
@@ -91,6 +107,14 @@ function normalizeStatus(value: string) {
   if (status.includes("cancel") || status.includes("withdraw")) return "Canceled";
   if (status.includes("closed") || status.includes("sold")) return "Closed";
   return value || "Off Market";
+}
+
+function normalizePropertyType(value: string) {
+  const type = value.trim().toLowerCase();
+  if (["sfr", "single family", "single-family", "single family residence"].includes(type)) return "Single Family";
+  if (["multi family", "multifamily", "multi-family"].includes(type)) return "Multi-Family";
+  if (type === "townhome") return "Townhouse";
+  return dwellingOptions.find((option) => option.toLowerCase() === type) ?? value;
 }
 
 type DealCandidate = ListingRecord & {
@@ -182,6 +206,11 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
   const [keyword, setKeyword] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [pocketIds, setPocketIds] = useState<string[] | null>(null);
+  const activeBuyers = useMemo(() => savedSearches.filter((search) => search.active), [savedSearches]);
+  const [selectedBuyerId, setSelectedBuyerId] = useState(activeBuyers[0]?.id ?? "");
+  const selectedBuyer = activeBuyers.find((buyer) => buyer.id === selectedBuyerId) ?? null;
+  const [selectedBuyBoxId, setSelectedBuyBoxId] = useState(selectedBuyer?.buyBoxes[0]?.id ?? "");
+  const selectedBuyBox = selectedBuyer?.buyBoxes.find((buyBox) => buyBox.id === selectedBuyBoxId) ?? selectedBuyer?.buyBoxes[0] ?? null;
 
   const filtered = useMemo(() => {
     const zipValues = zips.split(/[,\s]+/).map((zip) => zip.trim()).filter(Boolean);
@@ -238,19 +267,58 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
     setPool("Any"); setLevels("Any"); setZips(""); setKeyword("");
   }
 
+  function chooseBuyer(id: string) {
+    const buyer = activeBuyers.find((item) => item.id === id);
+    setSelectedBuyerId(id);
+    setSelectedBuyBoxId(buyer?.buyBoxes[0]?.id ?? "");
+  }
+
+  function applyBuyBox(buyBox: BuyBoxRecord) {
+    const cleanZips = buyBox.zips.filter((zip) => /^\d{5}$/.test(zip.trim()));
+    const cleanPropertyTypes = [...new Set(buyBox.propertyTypes.map(normalizePropertyType))];
+    const nextCriteria = new Set<CriteriaKey>();
+    if (buyBox.mlsStatuses.length) nextCriteria.add("status");
+    if (buyBox.priceMin != null || buyBox.priceMax != null) nextCriteria.add("price");
+    if (cleanPropertyTypes.length) nextCriteria.add("dwelling");
+    if (buyBox.bedsMin != null) nextCriteria.add("beds");
+    if (buyBox.bathsMin != null) nextCriteria.add("baths");
+    if (buyBox.sqftMin != null || buyBox.sqftMax != null) nextCriteria.add("sqft");
+    if (buyBox.lotSqftMin != null || buyBox.lotSqftMax != null) nextCriteria.add("lot");
+    if (cleanZips.length) nextCriteria.add("zip");
+    setActiveCriteria(nextCriteria);
+    setStatuses(buyBox.mlsStatuses.map(normalizeStatus));
+    setPriceMin(buyBox.priceMin?.toString() ?? ""); setPriceMax(buyBox.priceMax?.toString() ?? "");
+    setDwellingTypes(cleanPropertyTypes);
+    setBedsMin(buyBox.bedsMin?.toString() ?? ""); setBathsMin(buyBox.bathsMin?.toString() ?? "");
+    setSqftMin(buyBox.sqftMin?.toString() ?? ""); setSqftMax(buyBox.sqftMax?.toString() ?? "");
+    setLotMin(buyBox.lotSqftMin?.toString() ?? ""); setLotMax(buyBox.lotSqftMax?.toString() ?? "");
+    setPool("Any"); setLevels("Any"); setZips(cleanZips.join(", ")); setView("map");
+  }
+
   if (showSaved) return <SavedSearches searches={savedSearches} onBack={() => setShowSaved(false)} />;
 
   return (
     <main className={styles.shell}>
       <header className={styles.pageHeader}>
-        <div className={styles.searchTitle}><span className={styles.titleIndex}>01</span><div><h1>Residential Deal Search</h1><p>Filters and map pockets feed the 70% ARV deal engine.</p></div></div>
+        <div className={styles.searchTitle}><span className={styles.titleIndex}>01</span><div><h1>Deal Search</h1><p>Search MLS inventory against buyer buy boxes and the 70% ARV rule.</p></div></div>
         <div className={styles.headerTools}>
           <nav className={styles.viewNav} aria-label="Search views">
             {(["map", "list", "detail"] as WorkspaceView[]).map((item) => <button key={item} type="button" className={view === item ? styles.viewActive : ""} onClick={() => setView(item)}>{item.charAt(0).toUpperCase() + item.slice(1)}</button>)}
           </nav>
-          <button type="button" className={styles.saveSearchButton} onClick={() => setShowSaved(true)}>Saved searches</button>
+          <button type="button" className={styles.saveSearchButton} onClick={() => setShowSaved(true)}>Manage buyers</button>
         </div>
       </header>
+
+      <section className={styles.buyerDesk} aria-label="Buyer Deal Desk">
+        <div className={styles.buyerDeskHeading}><span>Buyer Deal Desk</span><strong>Search from a committed buyer&apos;s buy box</strong><button type="button" onClick={() => setShowSaved(true)}>Manage</button></div>
+        {activeBuyers.length ? <>
+          <div className={styles.buyerCards}>{activeBuyers.map((buyer) => <button key={buyer.id} type="button" className={buyer.id === selectedBuyerId ? styles.buyerCardActive : ""} onClick={() => chooseBuyer(buyer.id)}><strong>{buyer.name}</strong><span>{buyer.buyerContact ?? "Buyer contact not added"}</span><small>{buyer.buyBoxes.length} active buy box{buyer.buyBoxes.length === 1 ? "" : "es"}</small></button>)}</div>
+          <div className={styles.buyerDeskDetail}>{selectedBuyer && <>
+            <div><small>Active buyer</small><strong>{selectedBuyer.name}</strong><span>{selectedBuyer.description ?? "Ready for matching inventory"}</span></div>
+            {selectedBuyer.buyBoxes.length ? <><label>Buy box<select value={selectedBuyBox?.id ?? ""} onChange={(event) => setSelectedBuyBoxId(event.target.value)}>{selectedBuyer.buyBoxes.map((buyBox) => <option key={buyBox.id} value={buyBox.id}>{buyBox.name}</option>)}</select></label>{selectedBuyBox && <div className={styles.buyBoxChips}>{buyBoxSummary(selectedBuyBox).map((item) => <span key={item}>{item}</span>)}</div>}<button type="button" className={styles.applyBuyBox} onClick={() => selectedBuyBox && applyBuyBox(selectedBuyBox)}>Apply buy box</button></> : <span className={styles.noBuyBox}>No active buy box for this buyer.</span>}
+          </>}</div>
+        </> : <div className={styles.emptyBuyerDesk}><strong>No engaged buyers yet</strong><span>Add buyers and their criteria so acquisitions can search the right pockets immediately.</span><button type="button" onClick={() => setShowSaved(true)}>Add buyer</button></div>}
+      </section>
 
       <div className={styles.searchWorkspace}>
         <aside className={styles.criteriaPanel}>
@@ -272,7 +340,7 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
         </aside>
 
         <section className={styles.mainStage}>
-          {view === "map" && <GoogleMapStage listings={filtered} selected={selected} targetIds={targetIds} onSelect={setSelectedId} onPocketChange={updatePocket} />}
+          {view === "map" && <GoogleMapStage listings={filtered} selected={selected} targetIds={targetIds} onSelect={setSelectedId} onPocketChange={updatePocket} activeBuyer={selectedBuyer} />}
           {view === "list" && <ResultsList listings={qualified} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
           {view === "detail" && <ListingDetail listing={selected} />}
         </section>
@@ -280,6 +348,17 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
       <DealIntelligence candidates={dealCandidates} isPreview={isPreview} />
     </main>
   );
+}
+
+function buyBoxSummary(buyBox: BuyBoxRecord) {
+  const items: string[] = [];
+  if (buyBox.zips.length) items.push(`ZIP ${buyBox.zips.slice(0, 3).join(", ")}${buyBox.zips.length > 3 ? " +" : ""}`);
+  if (buyBox.propertyTypes.length) items.push(buyBox.propertyTypes.slice(0, 2).join(" / "));
+  if (buyBox.priceMin != null || buyBox.priceMax != null) items.push(`${money(buyBox.priceMin, true)}–${money(buyBox.priceMax, true)}`);
+  if (buyBox.bedsMin != null) items.push(`${buyBox.bedsMin}+ beds`);
+  if (buyBox.sqftMin != null || buyBox.sqftMax != null) items.push(`${buyBox.sqftMin?.toLocaleString() ?? "Any"}–${buyBox.sqftMax?.toLocaleString() ?? "Any"} sqft`);
+  if (buyBox.dispositionStrategy) items.push(buyBox.dispositionStrategy);
+  return items.length ? items : ["Criteria not configured"];
 }
 
 type CriterionProps = {
@@ -389,5 +468,5 @@ function DealIntelligence({ candidates, isPreview }: { candidates: DealCandidate
 }
 
 function SavedSearches({ searches, onBack }: { searches: SavedSearchRecord[]; onBack: () => void }) {
-  return <main className={styles.savedPage}><button type="button" onClick={onBack}>← Residential search</button><header><h1>Saved Searches</h1><p>Buyer criteria and reusable property searches.</p></header><div className={styles.savedGrid}><form action={createArea} className={styles.newSearch}><h2>Create a search</h2><label>Name<input name="name" required placeholder="Smith Family — Arcadia" /></label><label>Buyer<input name="buyerContact" placeholder="Buyer contact" /></label><label>Criteria notes<textarea name="description" rows={4} /></label><button type="submit">Save search</button></form><section>{searches.map((search) => <article key={search.id}><div><strong>{search.name}</strong><span>{search.active ? "Active" : "Paused"} · {search.buyBoxCount} buy boxes</span></div><p>{search.description ?? "No notes"}</p><footer><form action={toggleArea.bind(null, search.id)}><button type="submit">{search.active ? "Pause" : "Activate"}</button></form><form action={deleteArea.bind(null, search.id)}><button type="submit">Delete</button></form></footer></article>)}</section></div></main>;
+  return <main className={styles.savedPage}><button type="button" onClick={onBack}>← Deal Search</button><header><h1>Buyer Deal Desk</h1><p>Committed buyers, reusable buy boxes, and target acquisition areas.</p></header><div className={styles.savedGrid}><form action={createArea} className={styles.newSearch}><h2>Add a buyer search</h2><label>Name<input name="name" required placeholder="Smith Family — Arcadia" /></label><label>Buyer<input name="buyerContact" placeholder="Buyer contact" /></label><label>Criteria notes<textarea name="description" rows={4} /></label><button type="submit">Save buyer search</button></form><section>{searches.map((search) => <article key={search.id}><div><strong>{search.name}</strong><span>{search.active ? "Active" : "Paused"} · {search.buyBoxCount} buy boxes</span></div><p>{search.description ?? "No notes"}</p><footer><form action={toggleArea.bind(null, search.id)}><button type="submit">{search.active ? "Pause" : "Activate"}</button></form><form action={deleteArea.bind(null, search.id)}><button type="submit">Delete</button></form></footer></article>)}</section></div></main>;
 }

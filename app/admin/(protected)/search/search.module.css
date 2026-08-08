@@ -45,3 +45,60 @@
 
 @media (max-width: 1050px) { .searchWorkspace { grid-template-columns: 300px minmax(0,1fr); }.searchTitle p { display: none; }.dealHeader { align-items: flex-start; flex-direction: column; gap: 10px; }.dealMetrics { grid-template-columns: 1fr 1fr; }.dealMetrics > div:nth-child(2) { border-right: 0; }.dealMetrics > div:nth-child(-n+2) { border-bottom: 1px solid #e5e8e6; } }
 @media (max-width: 780px) { .pageHeader { min-height: auto; flex-wrap: wrap; padding: 10px; }.headerTools { width: 100%; justify-content: space-between; }.viewNav { justify-content: flex-start; overflow-x: auto; }.searchWorkspace { display: block; height: auto; padding: 8px; }.criteriaPanel { max-height: 520px; margin-bottom: 8px; }.mainStage, .realMapShell { min-height: 540px; }.detailGrid { grid-template-columns: 1fr 1fr; }.savedGrid { grid-template-columns: 1fr; }.dealSection { margin: 10px 8px 20px; }.dealHeader { padding: 18px; }.dealMetrics { grid-template-columns: 1fr 1fr; }.dealToolbar { align-items: flex-start; flex-direction: column; }.dealToolbar > div { max-width: 100%; overflow-x: auto; }.pocketPrompt { top: 54px; }.mapLegend { display: none; } }
+
+/* Deal Search blue system and buyer-first workflow */
+.titleIndex { background: #1685d2; color: #fff; }
+.pageHeader .searchTitle h1 { color: #153f5d; }
+.viewNav .viewActive { color: #126fae; box-shadow: 0 1px 3px rgba(18,83,128,.14); }
+.pageHeader .saveSearchButton { border-color: #1685d2; background: #1685d2; }
+.resultHeading strong { color: #1685d2; }
+.mapModeControl .mapModeActive { background: #1685d2; }
+.dealHeader { border-bottom-color: #d7e7f2; background: linear-gradient(120deg, #0b4f7a, #1685d2); }
+.dealHeader > div > span { color: #d8ecfb; }
+.dealHeader p { color: rgba(255,255,255,.76); }
+.dealToolbar .dealModeActive { border-color: #1685d2; background: #1685d2; }
+.dealActions a, .dealActions button { border-color: #a9c9de; color: #126fae; }
+.dealActions form button { border-color: #126fae; background: #126fae; color: #fff; }
+
+.buyerDesk { min-height: 116px; display: grid; grid-template-columns: 160px minmax(240px, .85fr) minmax(360px, 1.15fr); gap: 10px; margin: 8px 10px 0; padding: 9px; border: 1px solid #cbdce8; border-radius: 7px; background: #f6fbfe; box-shadow: 0 1px 4px rgba(18,83,128,.08); }
+.buyerDeskHeading { display: grid; align-content: center; gap: 4px; padding: 5px 9px; border-right: 1px solid #d7e5ee; }
+.buyerDeskHeading span { color: #1685d2; font-size: 8px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+.buyerDeskHeading strong { color: #153f5d; font: 600 13px/1.2 var(--font-display), Georgia, serif; }
+.buyerDeskHeading button { justify-self: start; padding: 0; border: 0; background: transparent; color: #126fae; font: 700 8px Arial; cursor: pointer; }
+.buyerCards { min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 1px; }
+.buyerCards > button { min-width: 145px; display: grid; align-content: center; gap: 3px; padding: 8px 10px; border: 1px solid #d5e0e8; border-radius: 5px; background: #fff; color: #52636f; text-align: left; cursor: pointer; }
+.buyerCards > button strong { overflow: hidden; color: #294e67; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.buyerCards > button span { overflow: hidden; font-size: 7.5px; text-overflow: ellipsis; white-space: nowrap; }
+.buyerCards > button small { color: #8997a0; font-size: 7px; }
+.buyerCards > .buyerCardActive { border-color: #1685d2; background: #edf6fc; box-shadow: inset 3px 0 #1685d2; }
+.buyerDeskDetail { min-width: 0; display: flex; align-items: center; gap: 9px; padding: 5px 7px; border-left: 1px solid #d7e5ee; }
+.buyerDeskDetail > div:first-child { min-width: 115px; display: grid; gap: 2px; }
+.buyerDeskDetail small { color: #82919b; font-size: 6.5px; font-weight: 700; text-transform: uppercase; }
+.buyerDeskDetail strong { color: #244b65; font-size: 9px; }
+.buyerDeskDetail > div:first-child span { max-width: 150px; overflow: hidden; color: #778791; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+.buyerDeskDetail label { display: grid; gap: 3px; color: #71818c; font-size: 6.5px; font-weight: 700; text-transform: uppercase; }
+.buyerDeskDetail select { width: 125px; height: 28px; border: 1px solid #b9ccd8; border-radius: 4px; background: #fff; color: #294e67; font: 8px Arial; }
+.buyBoxChips { min-width: 0; display: flex; flex: 1; flex-wrap: wrap; gap: 4px; }
+.buyBoxChips span { padding: 4px 6px; border-radius: 20px; background: #e5f2fa; color: #126fae; font-size: 7px; white-space: nowrap; }
+.applyBuyBox { height: 30px; padding: 0 10px; border: 0; border-radius: 4px; background: #1685d2; color: #fff; font: 700 8px Arial; white-space: nowrap; cursor: pointer; }
+.noBuyBox { color: #7c8991; font-size: 8px; }
+.emptyBuyerDesk { grid-column: 2 / -1; display: flex; align-items: center; gap: 9px; color: #758792; font-size: 8px; }
+.emptyBuyerDesk strong { color: #294e67; font-size: 10px; }.emptyBuyerDesk button { height: 28px; padding: 0 9px; border: 0; border-radius: 4px; background: #1685d2; color: #fff; font: 700 8px Arial; cursor: pointer; }
+.searchWorkspace { height: calc(100vh - 258px); }
+
+.shapeToolbar { position: absolute; z-index: 9; top: 62px; right: 10px; display: grid; overflow: hidden; border: 1px solid #cad5dd; border-radius: 6px; background: rgba(255,255,255,.97); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.shapeToolbar button { width: 45px; min-height: 43px; display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px 2px; border: 0; border-bottom: 1px solid #e2e8ec; background: transparent; color: #536874; cursor: pointer; }
+.shapeToolbar button:last-child { border-bottom: 0; }.shapeToolbar button:hover { background: #edf6fc; }.shapeToolbar .shapeToolActive { background: #1685d2; color: #fff; }
+.shapeToolbar small { font: 700 6px Arial; text-transform: uppercase; }.shapeToolbar button > span { display: block; }
+.handIcon { font-size: 14px; line-height: 16px; filter: grayscale(1); }
+.rectangleIcon { width: 17px; height: 13px; border: 2px solid currentColor; }
+.circleIcon { width: 16px; height: 16px; border: 2px solid currentColor; border-radius: 50%; }
+.polygonIcon { width: 17px; height: 15px; border: 2px solid currentColor; clip-path: polygon(18% 0, 100% 24%, 78% 100%, 0 76%); }
+.clearIcon { font-size: 23px; line-height: 16px; }
+.pocketPrompt { border-color: rgba(22,133,210,.22); }
+.pocketPrompt strong { color: #135f96; }.pocketPrompt span { color: #6e7d87; }
+.pocketPrompt button { padding: 4px 7px; border-color: #a9d2ec; background: #edf6fc; color: #126fae; }
+.pocketPrompt > div { align-items: center; flex-wrap: wrap; }.pocketPrompt em { color: #1685d2; font: 700 7px Arial; }
+
+@media (max-width: 1050px) { .buyerDesk { grid-template-columns: 135px 1fr; }.buyerDeskDetail { grid-column: 1 / -1; border-top: 1px solid #d7e5ee; border-left: 0; }.searchWorkspace { height: calc(100vh - 330px); } }
+@media (max-width: 780px) { .buyerDesk { display: block; }.buyerDeskHeading { border-right: 0; border-bottom: 1px solid #d7e5ee; }.buyerCards { padding: 7px 0; }.buyerDeskDetail { flex-wrap: wrap; }.emptyBuyerDesk { padding: 12px 4px; }.searchWorkspace { height: auto; }.shapeToolbar { top: 56px; }.pocketPrompt { top: 54px; right: 65px; left: 10px; } }

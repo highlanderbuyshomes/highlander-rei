@@ -3,7 +3,11 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import MlsSearchWorkspace, { type ListingRecord, type SavedSearchRecord } from "./MlsSearchWorkspace";
 
-export const metadata: Metadata = { title: "Residential Search | Highlander REI" };
+export const metadata: Metadata = { title: "Deal Search | Highlander REI" };
+
+function jsonStrings(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
 
 function rawValue(raw: unknown, keys: string[]) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -68,7 +72,10 @@ export default async function SearchPage() {
     }),
     prisma.acquisitionArea.findMany({
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { buyBoxes: true } } },
+      include: {
+        buyBoxes: { where: { active: true }, orderBy: [{ priority: "desc" }, { createdAt: "desc" }] },
+        _count: { select: { buyBoxes: true } },
+      },
     }),
   ]);
 
@@ -117,6 +124,29 @@ export default async function SearchPage() {
     description: search.description,
     active: search.active,
     buyBoxCount: search._count.buyBoxes,
+    polygon: search.polygon as SavedSearchRecord["polygon"],
+    buyBoxes: search.buyBoxes.map((buyBox) => ({
+      id: buyBox.id,
+      name: buyBox.name,
+      zips: jsonStrings(buyBox.zips),
+      subdivisions: jsonStrings(buyBox.subdivisions),
+      propertyTypes: jsonStrings(buyBox.propertyTypes),
+      priceMin: buyBox.priceMin,
+      priceMax: buyBox.priceMax,
+      bedsMin: buyBox.bedsMin,
+      bedsMax: buyBox.bedsMax,
+      bathsMin: buyBox.bathsMin,
+      bathsMax: buyBox.bathsMax,
+      sqftMin: buyBox.sqftMin,
+      sqftMax: buyBox.sqftMax,
+      lotSqftMin: buyBox.lotSqftMin,
+      lotSqftMax: buyBox.lotSqftMax,
+      mlsStatuses: jsonStrings(buyBox.mlsStatuses),
+      maxDom: buyBox.maxDom,
+      buyerName: buyBox.buyerName,
+      dispositionStrategy: buyBox.dispositionStrategy,
+      priority: buyBox.priority,
+    })),
   }));
 
   return <MlsSearchWorkspace listings={listings} savedSearches={savedSearches} />;
