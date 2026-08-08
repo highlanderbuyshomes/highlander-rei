@@ -32,6 +32,9 @@ export async function GET() {
       ? await withCounts(savedSearchesResult as IHomeFinderSavedSearch[], (s) => ({ savedSearchId: String(s.id) }))
       : savedSearchesResult;
 
+    console.log("[ihomefinder/markets] markets:", JSON.stringify(markets));
+    console.log("[ihomefinder/markets] savedSearches:", JSON.stringify(savedSearches));
+
     return NextResponse.json({ markets, savedSearches });
   } catch (err) {
     return NextResponse.json(

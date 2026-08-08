@@ -14,8 +14,11 @@ export async function POST(req: NextRequest) {
     // no body provided — sync the account's default listing set
   }
 
+  console.log("[ihomefinder/sync] scope requested:", JSON.stringify(body));
+
   try {
     const result = await syncIHomeFinderListings(body);
+    console.log("[ihomefinder/sync] result:", JSON.stringify(result));
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
