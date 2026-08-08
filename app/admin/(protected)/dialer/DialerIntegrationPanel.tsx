@@ -10,11 +10,9 @@ type DispatchResult = {
 export default function DialerIntegrationPanel({
   configured,
   initialPending,
-  dialerUrl,
 }: {
   configured: boolean;
   initialPending: number;
-  dialerUrl: string;
 }) {
   const [pending, setPending] = useState(initialPending);
   const [result, setResult] = useState<DispatchResult | null>(null);
@@ -50,7 +48,7 @@ export default function DialerIntegrationPanel({
       <div style={{ display: "flex", justifyContent: "space-between", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
         <div>
           <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>
-            COLDCALLDOGS QUEUE
+            MY DIALER QUEUE
           </div>
           <p style={{ margin: 0, color: "#6f6f69", fontSize: "13px", lineHeight: 1.7, maxWidth: "560px" }}>
             Qualified acquisition assignments are sent directly to the correct caller&apos;s seller queue. Call outcomes and DNC requests synchronize back to the property record.
@@ -81,8 +79,8 @@ export default function DialerIntegrationPanel({
         >
           {isPending ? "Dispatching…" : "Send pending assignments"}
         </button>
-        <a href={dialerUrl} style={{ color: "#1f5c9e", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}>
-          Open ColdCallDogs →
+        <a href="/admin/dialer/launch" style={{ color: "#1f5c9e", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}>
+          Open My Dialer →
         </a>
       </div>
 

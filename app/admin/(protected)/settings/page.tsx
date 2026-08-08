@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { addTeamMember, changePassword } from "./actions";
 import IHomeFinderSyncPanel from "./IHomeFinderSyncPanel";
+import DialerIntegrationPanel from "../dialer/DialerIntegrationPanel";
 
 export const metadata: Metadata = { title: "Settings | Highlander REI" };
 
@@ -25,6 +26,8 @@ export default async function SettingsPage({
   const params = await searchParams;
   const activeTab = (["password", "team", "connections", "billing"].includes(params.tab ?? "") ? params.tab : "password") as Tab;
   const team = activeTab === "team" ? await prisma.adminUser.findMany({ orderBy: { createdAt: "asc" } }) : [];
+  const pendingAssignments = activeTab === "connections" ? await prisma.callAssignment.count({ where: { status: "pending" } }) : 0;
+  const dialerConfigured = Boolean(process.env.COLD_CALL_DOGS_URL && process.env.INTEGRATION_SHARED_SECRET);
 
   const errorMsg: Record<string, string> = {
     mismatch: "Passwords do not match.",
@@ -150,6 +153,10 @@ export default async function SettingsPage({
 
       {activeTab === "connections" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <DialerIntegrationPanel
+            configured={dialerConfigured}
+            initialPending={pendingAssignments}
+          />
           <IHomeFinderSyncPanel />
           <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
             <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>MORE CONNECTIONS</div>
