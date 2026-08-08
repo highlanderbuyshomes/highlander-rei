@@ -9,6 +9,7 @@ export type ListingRecord = {
   id: string;
   mlsNumber: string;
   status: string;
+  closedDate?: string | null;
   listPrice: number | null;
   dom: number | null;
   listDate: string | null;
@@ -96,6 +97,10 @@ function money(value: number | null, compact = false) {
   if (compact && value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (compact && value >= 1_000) return `$${Math.round(value / 1_000)}K`;
   return value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+function shortDate(value?: string | null) {
+  return value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 }
 
 function normalizeStatus(value: string) {
@@ -188,9 +193,11 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
   const sourceListings = listings.length ? listings : previewListings;
   const isPreview = listings.length === 0;
   const [showSaved, setShowSaved] = useState(false);
+  const [showBuyerBoxes, setShowBuyerBoxes] = useState(false);
   const [view, setView] = useState<WorkspaceView>("map");
   const [activeCriteria, setActiveCriteria] = useState<Set<CriteriaKey>>(new Set(["status"]));
   const [statuses, setStatuses] = useState<string[]>(["Active", "Coming Soon"]);
+  const [closedWithinMonths, setClosedWithinMonths] = useState("Any");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [dwellingTypes, setDwellingTypes] = useState<string[]>([]);
@@ -207,9 +214,9 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
   const [selectedId, setSelectedId] = useState("");
   const [pocketIds, setPocketIds] = useState<string[] | null>(null);
   const activeBuyers = useMemo(() => savedSearches.filter((search) => search.active), [savedSearches]);
-  const [selectedBuyerId, setSelectedBuyerId] = useState(activeBuyers[0]?.id ?? "");
+  const [selectedBuyerId, setSelectedBuyerId] = useState("");
   const selectedBuyer = activeBuyers.find((buyer) => buyer.id === selectedBuyerId) ?? null;
-  const [selectedBuyBoxId, setSelectedBuyBoxId] = useState(selectedBuyer?.buyBoxes[0]?.id ?? "");
+  const [selectedBuyBoxId, setSelectedBuyBoxId] = useState("");
   const selectedBuyBox = selectedBuyer?.buyBoxes.find((buyBox) => buyBox.id === selectedBuyBoxId) ?? selectedBuyer?.buyBoxes[0] ?? null;
 
   const filtered = useMemo(() => {
@@ -218,6 +225,12 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
     return sourceListings.filter((item) => {
       if (query && ![item.mlsNumber, item.address, item.city, item.zip].some((value) => value.toLowerCase().includes(query))) return false;
       if (activeCriteria.has("status") && statuses.length && !statuses.includes(normalizeStatus(item.status))) return false;
+      if (activeCriteria.has("status") && closedWithinMonths !== "Any" && normalizeStatus(item.status) === "Closed") {
+        if (!item.closedDate) return false;
+        const cutoff = new Date();
+        cutoff.setMonth(cutoff.getMonth() - Number(closedWithinMonths));
+        if (new Date(item.closedDate) < cutoff) return false;
+      }
       if (activeCriteria.has("price") && priceMin && (item.listPrice ?? 0) < Number(priceMin)) return false;
       if (activeCriteria.has("price") && priceMax && (item.listPrice ?? Number.POSITIVE_INFINITY) > Number(priceMax)) return false;
       if (activeCriteria.has("dwelling") && dwellingTypes.length && !dwellingTypes.includes(item.dwellingType)) return false;
@@ -232,7 +245,7 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
       if (activeCriteria.has("zip") && zipValues.length && !zipValues.includes(item.zip)) return false;
       return true;
     });
-  }, [sourceListings, activeCriteria, statuses, priceMin, priceMax, dwellingTypes, bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword]);
+  }, [sourceListings, activeCriteria, statuses, closedWithinMonths, priceMin, priceMax, dwellingTypes, bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword]);
 
   const qualified = useMemo(() => pocketIds ? filtered.filter((listing) => pocketIds.includes(listing.id)) : filtered, [filtered, pocketIds]);
   const dealCandidates = useMemo(() => scoreDeals(qualified), [qualified]);
@@ -262,7 +275,7 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
 
   function reset() {
     setActiveCriteria(new Set(["status"]));
-    setStatuses(["Active", "Coming Soon"]); setPriceMin(""); setPriceMax(""); setDwellingTypes([]);
+    setStatuses(["Active", "Coming Soon"]); setClosedWithinMonths("Any"); setPriceMin(""); setPriceMax(""); setDwellingTypes([]);
     setBedsMin(""); setBathsMin(""); setSqftMin(""); setSqftMax(""); setLotMin(""); setLotMax("");
     setPool("Any"); setLevels("Any"); setZips(""); setKeyword("");
   }
@@ -287,6 +300,7 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
     if (cleanZips.length) nextCriteria.add("zip");
     setActiveCriteria(nextCriteria);
     setStatuses(buyBox.mlsStatuses.map(normalizeStatus));
+    setClosedWithinMonths("Any");
     setPriceMin(buyBox.priceMin?.toString() ?? ""); setPriceMax(buyBox.priceMax?.toString() ?? "");
     setDwellingTypes(cleanPropertyTypes);
     setBedsMin(buyBox.bedsMin?.toString() ?? ""); setBathsMin(buyBox.bathsMin?.toString() ?? "");
@@ -300,27 +314,22 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
   return (
     <main className={styles.shell}>
       <header className={styles.pageHeader}>
-        <div className={styles.searchTitle}><span className={styles.titleIndex}>01</span><div><h1>Deal Search</h1><p>Search MLS inventory against buyer buy boxes and the 70% ARV rule.</p></div></div>
+        <div className={styles.searchTitle}><div><h1>Deal Search</h1><p>MLS filters, map pockets, and 70% ARV deal ranking.</p></div></div>
         <div className={styles.headerTools}>
           <nav className={styles.viewNav} aria-label="Search views">
             {(["map", "list", "detail"] as WorkspaceView[]).map((item) => <button key={item} type="button" className={view === item ? styles.viewActive : ""} onClick={() => setView(item)}>{item.charAt(0).toUpperCase() + item.slice(1)}</button>)}
           </nav>
-          <button type="button" className={styles.saveSearchButton} onClick={() => setShowSaved(true)}>Manage buyers</button>
+          <button type="button" className={`${styles.buyerBoxesTab} ${showBuyerBoxes ? styles.buyerBoxesTabActive : ""}`} aria-expanded={showBuyerBoxes} onClick={() => setShowBuyerBoxes((current) => !current)}>Buyer Boxes</button>
         </div>
       </header>
 
-      <section className={styles.buyerDesk} aria-label="Buyer Deal Desk">
-        <div className={styles.buyerDeskHeading}><span>Buyer Deal Desk</span><strong>Search from a committed buyer&apos;s buy box</strong><button type="button" onClick={() => setShowSaved(true)}>Manage</button></div>
-        {activeBuyers.length ? <>
-          <div className={styles.buyerCards}>{activeBuyers.map((buyer) => <button key={buyer.id} type="button" className={buyer.id === selectedBuyerId ? styles.buyerCardActive : ""} onClick={() => chooseBuyer(buyer.id)}><strong>{buyer.name}</strong><span>{buyer.buyerContact ?? "Buyer contact not added"}</span><small>{buyer.buyBoxes.length} active buy box{buyer.buyBoxes.length === 1 ? "" : "es"}</small></button>)}</div>
-          <div className={styles.buyerDeskDetail}>{selectedBuyer && <>
-            <div><small>Active buyer</small><strong>{selectedBuyer.name}</strong><span>{selectedBuyer.description ?? "Ready for matching inventory"}</span></div>
-            {selectedBuyer.buyBoxes.length ? <><label>Buy box<select value={selectedBuyBox?.id ?? ""} onChange={(event) => setSelectedBuyBoxId(event.target.value)}>{selectedBuyer.buyBoxes.map((buyBox) => <option key={buyBox.id} value={buyBox.id}>{buyBox.name}</option>)}</select></label>{selectedBuyBox && <div className={styles.buyBoxChips}>{buyBoxSummary(selectedBuyBox).map((item) => <span key={item}>{item}</span>)}</div>}<button type="button" className={styles.applyBuyBox} onClick={() => selectedBuyBox && applyBuyBox(selectedBuyBox)}>Apply buy box</button></> : <span className={styles.noBuyBox}>No active buy box for this buyer.</span>}
-          </>}</div>
-        </> : <div className={styles.emptyBuyerDesk}><strong>No engaged buyers yet</strong><span>Add buyers and their criteria so acquisitions can search the right pockets immediately.</span><button type="button" onClick={() => setShowSaved(true)}>Add buyer</button></div>}
-      </section>
+      {showBuyerBoxes && <section className={styles.buyerBoxPanel} aria-label="Buyer Boxes">
+        <strong>Buyer Boxes</strong>
+        {activeBuyers.length ? <><label>Buyer<select value={selectedBuyerId} onChange={(event) => chooseBuyer(event.target.value)}><option value="">Select buyer</option>{activeBuyers.map((buyer) => <option key={buyer.id} value={buyer.id}>{buyer.name}</option>)}</select></label>{selectedBuyer?.buyBoxes.length ? <><label>Buy box<select value={selectedBuyBox?.id ?? ""} onChange={(event) => setSelectedBuyBoxId(event.target.value)}>{selectedBuyer.buyBoxes.map((buyBox) => <option key={buyBox.id} value={buyBox.id}>{buyBox.name}</option>)}</select></label>{selectedBuyBox && <div className={styles.buyBoxChips}>{buyBoxSummary(selectedBuyBox).map((item) => <span key={item}>{item}</span>)}</div>}<button type="button" className={styles.applyBuyBox} onClick={() => selectedBuyBox && applyBuyBox(selectedBuyBox)}>Apply</button></> : <span className={styles.noBuyBox}>{selectedBuyer ? "No active buy boxes." : "Select a buyer to load a buy box."}</span>}</> : <span className={styles.noBuyBox}>No buyer boxes configured.</span>}
+        <button type="button" className={styles.manageBuyerBoxes} onClick={() => setShowSaved(true)}>Manage</button>
+      </section>}
 
-      <div className={styles.searchWorkspace}>
+      <div className={`${styles.searchWorkspace} ${showBuyerBoxes ? styles.searchWorkspaceWithBuyerBoxes : ""}`}>
         <aside className={styles.criteriaPanel}>
           <div className={styles.resultHeading}>Matching properties <strong>{qualified.length.toLocaleString()}</strong>{pocketIds && <span>in pocket</span>}</div>
           <label className={styles.mlsLookup}><span>⌕</span><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="MLS #, address, city or ZIP" /></label>
@@ -330,7 +339,7 @@ export default function MlsSearchWorkspace({ listings, savedSearches }: { listin
               return (
                 <div key={key} className={`${styles.criterion} ${active ? styles.criterionActive : ""}`}>
                   <label className={styles.criterionLabel}><input type="checkbox" checked={active} onChange={() => toggleCriterion(key)} /><strong>{label}</strong>{key === "status" && active && <span>of {statuses.join(", ") || "Any"}</span>}</label>
-                  {active && <CriterionInputs criterion={key} statuses={statuses} setStatuses={setStatuses} priceMin={priceMin} setPriceMin={setPriceMin} priceMax={priceMax} setPriceMax={setPriceMax} dwellingTypes={dwellingTypes} setDwellingTypes={setDwellingTypes} bedsMin={bedsMin} setBedsMin={setBedsMin} bathsMin={bathsMin} setBathsMin={setBathsMin} sqftMin={sqftMin} setSqftMin={setSqftMin} sqftMax={sqftMax} setSqftMax={setSqftMax} lotMin={lotMin} setLotMin={setLotMin} lotMax={lotMax} setLotMax={setLotMax} pool={pool} setPool={setPool} levels={levels} setLevels={setLevels} zips={zips} setZips={setZips} toggleValue={toggleValue} />}
+                  {active && <CriterionInputs criterion={key} statuses={statuses} setStatuses={setStatuses} closedWithinMonths={closedWithinMonths} setClosedWithinMonths={setClosedWithinMonths} priceMin={priceMin} setPriceMin={setPriceMin} priceMax={priceMax} setPriceMax={setPriceMax} dwellingTypes={dwellingTypes} setDwellingTypes={setDwellingTypes} bedsMin={bedsMin} setBedsMin={setBedsMin} bathsMin={bathsMin} setBathsMin={setBathsMin} sqftMin={sqftMin} setSqftMin={setSqftMin} sqftMax={sqftMax} setSqftMax={setSqftMax} lotMin={lotMin} setLotMin={setLotMin} lotMax={lotMax} setLotMax={setLotMax} pool={pool} setPool={setPool} levels={levels} setLevels={setLevels} zips={zips} setZips={setZips} toggleValue={toggleValue} />}
                 </div>
               );
             })}
@@ -363,6 +372,7 @@ function buyBoxSummary(buyBox: BuyBoxRecord) {
 
 type CriterionProps = {
   criterion: CriteriaKey; statuses: string[]; setStatuses: (value: string[]) => void;
+  closedWithinMonths: string; setClosedWithinMonths: (value: string) => void;
   priceMin: string; setPriceMin: (value: string) => void; priceMax: string; setPriceMax: (value: string) => void;
   dwellingTypes: string[]; setDwellingTypes: (value: string[]) => void;
   bedsMin: string; setBedsMin: (value: string) => void; bathsMin: string; setBathsMin: (value: string) => void;
@@ -375,7 +385,7 @@ type CriterionProps = {
 
 function CriterionInputs(props: CriterionProps) {
   const numeric = (value: string, update: (next: string) => void) => update(value.replace(/[^0-9.]/g, ""));
-  if (props.criterion === "status") return <div className={styles.optionGrid}>{statusOptions.map((value) => <label key={value}><input type="checkbox" checked={props.statuses.includes(value)} onChange={() => props.toggleValue(value, props.statuses, props.setStatuses)} />{value}</label>)}</div>;
+  if (props.criterion === "status") return <><div className={styles.optionGrid}>{statusOptions.map((value) => <label key={value}><input type="checkbox" checked={props.statuses.includes(value)} onChange={() => props.toggleValue(value, props.statuses, props.setStatuses)} />{value}</label>)}</div><label className={styles.statusDateFilter}><span>Closed within</span><select value={props.closedWithinMonths} onChange={(event) => { const value = event.target.value; props.setClosedWithinMonths(value); if (value !== "Any") props.setStatuses(["Closed"]); }}><option value="Any">Any date</option>{[3, 6, 9, 12, 18].map((months) => <option key={months} value={months}>{months} months</option>)}</select></label></>;
   if (props.criterion === "dwelling") return <div className={styles.optionGrid}>{dwellingOptions.map((value) => <label key={value}><input type="checkbox" checked={props.dwellingTypes.includes(value)} onChange={() => props.toggleValue(value, props.dwellingTypes, props.setDwellingTypes)} />{value}</label>)}</div>;
   if (props.criterion === "price") return <RangeInputs min={props.priceMin} max={props.priceMax} setMin={props.setPriceMin} setMax={props.setPriceMax} prefix="$" onInput={numeric} />;
   if (props.criterion === "sqft") return <RangeInputs min={props.sqftMin} max={props.sqftMax} setMin={props.setSqftMin} setMax={props.setSqftMax} onInput={numeric} />;
@@ -396,12 +406,12 @@ function MinSelect({ value, update, options, exact = false }: { value: string; u
 }
 
 function ResultsList({ listings, onSelect }: { listings: ListingRecord[]; onSelect: (id: string) => void }) {
-  return <div className={styles.resultsTable}><table><thead><tr><th>Status</th><th>MLS #</th><th>Address</th><th>Price</th><th>Type</th><th>Bed/Bath</th><th>Sq Ft</th><th>Lot</th><th>Pool</th><th>Levels</th><th>ZIP</th></tr></thead><tbody>{listings.map((listing) => <tr key={listing.id} onClick={() => onSelect(listing.id)}><td>{normalizeStatus(listing.status)}</td><td>{listing.mlsNumber}</td><td><strong>{listing.address}</strong><small>{listing.city}</small></td><td>{money(listing.listPrice)}</td><td>{listing.dwellingType}</td><td>{listing.beds ?? "—"} / {listing.baths ?? "—"}</td><td>{listing.sqft?.toLocaleString() ?? "—"}</td><td>{listing.lotSqft?.toLocaleString() ?? "—"}</td><td>{listing.pool == null ? "—" : listing.pool ? "Yes" : "No"}</td><td>{listing.interiorLevels ?? "—"}</td><td>{listing.zip}</td></tr>)}</tbody></table>{listings.length === 0 && <PlaceholderView title="No results" detail="Change or reset the selected criteria." />}</div>;
+  return <div className={styles.resultsTable}><table><thead><tr><th>Status</th><th>Closed date</th><th>MLS #</th><th>Address</th><th>Price</th><th>Type</th><th>Bed/Bath</th><th>Sq Ft</th><th>Lot</th><th>Pool</th><th>Levels</th><th>ZIP</th></tr></thead><tbody>{listings.map((listing) => <tr key={listing.id} onClick={() => onSelect(listing.id)}><td>{normalizeStatus(listing.status)}</td><td>{shortDate(listing.closedDate)}</td><td>{listing.mlsNumber}</td><td><strong>{listing.address}</strong><small>{listing.city}</small></td><td>{money(listing.listPrice)}</td><td>{listing.dwellingType}</td><td>{listing.beds ?? "—"} / {listing.baths ?? "—"}</td><td>{listing.sqft?.toLocaleString() ?? "—"}</td><td>{listing.lotSqft?.toLocaleString() ?? "—"}</td><td>{listing.pool == null ? "—" : listing.pool ? "Yes" : "No"}</td><td>{listing.interiorLevels ?? "—"}</td><td>{listing.zip}</td></tr>)}</tbody></table>{listings.length === 0 && <PlaceholderView title="No results" detail="Change or reset the selected criteria." />}</div>;
 }
 
 function ListingDetail({ listing }: { listing: ListingRecord | null }) {
   if (!listing) return <PlaceholderView title="No listing selected" detail="Choose a listing from the List or Map view." />;
-  return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2>{listing.address}</h2><p>{listing.city}, {listing.state} {listing.zip}</p><div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Approx SQFT", listing.sqft?.toLocaleString() ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div></div>;
+  return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2>{listing.address}</h2><p>{listing.city}, {listing.state} {listing.zip}</p><div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Approx SQFT", listing.sqft?.toLocaleString() ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div></div>;
 }
 
 function PlaceholderView({ title, detail }: { title: string; detail: string }) { return <div className={styles.placeholder}><strong>{title}</strong><span>{detail}</span></div>; }

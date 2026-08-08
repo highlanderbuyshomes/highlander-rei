@@ -89,6 +89,7 @@ export default async function SearchPage() {
       id: property.id,
       mlsNumber: listing?.mlsNumber ?? `PR-${property.apn?.slice(-7) ?? property.id.slice(-7).toUpperCase()}`,
       status: listing?.mlsStatus ?? "Off Market",
+      closedDate: (listing?.soldDate ?? property.lastSaleDate)?.toISOString() ?? null,
       listPrice,
       dom: listing?.dom ?? null,
       listDate: listing?.listDate?.toISOString() ?? null,
