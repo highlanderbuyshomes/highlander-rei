@@ -97,8 +97,56 @@ function extractListings(payload: unknown): ListingsPage {
     if (Array.isArray(obj.listings)) {
       return { listings: obj.listings as IHomeFinderListing[], total: typeof obj.total === "number" ? obj.total : null };
     }
+    // A HAL response with `total: 0` and no listings array at all is a
+    // legitimate "zero results for this query" response, not a malformed
+    // one — only unrecognized *non-empty* shapes should be treated as errors.
+    if (obj.total === 0) {
+      return { listings: [], total: 0 };
+    }
   }
   throw new Error(`Unrecognized iHomefinder listings response shape: ${JSON.stringify(payload).slice(0, 300)}`);
+}
+
+export type IHomeFinderMarket = {
+  id: string | number;
+  name?: string;
+  [key: string]: unknown;
+};
+
+export type IHomeFinderSavedSearch = {
+  id: string | number;
+  name?: string;
+  [key: string]: unknown;
+};
+
+function extractCollection<T>(payload: unknown, embeddedKeys: string[]): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  if (payload && typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    const embedded = obj._embedded as Record<string, unknown> | undefined;
+    for (const key of embeddedKeys) {
+      const value = embedded?.[key];
+      if (Array.isArray(value)) return value as T[];
+    }
+    for (const key of embeddedKeys) {
+      const value = obj[key];
+      if (Array.isArray(value)) return value as T[];
+    }
+    if (obj.total === 0) return [];
+  }
+  throw new Error(`Unrecognized iHomefinder collection response shape: ${JSON.stringify(payload).slice(0, 300)}`);
+}
+
+/** Lists the markets (geographic search areas) configured on this account — pass one's `id` as `marketId` to fetchAllIHomeFinderListings. */
+export async function fetchMarkets(): Promise<IHomeFinderMarket[]> {
+  const payload = await ihomefinderFetch("/markets.json");
+  return extractCollection<IHomeFinderMarket>(payload, ["market", "markets"]);
+}
+
+/** Lists saved searches configured on this account — pass one's `id` as `savedSearchId` to fetchAllIHomeFinderListings. */
+export async function fetchSavedSearches(): Promise<IHomeFinderSavedSearch[]> {
+  const payload = await ihomefinderFetch("/subscriber/savedsearches.json").catch(() => ihomefinderFetch("/savedsearches.json"));
+  return extractCollection<IHomeFinderSavedSearch>(payload, ["savedSearch", "savedSearches", "savedsearch", "savedsearches"]);
 }
 
 const PAGE_SIZE = 100;
