@@ -12,7 +12,7 @@ type SyncResult = {
   errors: { listingNumber: string; message: string }[];
 };
 
-type Option = { id: string; name: string };
+type Option = { id: string; name: string; total: number | null };
 
 type MarketsResponse = {
   markets: Option[] | { error: string };
@@ -21,6 +21,11 @@ type MarketsResponse = {
 
 function asOptions(value: Option[] | { error: string } | undefined): Option[] {
   return Array.isArray(value) ? value : [];
+}
+
+function optionLabel(name: string, total: number | null): string {
+  if (total === null) return `${name} (count unknown)`;
+  return `${name} (${total} listing${total === 1 ? "" : "s"})`;
 }
 
 export default function IHomeFinderSyncPanel() {
@@ -38,11 +43,18 @@ export default function IHomeFinderSyncPanel() {
     fetch("/api/integrations/ihomefinder/markets")
       .then((res) => res.json())
       .then((data: MarketsResponse) => {
-        const marketList = asOptions(data.markets).map((m) => ({ id: String(m.id), name: m.name ?? `Market ${m.id}` }));
-        const searchList = asOptions(data.savedSearches).map((s) => ({ id: String(s.id), name: s.name ?? `Saved Search ${s.id}` }));
+        const marketList = asOptions(data.markets).map((m) => ({ id: String(m.id), name: m.name ?? `Market ${m.id}`, total: m.total ?? null }));
+        const searchList = asOptions(data.savedSearches).map((s) => ({ id: String(s.id), name: s.name ?? `Saved Search ${s.id}`, total: s.total ?? null }));
         setMarkets(marketList);
         setSavedSearches(searchList);
-        if (marketList.length > 0) setScope(`market:${marketList[0].id}`);
+
+        // Prefer whichever option actually has listings, so the default
+        // selection isn't silently a zero-result scope.
+        const firstWithListings = [...marketList, ...searchList].find((o) => (o.total ?? 0) > 0);
+        if (firstWithListings) {
+          const isMarket = marketList.some((m) => m.id === firstWithListings.id);
+          setScope(`${isMarket ? "market" : "search"}:${firstWithListings.id}`);
+        } else if (marketList.length > 0) setScope(`market:${marketList[0].id}`);
         else if (searchList.length > 0) setScope(`search:${searchList[0].id}`);
       })
       .catch((err) => setOptionsError(err instanceof Error ? err.message : String(err)))
@@ -110,18 +122,23 @@ export default function IHomeFinderSyncPanel() {
             <option value="">Account default (featured listings)</option>
             {markets.length > 0 && (
               <optgroup label="Markets">
-                {markets.map((m) => <option key={`market:${m.id}`} value={`market:${m.id}`}>{m.name}</option>)}
+                {markets.map((m) => <option key={`market:${m.id}`} value={`market:${m.id}`}>{optionLabel(m.name, m.total)}</option>)}
               </optgroup>
             )}
             {savedSearches.length > 0 && (
               <optgroup label="Saved Searches">
-                {savedSearches.map((s) => <option key={`search:${s.id}`} value={`search:${s.id}`}>{s.name}</option>)}
+                {savedSearches.map((s) => <option key={`search:${s.id}`} value={`search:${s.id}`}>{optionLabel(s.name, s.total)}</option>)}
               </optgroup>
             )}
           </select>
         )}
         {optionsError && (
           <div style={{ fontSize: "11px", color: "#c0392b", marginTop: "6px" }}>Couldn&apos;t load markets/saved searches: {optionsError}</div>
+        )}
+        {!loadingOptions && !optionsError && (markets.length > 0 || savedSearches.length > 0) && [...markets, ...savedSearches].every((o) => (o.total ?? 0) === 0) && (
+          <div style={{ fontSize: "11px", color: "#946200", marginTop: "6px", lineHeight: 1.5 }}>
+            Every option above shows 0 listings — none of the Markets or Saved Searches configured on this iHomefinder account currently match any MLS inventory. This needs to be fixed in your iHomefinder dashboard (Setup) by widening or creating a Market that covers your target area, not something fixable from here.
+          </div>
         )}
       </div>
 

@@ -149,6 +149,16 @@ export async function fetchSavedSearches(): Promise<IHomeFinderSavedSearch[]> {
   return extractCollection<IHomeFinderSavedSearch>(payload, ["savedSearch", "savedSearches", "savedsearch", "savedsearches"]);
 }
 
+/** Cheap `total` lookup for a scope (limit=1) — used to preview how many listings a market/saved search actually has before running a full sync. */
+export async function fetchListingCount(opts: { marketId?: string; savedSearchId?: string } = {}): Promise<number> {
+  const params: Record<string, string | number> = { limit: 1 };
+  if (opts.marketId) params.marketId = opts.marketId;
+  if (opts.savedSearchId) params.savedSearchId = opts.savedSearchId;
+  const payload = await ihomefinderFetch("/listings.json", params);
+  const { listings, total } = extractListings(payload);
+  return total ?? listings.length;
+}
+
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200; // safety cap: 20,000 listings
 
