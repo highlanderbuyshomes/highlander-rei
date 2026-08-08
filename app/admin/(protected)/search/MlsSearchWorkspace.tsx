@@ -362,7 +362,7 @@ function DealIntelligence({ candidates, isPreview }: { candidates: DealCandidate
 
       <div className={styles.dealTableWrap}>
         <table className={styles.dealTable}>
-          <thead><tr><th>Priority</th><th>Property</th><th>Deal score</th><th>List price</th><th>Projected ARV</th><th>List / ARV</th><th>70% threshold</th><th>Price / sq ft</th><th>Why it surfaced</th><th>Action</th></tr></thead>
+          <thead><tr><th>Priority</th><th>Property</th><th>Deal score</th><th>% of ARV · 70% threshold</th><th>Why it surfaced</th><th>Action</th></tr></thead>
           <tbody>{visible.slice(0, 25).map((candidate) => {
             const fullAddress = `${candidate.address}, ${candidate.city}, ${candidate.state} ${candidate.zip}`;
             const canTarget = !isPreview && !candidate.id.startsWith("p");
@@ -371,11 +371,7 @@ function DealIntelligence({ candidates, isPreview }: { candidates: DealCandidate
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
               <td><strong>{candidate.address}</strong><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
-              <td><strong>{money(candidate.listPrice)}</strong><small>{candidate.originalListPrice && candidate.listPrice && candidate.originalListPrice > candidate.listPrice ? `Was ${money(candidate.originalListPrice)}` : normalizeStatus(candidate.status)}</small></td>
-              <td><strong>{money(candidate.arv)}</strong><small>{candidate.arvSource}</small></td>
               <td><strong className={(candidate.listToArvPct ?? 100) <= 70 ? styles.ruleMatch : ""}>{candidate.listToArvPct == null ? "—" : `${Math.round(candidate.listToArvPct)}%`}</strong><small>{candidate.listToArvPct != null && candidate.listToArvPct <= 70 ? "Meets rule" : "Review"}</small></td>
-              <td><strong>{money(candidate.rule70Price)}</strong><small className={(candidate.rule70Spread ?? -1) >= 0 ? styles.positiveSpread : ""}>{candidate.rule70Spread == null ? "No ARV" : candidate.rule70Spread >= 0 ? `${money(candidate.rule70Spread)} room` : `${money(Math.abs(candidate.rule70Spread))} over`}</small></td>
-              <td><strong>{candidate.pricePerSqft == null ? "—" : `$${Math.round(candidate.pricePerSqft)}`}</strong><small>{candidate.ppsfDiscountPct != null && candidate.ppsfDiscountPct > 0 ? `${Math.round(candidate.ppsfDiscountPct)}% below pocket` : `Pocket ${candidate.pocketPricePerSqft ? `$${Math.round(candidate.pocketPricePerSqft)}` : "—"}`}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
               <td><div className={styles.dealActions}><a href={`/admin/underwriting?address=${encodeURIComponent(fullAddress)}`}>AI verify ARV</a>{canTarget ? <form action={targetAction}><button type="submit">Target property</button></form> : <button type="button" disabled>Preview only</button>}</div></td>
             </tr>;
