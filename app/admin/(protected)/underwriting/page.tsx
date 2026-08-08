@@ -4,7 +4,12 @@ import UnderwritingClient from "./UnderwritingClient";
 
 export const metadata: Metadata = { title: "Underwriting | Highlander REI" };
 
-export default async function UnderwritingPage() {
+export default async function UnderwritingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ address?: string }>;
+}) {
   await requireAdmin();
-  return <UnderwritingClient />;
+  const { address } = await searchParams;
+  return <UnderwritingClient initialAddress={address ?? ""} />;
 }

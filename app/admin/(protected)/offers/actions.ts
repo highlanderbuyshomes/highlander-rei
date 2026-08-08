@@ -3,6 +3,15 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
+
+const OFFER_PIPELINE_STAGES = ["offer_made", "accepted", "signed", "closed", "referral"] as const;
+type OfferPipelineStage = (typeof OFFER_PIPELINE_STAGES)[number];
+
+function jsonObject(value: Prisma.JsonValue | null): Record<string, Prisma.InputJsonValue> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, Prisma.InputJsonValue>;
+}
 
 function revalidate() {
   revalidatePath("/admin/offers");
@@ -67,5 +76,39 @@ export async function deleteBuyBox(id: string) {
 export async function deleteImportRun(id: string) {
   await requireAdmin();
   await prisma.importRun.delete({ where: { id } });
+  revalidate();
+}
+
+export async function moveOfferStage(id: string, stage: OfferPipelineStage) {
+  await requireAdmin();
+  if (!OFFER_PIPELINE_STAGES.includes(stage)) throw new Error("Invalid offer stage");
+  const agreement = await prisma.agreement.findUnique({ where: { id }, select: { customFields: true } });
+  if (!agreement) throw new Error("Offer not found");
+
+  await prisma.agreement.update({
+    where: { id },
+    data: { customFields: { ...jsonObject(agreement.customFields), offerPipelineStage: stage } },
+  });
+  revalidate();
+}
+
+export async function scheduleOfferFollowUp(id: string, formData: FormData) {
+  await requireAdmin();
+  const agreement = await prisma.agreement.findUnique({ where: { id }, select: { customFields: true } });
+  if (!agreement) throw new Error("Offer not found");
+  const customFields = jsonObject(agreement.customFields);
+  const date = String(formData.get("followUpAt") ?? "").trim();
+  const note = String(formData.get("followUpNote") ?? "").trim();
+
+  await prisma.agreement.update({
+    where: { id },
+    data: {
+      customFields: {
+        ...customFields,
+        offerFollowUpAt: date,
+        offerFollowUpNote: note,
+      },
+    },
+  });
   revalidate();
 }

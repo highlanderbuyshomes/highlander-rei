@@ -54,8 +54,8 @@ function daysAgo(dateStr: string) {
   return `${Math.round(days / 365)}yr ago`;
 }
 
-export default function UnderwritingClient() {
-  const [address, setAddress] = useState("");
+export default function UnderwritingClient({ initialAddress = "" }: { initialAddress?: string }) {
+  const [address, setAddress] = useState(initialAddress);
   const [status, setStatus] = useState<"idle" | "submitting" | "polling" | "done" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisData | null>(null);
