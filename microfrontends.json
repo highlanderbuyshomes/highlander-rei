@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "version": "1",
+  "applications": {
+    "highlander-rei": {
+      "development": {
+        "fallback": "https://highlander-rei-steven-culebro-s-projects.vercel.app"
+      }
+    }
+  }
+}
