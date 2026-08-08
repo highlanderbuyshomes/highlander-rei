@@ -2,9 +2,9 @@ const GMAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 let loadPromise: Promise<void> | null = null;
 
-export function loadGoogleMapsDrawing(): Promise<void> {
-  if (typeof window === "undefined") return Promise.reject(new Error("loadGoogleMapsDrawing called on the server"));
-  if (window.google?.maps?.drawing) return Promise.resolve();
+export function loadGoogleMaps(): Promise<void> {
+  if (typeof window === "undefined") return Promise.reject(new Error("loadGoogleMaps called on the server"));
+  if (window.google?.maps?.geometry) return Promise.resolve();
   if (loadPromise) return loadPromise;
 
   loadPromise = new Promise((resolve, reject) => {
@@ -20,7 +20,7 @@ export function loadGoogleMapsDrawing(): Promise<void> {
     }
     const script = document.createElement("script");
     script.id = "gmaps-drawing-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=drawing`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=geometry&loading=async`;
     script.async = true;
     script.defer = true;
     script.onload = () => resolve();

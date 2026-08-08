@@ -7,9 +7,9 @@ datasource db {
 }
 
 model Agreement {
-  id                 String    @id @default(cuid())
+  id                 String            @id @default(cuid())
   type               String
-  status             String    @default("draft")
+  status             String            @default("draft")
   address            String
   sellers            String
   companyBuyer       String?
@@ -41,10 +41,10 @@ model Agreement {
   customFields       Json?
   signerName         String?
   signerEmail        String?
-  signerToken        String?   @unique
+  signerToken        String?           @unique
   signedAt           DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   signers            AgreementSigner[]
 
   @@index([type])
@@ -70,17 +70,17 @@ model AgreementSigner {
 }
 
 model Contact {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   name        String
   firstName   String?
   lastName    String?
-  email       String   @unique
+  email       String            @unique
   phone       String?
   company     String?
   contactType String?
   notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   signers     AgreementSigner[]
 }
 
@@ -188,12 +188,12 @@ model BuyBox {
 }
 
 model Property {
-  id                 String               @id @default(cuid())
-  apn                String?              @unique
-  addressFingerprint String?              @unique
+  id                 String                      @id @default(cuid())
+  apn                String?                     @unique
+  addressFingerprint String?                     @unique
   streetAddress      String
   city               String
-  state              String               @default("AZ")
+  state              String                      @default("AZ")
   zip                String
   county             String?
   subdivision        String?
@@ -212,9 +212,9 @@ model Property {
   sourceId           String?
   rawJson            Json?
   importRunId        String?
-  importRun          ImportRun?           @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  importRun          ImportRun?                  @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
   lastRefreshedAt    DateTime?
   owners             PropertyOwner[]
   mlsListings        MlsListing[]
@@ -230,9 +230,9 @@ model Property {
 }
 
 model PropertyOwner {
-  id                 String    @id @default(cuid())
+  id                 String              @id @default(cuid())
   propertyId         String
-  property           Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property           Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   firstName          String?
   lastName           String?
   fullName           String?
@@ -247,34 +247,35 @@ model PropertyOwner {
   phone              String?
   email              String?
   rawJson            Json?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  contactPoints      OwnerContactPoint[]
 
   @@index([propertyId])
 }
 
 model MlsAgent {
-  id            String                     @id @default(cuid())
-  mlsId         String?                    @unique
-  licenseNumber String?                    @unique
-  firstName     String?
-  lastName      String?
-  fullName      String?
-  email         String?
-  phone         String?
-  brokerageName String?
-  rawJson       Json?
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
-  listings      MlsListing[]
+  id                    String                      @id @default(cuid())
+  mlsId                 String?                     @unique
+  licenseNumber         String?                     @unique
+  firstName             String?
+  lastName              String?
+  fullName              String?
+  email                 String?
+  phone                 String?
+  brokerageName         String?
+  rawJson               Json?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  listings              MlsListing[]
   propertyRelationships PropertyAgentRelationship[]
 }
 
 model MlsListing {
-  id                 String               @id @default(cuid())
+  id                 String                      @id @default(cuid())
   propertyId         String
-  property           Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  mlsNumber          String               @unique
+  property           Property                    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  mlsNumber          String                      @unique
   mlsStatus          String?
   listPrice          Float?
   listDate           DateTime?
@@ -283,15 +284,16 @@ model MlsListing {
   soldPrice          Float?
   dom                Int?
   agentId            String?
-  agent              MlsAgent?            @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  agent              MlsAgent?                   @relation(fields: [agentId], references: [id], onDelete: SetNull)
   source             String
   sourceId           String?
   rawJson            Json?
   importRunId        String?
-  importRun          ImportRun?           @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  importRun          ImportRun?                  @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
   agentRelationships PropertyAgentRelationship[]
+  statusEvents       ListingStatusEvent[]
 
   @@index([propertyId])
   @@index([agentId])
@@ -393,6 +395,9 @@ model CallAssignment {
   dueDate           DateTime?
   status            String           @default("pending")
   notes             String?
+  externalSystem    String?
+  externalId        String?          @unique
+  syncedAt          DateTime?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   contactAttempts   ContactAttempt[]
@@ -403,16 +408,18 @@ model CallAssignment {
 }
 
 model ContactAttempt {
-  id                String           @id @default(cuid())
+  id                String          @id @default(cuid())
   acquisitionLeadId String
-  acquisitionLead   AcquisitionLead  @relation(fields: [acquisitionLeadId], references: [id], onDelete: Cascade)
+  acquisitionLead   AcquisitionLead @relation(fields: [acquisitionLeadId], references: [id], onDelete: Cascade)
   callAssignmentId  String?
-  callAssignment    CallAssignment?  @relation(fields: [callAssignmentId], references: [id], onDelete: SetNull)
+  callAssignment    CallAssignment? @relation(fields: [callAssignmentId], references: [id], onDelete: SetNull)
   channel           String
   outcome           String?
   notes             String?
-  attemptedAt       DateTime         @default(now())
-  createdAt         DateTime         @default(now())
+  externalSystem    String?
+  externalId        String?         @unique
+  attemptedAt       DateTime        @default(now())
+  createdAt         DateTime        @default(now())
 
   @@index([acquisitionLeadId])
   @@index([callAssignmentId])
@@ -427,4 +434,73 @@ model SuppressionRecord {
   createdAt DateTime @default(now())
 
   @@unique([type, value])
+}
+
+model OwnerContactPoint {
+  id              String        @id @default(cuid())
+  ownerId         String
+  owner           PropertyOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind            String
+  value           String
+  normalizedValue String
+  source          String
+  confidence      Float?
+  dncStatus       String?
+  lastVerifiedAt  DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([ownerId, kind, normalizedValue])
+  @@index([normalizedValue])
+  @@index([dncStatus])
+}
+
+model ListingStatusEvent {
+  id            String     @id @default(cuid())
+  listingId     String
+  listing       MlsListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  fromStatus    String?
+  toStatus      String
+  source        String
+  sourceEventId String?    @unique
+  changedAt     DateTime
+  rawJson       Json?
+  createdAt     DateTime   @default(now())
+
+  @@index([listingId, changedAt])
+  @@index([toStatus, changedAt])
+}
+
+model ExternalIdentity {
+  id           String    @id @default(cuid())
+  entityType   String
+  entityId     String
+  provider     String
+  externalId   String
+  metadata     Json?
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([provider, externalId])
+  @@unique([entityType, entityId, provider])
+  @@index([entityType, entityId])
+}
+
+model OutboxEvent {
+  id            String    @id @default(cuid())
+  eventType     String
+  aggregateType String
+  aggregateId   String
+  payload       Json
+  status        String    @default("pending")
+  attempts      Int       @default(0)
+  availableAt   DateTime  @default(now())
+  processedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, availableAt])
+  @@index([aggregateType, aggregateId])
 }

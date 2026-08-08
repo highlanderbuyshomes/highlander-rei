@@ -58,3 +58,24 @@ export async function saveAreaShape(id: string, shape: DrawnShape) {
   });
   revalidate();
 }
+
+export async function targetProperty(propertyId: string, dealScore: number, summary: string) {
+  await requireAdmin();
+  const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { id: true } });
+  if (!property) return;
+
+  const notes = `Deal Intelligence score: ${Math.round(dealScore)}/100. ${summary}`.slice(0, 1800);
+  const existing = await prisma.acquisitionLead.findFirst({
+    where: { propertyId, status: { notIn: ["closed", "dead", "lost"] } },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  if (existing) {
+    await prisma.acquisitionLead.update({ where: { id: existing.id }, data: { notes, status: "new" } });
+  } else {
+    await prisma.acquisitionLead.create({ data: { propertyId, status: "new", notes } });
+  }
+
+  revalidatePath("/admin/search");
+  revalidatePath("/admin/offers");
+}
