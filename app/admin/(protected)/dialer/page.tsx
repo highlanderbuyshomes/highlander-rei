@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import DialerIntegrationPanel from "./DialerIntegrationPanel";
@@ -6,7 +6,7 @@ import DialerIntegrationPanel from "./DialerIntegrationPanel";
 export const metadata: Metadata = { title: "Dialer | Highlander REI" };
 
 export default async function DialerPage() {
-  await requireAdmin();
+  await requireUser();
   const pendingAssignments = await prisma.callAssignment.count({ where: { status: "pending" } });
   const configured = Boolean(
     process.env.COLD_CALL_DOGS_URL && process.env.INTEGRATION_SHARED_SECRET

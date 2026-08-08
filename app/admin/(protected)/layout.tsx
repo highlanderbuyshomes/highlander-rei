@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { deleteSession } from "@/lib/session";
+import { deleteSession, getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 import AdminProfileMenu from "./AdminProfileMenu";
 import AdminMobileNav from "./AdminMobileNav";
@@ -13,7 +13,12 @@ async function logout() {
   redirect("/admin/login");
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSessionUser();
+  // Callers (VAs) only get the Dialer link — everything else here is
+  // admin-only and would just bounce them back to login if they clicked it.
+  const role = session?.role;
+
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
       <header className="admin-header" style={{
@@ -35,13 +40,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </header>
 
       <div style={{ display: "flex" }}>
-        <AdminSidebar />
+        <AdminSidebar role={role} />
         <div className="admin-content-wrap" style={{ background: "#f8f7f4", minHeight: "calc(100vh - 56px)", flex: 1, minWidth: 0 }}>
           {children}
         </div>
       </div>
 
-      <AdminMobileNav logoutAction={logout} />
+      <AdminMobileNav logoutAction={logout} role={role} />
     </div>
   );
 }

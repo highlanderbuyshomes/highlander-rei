@@ -6,6 +6,18 @@ datasource db {
   provider = "postgresql"
 }
 
+model AdminUser {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String
+  role            String   @default("caller") // "admin" | "caller"
+  forwardingPhone String? // caller's own cell — dialer bridges connected calls here
+  createdAt       DateTime @default(now())
+
+  callAssignments CallAssignment[]
+}
+
 model Agreement {
   id                 String            @id @default(cuid())
   type               String
@@ -390,7 +402,9 @@ model CallAssignment {
   id                String           @id @default(cuid())
   acquisitionLeadId String
   acquisitionLead   AcquisitionLead  @relation(fields: [acquisitionLeadId], references: [id], onDelete: Cascade)
-  assignee          String
+  assignee          String // legacy free-text match (email or name) — kept for the existing dispatch matching
+  assigneeUserId    String?
+  assigneeUser      AdminUser?       @relation(fields: [assigneeUserId], references: [id], onDelete: SetNull)
   priority          Int              @default(0)
   dueDate           DateTime?
   status            String           @default("pending")
@@ -404,6 +418,7 @@ model CallAssignment {
 
   @@index([acquisitionLeadId])
   @@index([assignee])
+  @@index([assigneeUserId])
   @@index([status])
 }
 

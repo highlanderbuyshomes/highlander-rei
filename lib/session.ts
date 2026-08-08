@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 const COOKIE = "hlr_admin_session";
 const MAX_AGE = 60 * 60 * 8; // 8 hours
 
+type SessionPayload = { userId: string; role: string };
+
 function getSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret && process.env.NODE_ENV === "production") {
@@ -13,8 +15,8 @@ function getSecret() {
   return new TextEncoder().encode(secret ?? "local-development-session-secret");
 }
 
-export async function createSession() {
-  const token = await new SignJWT({ admin: true })
+export async function createSession(userId: string, role: string) {
+  const token = await new SignJWT({ userId, role } satisfies SessionPayload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE}s`)
@@ -35,19 +37,35 @@ export async function deleteSession() {
   jar.delete(COOKIE);
 }
 
-export async function verifySession(): Promise<boolean> {
+export async function getSessionUser(): Promise<SessionPayload | null> {
   try {
     const jar = await cookies();
     const token = jar.get(COOKIE)?.value;
-    if (!token) return false;
-    await jwtVerify(token, getSecret());
-    return true;
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, getSecret());
+    if (typeof payload.userId !== "string" || typeof payload.role !== "string") return null;
+    return { userId: payload.userId, role: payload.role };
   } catch {
-    return false;
+    return null;
   }
 }
 
-export async function requireAdmin() {
-  const ok = await verifySession();
-  if (!ok) redirect("/admin/login");
+export async function verifySession(): Promise<boolean> {
+  return (await getSessionUser()) !== null;
+}
+
+// Admin-only pages (everything except the dialer) — unchanged behavior for
+// the ~30 existing call sites: must be logged in as role "admin".
+export async function requireAdmin(): Promise<SessionPayload> {
+  const session = await getSessionUser();
+  if (!session || session.role !== "admin") redirect("/admin/login");
+  return session;
+}
+
+// Any logged-in caller or admin — used by the dialer, which VAs need access
+// to without seeing the rest of the admin app.
+export async function requireUser(): Promise<SessionPayload> {
+  const session = await getSessionUser();
+  if (!session) redirect("/admin/login");
+  return session;
 }

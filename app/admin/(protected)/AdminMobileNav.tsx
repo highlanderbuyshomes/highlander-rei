@@ -5,7 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "./nav-items";
 
-export default function AdminMobileNav({ logoutAction }: { logoutAction: () => Promise<void> }) {
+export default function AdminMobileNav({
+  logoutAction,
+  role,
+}: {
+  logoutAction: () => Promise<void>;
+  role?: string;
+}) {
+  const navItems = role === "caller" ? NAV_ITEMS.filter((item) => item.href === "/admin/dialer") : NAV_ITEMS;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -32,7 +39,7 @@ export default function AdminMobileNav({ logoutAction }: { logoutAction: () => P
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            {NAV_ITEMS.map(({ href, label, icon }) => {
+            {navItems.map(({ href, label, icon }) => {
               const active = pathname.startsWith(href);
               return (
                 <Link key={href} href={href} onClick={() => setOpen(false)} className={active ? "active" : ""}>

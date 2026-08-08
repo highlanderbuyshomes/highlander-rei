@@ -5,19 +5,15 @@ import { redirect } from "next/navigation";
 
 async function login(formData: FormData) {
   "use server";
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  // Check DB-stored hash first (set via Change Password), fall back to env var
-  const config = await prisma.adminConfig.findUnique({ where: { id: "singleton" } }).catch(() => null);
-  const storedHash = config?.passwordHash;
+  const user = await prisma.adminUser.findUnique({ where: { email } }).catch(() => null);
+  const valid = Boolean(user && hashPassword(password) === user.passwordHash);
 
-  const valid = storedHash
-    ? hashPassword(password) === storedHash
-    : !!process.env.ADMIN_PASSWORD && password === process.env.ADMIN_PASSWORD;
-
-  if (valid) {
-    await createSession();
-    redirect("/admin/agreements");
+  if (valid && user) {
+    await createSession(user.id, user.role);
+    redirect(user.role === "admin" ? "/admin/agreements" : "/admin/dialer");
   }
   redirect("/admin/login?error=1");
 }
@@ -39,14 +35,18 @@ export default async function LoginPage({ searchParams }: Props) {
 
         {params.error && (
           <div style={{ background: "rgba(220,50,50,0.06)", border: "1px solid rgba(220,50,50,0.2)", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", color: "#dc3232", marginBottom: "16px", textAlign: "center" }}>
-            Incorrect password
+            Incorrect email or password
           </div>
         )}
 
         <form action={login} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div>
+            <label style={{ display: "block", fontSize: "11px", letterSpacing: "1px", color: "#8a8a84", textTransform: "uppercase", marginBottom: "6px" }}>Email</label>
+            <input name="email" type="email" required autoFocus placeholder="you@highlanderrei.com" style={{ width: "100%", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "8px", padding: "11px 14px", color: "#111110", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div>
             <label style={{ display: "block", fontSize: "11px", letterSpacing: "1px", color: "#8a8a84", textTransform: "uppercase", marginBottom: "6px" }}>Password</label>
-            <input name="password" type="password" required autoFocus placeholder="Enter admin password" style={{ width: "100%", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "8px", padding: "11px 14px", color: "#111110", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+            <input name="password" type="password" required placeholder="Enter password" style={{ width: "100%", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "8px", padding: "11px 14px", color: "#111110", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
           </div>
           <button type="submit" style={{ marginTop: "4px", background: "#111110", color: "#fff", border: "none", borderRadius: "8px", padding: "12px", fontSize: "13px", fontWeight: 600, letterSpacing: "0.5px", cursor: "pointer" }}>
             Sign In

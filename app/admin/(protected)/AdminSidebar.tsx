@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "./nav-items";
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ role }: { role?: string }) {
   const pathname = usePathname();
+  const navItems = role === "caller" ? NAV_ITEMS.filter((item) => item.href === "/admin/dialer") : NAV_ITEMS;
 
   return (
     <aside className="admin-sidebar" style={{
@@ -19,7 +20,7 @@ export default function AdminSidebar() {
       top: "56px",
       alignSelf: "flex-start",
     }}>
-      {NAV_ITEMS.map(({ href, label, icon }) => {
+      {navItems.map(({ href, label, icon }) => {
         const active = pathname.startsWith(href);
         return (
           <Link key={href} href={href} style={{
