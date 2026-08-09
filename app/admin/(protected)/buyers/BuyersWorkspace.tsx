@@ -86,14 +86,16 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
         </form>
       </aside>
 
-      <section className={styles.buyerListCompact} aria-label="Buyer relationships">
-        <div className={styles.listHeader}><div><span>Buyer network</span><strong>{buyers.length} relationships</strong></div></div>
-        {buyers.map((buyer) => <button key={buyer.id} type="button" className={`${styles.buyerRow} ${buyer.id === selected?.id ? styles.buyerRowActive : ""} ${buyer.active ? "" : styles.buyerRowPaused}`} onClick={() => setSelectedId(buyer.id)}>
-          <span className={styles.avatarSm}>{buyer.name.trim().charAt(0).toUpperCase()}</span>
-          <span className={styles.rowText}><strong>{buyer.name}</strong><small>{buyer.buyerContact ?? "No primary contact"}</small></span>
-          <span className={styles.rowMeta}><span className={styles.boxCount}>{buyer.buyBoxes.length}</span><span className={buyer.active ? styles.activeBadge : styles.pausedBadge}>{buyer.active ? "Active" : "Paused"}</span></span>
-        </button>)}
-        {!buyers.length && <div className={styles.emptyBox}>No buyers added yet.</div>}
+      <section className={styles.listPanel} aria-label="Buyer relationships">
+        <div className={styles.listPanelHeader}><span>Buyer network</span><strong>{buyers.length} relationships</strong></div>
+        <div className={styles.buyerListCompact}>
+          {buyers.map((buyer) => <button key={buyer.id} type="button" className={`${styles.buyerRow} ${buyer.id === selected?.id ? styles.buyerRowActive : ""} ${buyer.active ? "" : styles.buyerRowPaused}`} onClick={() => setSelectedId(buyer.id)}>
+            <span className={styles.avatarSm}>{buyer.name.trim().charAt(0).toUpperCase()}</span>
+            <span className={styles.rowText}><strong>{buyer.name}</strong><small>{buyer.buyerContact ?? "No primary contact"}</small></span>
+            <span className={styles.rowMeta}><span className={styles.boxCount}>{buyer.buyBoxes.length}</span><span className={buyer.active ? styles.activeBadge : styles.pausedBadge}>{buyer.active ? "Active" : "Paused"}</span></span>
+          </button>)}
+          {!buyers.length && <div className={styles.emptyBox}>No buyers added yet.</div>}
+        </div>
       </section>
 
       <section className={styles.detailPanel} aria-label="Buyer detail">
