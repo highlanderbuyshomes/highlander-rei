@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createArea, deleteArea, toggleArea } from "../search/actions";
-import { createBuyBox, toggleBuyBox, deleteBuyBox } from "../offers/actions";
+import { createArea, deleteArea, toggleArea, updateArea } from "../search/actions";
+import { createBuyBox, toggleBuyBox, deleteBuyBox, updateBuyBox } from "../offers/actions";
 import styles from "./buyers.module.css";
 
 type BuyBox = {
@@ -62,12 +62,34 @@ function buyBoxCriteria(buyBox: BuyBox) {
   return criteria.length ? criteria : ["Criteria not configured"];
 }
 
+function num(value: number | null) {
+  return value == null ? "" : String(value);
+}
+
 export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
   const [selectedId, setSelectedId] = useState(buyers[0]?.id ?? "");
+  const [editingBuyer, setEditingBuyer] = useState(false);
+  const [editingBuyBoxId, setEditingBuyBoxId] = useState<string | null>(null);
   const selected = useMemo(() => buyers.find((buyer) => buyer.id === selectedId) ?? buyers[0] ?? null, [buyers, selectedId]);
 
   const activeBuyers = buyers.filter((buyer) => buyer.active).length;
   const activeBuyBoxes = buyers.reduce((count, buyer) => count + buyer.buyBoxes.filter((box) => box.active).length, 0);
+
+  function selectBuyer(id: string) {
+    setSelectedId(id);
+    setEditingBuyer(false);
+    setEditingBuyBoxId(null);
+  }
+
+  async function handleUpdateArea(id: string, formData: FormData) {
+    await updateArea(id, formData);
+    setEditingBuyer(false);
+  }
+
+  async function handleUpdateBuyBox(id: string, formData: FormData) {
+    await updateBuyBox(id, formData);
+    setEditingBuyBoxId(null);
+  }
 
   return <main className={styles.shell}>
     <header className={styles.pageHeader}>
@@ -89,7 +111,7 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
       <section className={styles.listPanel} aria-label="Buyer relationships">
         <div className={styles.listPanelHeader}><span>Buyer network</span><strong>{buyers.length} relationships</strong></div>
         <div className={styles.buyerListCompact}>
-          {buyers.map((buyer) => <button key={buyer.id} type="button" className={`${styles.buyerRow} ${buyer.id === selected?.id ? styles.buyerRowActive : ""} ${buyer.active ? "" : styles.buyerRowPaused}`} onClick={() => setSelectedId(buyer.id)}>
+          {buyers.map((buyer) => <button key={buyer.id} type="button" className={`${styles.buyerRow} ${buyer.id === selected?.id ? styles.buyerRowActive : ""} ${buyer.active ? "" : styles.buyerRowPaused}`} onClick={() => selectBuyer(buyer.id)}>
             <span className={styles.avatarSm}>{buyer.name.trim().charAt(0).toUpperCase()}</span>
             <span className={styles.rowText}><strong>{buyer.name}</strong><small>{buyer.buyerContact ?? "No primary contact"}</small></span>
             <span className={styles.rowMeta}><span className={styles.boxCount}>{buyer.buyBoxes.length}</span><span className={buyer.active ? styles.activeBadge : styles.pausedBadge}>{buyer.active ? "Active" : "Paused"}</span></span>
@@ -100,13 +122,38 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
 
       <section className={styles.detailPanel} aria-label="Buyer detail">
         {selected ? <article className={styles.buyerCard}>
-          <header><div className={styles.avatar}>{selected.name.trim().charAt(0).toUpperCase()}</div><div><h2>{selected.name}</h2><p>{selected.buyerContact ?? "No primary contact added"}</p></div><span className={selected.active ? styles.activeBadge : styles.pausedBadge}>{selected.active ? "Active" : "Paused"}</span></header>
-          {selected.description && <p className={styles.notes}>{selected.description}</p>}
+          {editingBuyer ? (
+            <form className={styles.editBuyerForm} action={handleUpdateArea.bind(null, selected.id)}>
+              <label>Buyer or market name<input name="name" required defaultValue={selected.name} /></label>
+              <label>Primary contact<input name="buyerContact" defaultValue={selected.buyerContact ?? ""} placeholder="Name, phone, or email" /></label>
+              <label>Acquisition notes<textarea name="description" rows={3} defaultValue={selected.description ?? ""} placeholder="What they buy, how quickly they close, proof of funds…" /></label>
+              <div className={styles.editFormActions}>
+                <button type="submit">Save</button>
+                <button type="button" onClick={() => setEditingBuyer(false)}>Cancel</button>
+              </div>
+            </form>
+          ) : <>
+            <header><div className={styles.avatar}>{selected.name.trim().charAt(0).toUpperCase()}</div><div><h2>{selected.name}</h2><p>{selected.buyerContact ?? "No primary contact added"}</p></div><span className={selected.active ? styles.activeBadge : styles.pausedBadge}>{selected.active ? "Active" : "Paused"}</span><button type="button" className={styles.editLink} onClick={() => setEditingBuyer(true)}>Edit</button></header>
+            {selected.description && <p className={styles.notes}>{selected.description}</p>}
+          </>}
           <div className={styles.buyBoxes}>
             <div className={styles.buyBoxHeading}><strong>Buy boxes</strong><span>{selected.buyBoxes.length}</span></div>
-            {selected.buyBoxes.length ? selected.buyBoxes.map((buyBox) => <section key={buyBox.id} className={styles.buyBox}>
+            {selected.buyBoxes.length ? selected.buyBoxes.map((buyBox) => editingBuyBoxId === buyBox.id ? (
+              <form key={buyBox.id} className={styles.editBuyBoxForm} action={handleUpdateBuyBox.bind(null, buyBox.id)}>
+                <input name="name" required defaultValue={buyBox.name} placeholder="Buy box name" className={styles.fullWidth} />
+                <input name="zips" defaultValue={strings(buyBox.zips).join(", ")} placeholder="ZIP codes or cities" />
+                <input name="propertyTypes" defaultValue={strings(buyBox.propertyTypes).join(", ")} placeholder="Property types — SFR, Condo" />
+                <input name="priceMin" type="number" defaultValue={num(buyBox.priceMin)} placeholder="Price min" />
+                <input name="priceMax" type="number" defaultValue={num(buyBox.priceMax)} placeholder="Price max" />
+                <div className={styles.editFormActions}>
+                  <button type="submit">Save</button>
+                  <button type="button" onClick={() => setEditingBuyBoxId(null)}>Cancel</button>
+                </div>
+              </form>
+            ) : <section key={buyBox.id} className={styles.buyBox}>
               <div><strong>{buyBox.name}</strong><span className={buyBox.active ? styles.boxActive : styles.boxPaused}>{buyBox.active ? "Active" : "Paused"}</span>
                 <div className={styles.buyBoxActions}>
+                  <button type="button" onClick={() => setEditingBuyBoxId(buyBox.id)}>Edit</button>
                   <form action={toggleBuyBox.bind(null, buyBox.id)}><button type="submit">{buyBox.active ? "Pause" : "Activate"}</button></form>
                   <form action={deleteBuyBox.bind(null, buyBox.id)}><button type="submit" className={styles.deleteButton}>Delete</button></form>
                 </div>

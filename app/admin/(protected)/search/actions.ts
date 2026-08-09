@@ -36,6 +36,23 @@ export async function createArea(formData: FormData) {
   revalidate();
 }
 
+export async function updateArea(id: string, formData: FormData) {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+
+  await prisma.acquisitionArea.update({
+    where: { id },
+    data: {
+      name,
+      buyerContact: String(formData.get("buyerContact") ?? "") || null,
+      description: String(formData.get("description") ?? "") || null,
+    },
+  });
+
+  revalidate();
+}
+
 export async function toggleArea(id: string) {
   await requireAdmin();
   const area = await prisma.acquisitionArea.findUnique({ where: { id } });
