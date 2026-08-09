@@ -1,44 +1,9 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
-import { createArea, deleteArea, toggleArea } from "../search/actions";
-import { createBuyBox, toggleBuyBox, deleteBuyBox } from "../offers/actions";
-import styles from "./buyers.module.css";
+import BuyersWorkspace from "./BuyersWorkspace";
 
 export const metadata: Metadata = { title: "Our Buyers | Highlander REI" };
-
-function strings(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
-function money(value: number | null) {
-  if (value == null) return "Any";
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
-  return `$${Math.round(value).toLocaleString()}`;
-}
-
-function buyBoxCriteria(buyBox: {
-  zips: unknown; propertyTypes: unknown; mlsStatuses: unknown; priceMin: number | null; priceMax: number | null;
-  bedsMin: number | null; bathsMin: number | null; sqftMin: number | null; sqftMax: number | null;
-  lotSqftMin: number | null; lotSqftMax: number | null; maxDom: number | null; dispositionStrategy: string | null;
-}) {
-  const criteria: string[] = [];
-  const zips = strings(buyBox.zips).filter((zip) => /^\d{5}$/.test(zip));
-  const types = strings(buyBox.propertyTypes);
-  const statuses = strings(buyBox.mlsStatuses);
-  if (zips.length) criteria.push(`ZIP ${zips.slice(0, 4).join(", ")}${zips.length > 4 ? " +" : ""}`);
-  if (types.length) criteria.push(types.slice(0, 3).join(" / "));
-  if (buyBox.priceMin != null || buyBox.priceMax != null) criteria.push(`${money(buyBox.priceMin)}–${money(buyBox.priceMax)}`);
-  if (buyBox.bedsMin != null) criteria.push(`${buyBox.bedsMin}+ beds`);
-  if (buyBox.bathsMin != null) criteria.push(`${buyBox.bathsMin}+ baths`);
-  if (buyBox.sqftMin != null || buyBox.sqftMax != null) criteria.push(`${buyBox.sqftMin?.toLocaleString() ?? "Any"}–${buyBox.sqftMax?.toLocaleString() ?? "Any"} sqft`);
-  if (buyBox.lotSqftMin != null || buyBox.lotSqftMax != null) criteria.push(`${buyBox.lotSqftMin?.toLocaleString() ?? "Any"}–${buyBox.lotSqftMax?.toLocaleString() ?? "Any"} lot sqft`);
-  if (statuses.length) criteria.push(statuses.join(" / "));
-  if (buyBox.maxDom != null) criteria.push(`≤ ${buyBox.maxDom} DOM`);
-  if (buyBox.dispositionStrategy) criteria.push(buyBox.dispositionStrategy);
-  return criteria.length ? criteria : ["Criteria not configured"];
-}
 
 export default async function BuyersPage() {
   await requireAdmin();
@@ -46,56 +11,6 @@ export default async function BuyersPage() {
     orderBy: [{ active: "desc" }, { updatedAt: "desc" }],
     include: { buyBoxes: { orderBy: [{ active: "desc" }, { priority: "desc" }, { updatedAt: "desc" }] } },
   });
-  const activeBuyers = buyers.filter((buyer) => buyer.active).length;
-  const activeBuyBoxes = buyers.reduce((count, buyer) => count + buyer.buyBoxes.filter((box) => box.active).length, 0);
 
-  return <main className={styles.shell}>
-    <header className={styles.pageHeader}>
-      <div><span>Disposition Network</span><h1>Our Buyers</h1><p>Committed buyers and the exact buy boxes acquisitions should hunt for.</p></div>
-      <div className={styles.metrics}><div><strong>{activeBuyers}</strong><span>Active buyers</span></div><div><strong>{activeBuyBoxes}</strong><span>Active buy boxes</span></div><div><strong>{buyers.length}</strong><span>Total relationships</span></div></div>
-    </header>
-
-    <div className={styles.workspace}>
-      <aside className={styles.addPanel}>
-        <span>Add relationship</span><h2>Add a buyer</h2><p>Start with the buyer or market name. Buy-box criteria linked to this buyer will appear here automatically.</p>
-        <form action={createArea}>
-          <label>Buyer or market name<input name="name" required placeholder="Smith Family — Arcadia" /></label>
-          <label>Primary contact<input name="buyerContact" placeholder="Name, phone, or email" /></label>
-          <label>Acquisition notes<textarea name="description" rows={5} placeholder="What they buy, how quickly they close, proof of funds…" /></label>
-          <button type="submit">Add buyer</button>
-        </form>
-      </aside>
-
-      <section className={styles.buyerList} aria-label="Buyer relationships">
-        <div className={styles.listHeader}><div><span>Buyer network</span><strong>{buyers.length} relationships</strong></div><p>Buy boxes are ranked by priority and active criteria.</p></div>
-        {buyers.map((buyer) => <article key={buyer.id} className={`${styles.buyerCard} ${buyer.active ? "" : styles.pausedCard}`}>
-          <header><div className={styles.avatar}>{buyer.name.trim().charAt(0).toUpperCase()}</div><div><h2>{buyer.name}</h2><p>{buyer.buyerContact ?? "No primary contact added"}</p></div><span className={buyer.active ? styles.activeBadge : styles.pausedBadge}>{buyer.active ? "Active" : "Paused"}</span></header>
-          {buyer.description && <p className={styles.notes}>{buyer.description}</p>}
-          <div className={styles.buyBoxes}>
-            <div className={styles.buyBoxHeading}><strong>Buy boxes</strong><span>{buyer.buyBoxes.length}</span></div>
-            {buyer.buyBoxes.length ? buyer.buyBoxes.map((buyBox) => <section key={buyBox.id} className={styles.buyBox}>
-              <div><strong>{buyBox.name}</strong><span className={buyBox.active ? styles.boxActive : styles.boxPaused}>{buyBox.active ? "Active" : "Paused"}</span>
-                <div className={styles.buyBoxActions}>
-                  <form action={toggleBuyBox.bind(null, buyBox.id)}><button type="submit">{buyBox.active ? "Pause" : "Activate"}</button></form>
-                  <form action={deleteBuyBox.bind(null, buyBox.id)}><button type="submit" className={styles.deleteButton}>Delete</button></form>
-                </div>
-              </div>
-              <div className={styles.criteria}>{buyBoxCriteria(buyBox).map((criterion) => <span key={criterion}>{criterion}</span>)}</div>
-            </section>) : <div className={styles.emptyBox}>No buy boxes linked yet.</div>}
-            <form className={styles.addBuyBoxForm} action={createBuyBox}>
-              <input type="hidden" name="areaId" value={buyer.id} />
-              <input name="name" required placeholder="Buy box name — e.g. Arcadia SFR under 800K" className={styles.fullWidth} />
-              <input name="zips" placeholder="ZIP codes or cities" />
-              <input name="propertyTypes" placeholder="Property types — SFR, Condo" />
-              <input name="priceMin" type="number" placeholder="Price min" />
-              <input name="priceMax" type="number" placeholder="Price max" />
-              <button type="submit">+ Add buy box</button>
-            </form>
-          </div>
-          <footer><form action={toggleArea.bind(null, buyer.id)}><button type="submit">{buyer.active ? "Pause buyer" : "Activate buyer"}</button></form><form action={deleteArea.bind(null, buyer.id)}><button type="submit" className={styles.deleteButton}>Delete</button></form></footer>
-        </article>)}
-        {!buyers.length && <div className={styles.emptyState}><strong>No buyers added yet</strong><span>Add the first committed buyer to start building the acquisition target list.</span></div>}
-      </section>
-    </div>
-  </main>;
+  return <BuyersWorkspace buyers={buyers} />;
 }
