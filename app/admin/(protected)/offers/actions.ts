@@ -59,6 +59,15 @@ export async function createBuyBox(formData: FormData) {
   revalidate();
 }
 
+export async function updateBuyBox(id: string, formData: FormData) {
+  await requireAdmin();
+  const { active: _active, ...data } = machineDataFromForm(formData);
+  if (!data.name) return;
+
+  await prisma.buyBox.update({ where: { id }, data });
+  revalidate();
+}
+
 export async function toggleBuyBox(id: string) {
   await requireAdmin();
   const bb = await prisma.buyBox.findUnique({ where: { id } });
