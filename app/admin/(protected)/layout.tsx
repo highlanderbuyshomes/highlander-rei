@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { deleteSession, getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 import AdminProfileMenu from "./AdminProfileMenu";
@@ -33,9 +34,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         top: 0,
         zIndex: 50,
       }}>
-        <span className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#111110" }}>
+        <Link href={role === "caller" ? "/admin/dialer" : "/admin/search"} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#111110", textDecoration: "none" }}>
           HIGHLANDER REI
-        </span>
+        </Link>
         <AdminProfileMenu logoutAction={logout} />
       </header>
 

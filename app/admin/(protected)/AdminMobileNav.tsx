@@ -32,9 +32,9 @@ export default function AdminMobileNav({
         <div className="admin-mobile-drawer-overlay" onClick={() => setOpen(false)}>
           <nav className="admin-mobile-drawer" onClick={(e) => e.stopPropagation()} aria-label="Admin navigation">
             <div className="admin-mobile-drawer-header">
-              <span className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "15px", letterSpacing: "3px", color: "#111110" }}>
+              <Link href={role === "caller" ? "/admin/dialer" : "/admin/search"} onClick={() => setOpen(false)} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "15px", letterSpacing: "3px", color: "#111110", textDecoration: "none" }}>
                 HIGHLANDER REI
-              </span>
+              </Link>
               <button onClick={() => setOpen(false)} aria-label="Close navigation" style={{ background: "none", border: "none", color: "#8a8a84", cursor: "pointer", padding: "4px" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
