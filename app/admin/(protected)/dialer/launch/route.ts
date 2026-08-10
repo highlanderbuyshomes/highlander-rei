@@ -6,9 +6,11 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // matches My Dialer's own session
 
 // Bridges the current Highlander session into a My Dialer session so callers
 // never see a second, separate login. My Dialer runs on the coldcalldogs-io
-// codebase behind the "/coldcalldogs" rewrite in next.config.ts, so a cookie
-// set here with path "/coldcalldogs" rides along on the redirect below and
-// every request after it, all on the highlanderrei.com origin.
+// codebase behind the "/admin/dialer/app" rewrite in next.config.ts, so a
+// cookie set here with path "/admin/dialer/app" rides along on the redirect
+// below and every request after it, all on the highlanderrei.com origin.
+// (proxy.ts has explicit bypasses so Telnyx's webhooks and this app's own
+// login/logout still work without an hlr_admin_session cookie.)
 export async function GET(request: Request) {
   const session = await requireUser();
   const dialerUrl = process.env.COLD_CALL_DOGS_URL;
@@ -43,9 +45,9 @@ export async function GET(request: Request) {
 
   const { token } = (await response.json()) as { token: string };
 
-  const redirectResponse = NextResponse.redirect(new URL("/coldcalldogs/dialer", request.url));
+  const redirectResponse = NextResponse.redirect(new URL("/admin/dialer/app/dialer", request.url));
   redirectResponse.cookies.set("ccd_session", token, {
-    path: "/coldcalldogs",
+    path: "/admin/dialer/app",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
