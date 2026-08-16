@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { moveOfferStage, scheduleOfferFollowUp } from "./actions";
+import { STAGE_LABELS, type PipelineStage } from "./pipeline";
 import styles from "./offers.module.css";
 
-export type PipelineStage = "offer_made" | "accepted" | "signed" | "closed" | "referral";
+export type { PipelineStage };
 
 export type PipelineOffer = {
   id: string;
@@ -26,11 +27,11 @@ export type PipelineOffer = {
 };
 
 const STAGES: { key: PipelineStage; label: string; nextAction: string; color: string }[] = [
-  { key: "offer_made", label: "Offer Made", nextAction: "Confirm seller acceptance", color: "#6b7a90" },
-  { key: "accepted", label: "Offer Accepted", nextAction: "Collect all signatures", color: "#2563eb" },
-  { key: "signed", label: "Signed", nextAction: "Coordinate closing", color: "#7c3aed" },
-  { key: "closed", label: "Closed", nextAction: "Ask for a referral", color: "#0f8a62" },
-  { key: "referral", label: "Referral Network", nextAction: "Nurture the relationship", color: "#c27918" },
+  { key: "offer_made", label: STAGE_LABELS.offer_made, nextAction: "Confirm seller acceptance", color: "#111110" },
+  { key: "accepted", label: STAGE_LABELS.accepted, nextAction: "Collect all signatures", color: "#111110" },
+  { key: "signed", label: STAGE_LABELS.signed, nextAction: "Coordinate closing", color: "#111110" },
+  { key: "closed", label: STAGE_LABELS.closed, nextAction: "Ask for a referral", color: "#111110" },
+  { key: "referral", label: STAGE_LABELS.referral, nextAction: "Nurture the relationship", color: "#111110" },
 ];
 
 const TYPE_LABELS: Record<string, string> = {

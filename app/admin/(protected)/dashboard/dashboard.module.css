@@ -1,0 +1,29 @@
+.shell { min-height: calc(100vh - 56px); background: #f8f7f4; color: #111110; padding-bottom: 28px; }
+.header { min-height: 78px; padding: 18px 28px 14px; background: #fff; border-bottom: 1px solid #e8e7e2; }
+.header h1 { margin: 0; font-family: var(--font-display), serif; font-size: 31px; letter-spacing: 1.2px; color: #111110; }
+.header p { margin: 4px 0 0; color: #8a8a84; font-size: 12px; }
+
+.content { padding: 24px 28px; }
+
+.statGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+.statCard { padding: 16px; border: 1px solid #e8e7e2; border-radius: 6px; background: #fff; }
+.statValue { font-size: 24px; font-weight: 800; color: #111110; }
+.statLabel { margin-top: 4px; font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .6px; color: #8a8a84; }
+
+.wideCard { padding: 16px; border: 1px solid #e8e7e2; border-radius: 6px; background: #fff; margin-bottom: 16px; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.panel { padding: 16px; border: 1px solid #e8e7e2; border-radius: 6px; background: #fff; }
+.panelTitle { margin: 0 0 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8a8a84; }
+
+.list { display: flex; flex-direction: column; gap: 10px; }
+.listRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12.5px; }
+.listRow a { color: #111110; font-weight: 700; text-decoration: none; }
+.listRow a:hover { text-decoration: underline; text-decoration-color: rgba(17,17,16,.3); text-underline-offset: 3px; }
+.listMeta { color: #8a8a84; font-size: 11px; white-space: nowrap; }
+.empty { color: #8a8a84; font-size: 12px; }
+
+@media (max-width: 900px) {
+  .statGrid { grid-template-columns: repeat(2, 1fr); }
+  .grid2 { grid-template-columns: 1fr; }
+}

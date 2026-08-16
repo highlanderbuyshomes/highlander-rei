@@ -32,7 +32,7 @@ export default function AdminMobileNav({
         <div className="admin-mobile-drawer-overlay" onClick={() => setOpen(false)}>
           <nav className="admin-mobile-drawer" onClick={(e) => e.stopPropagation()} aria-label="Admin navigation">
             <div className="admin-mobile-drawer-header">
-              <Link href={role === "caller" ? "/admin/dialer" : "/admin/search"} onClick={() => setOpen(false)} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "15px", letterSpacing: "3px", color: "#111110", textDecoration: "none" }}>
+              <Link href={role === "caller" ? "/admin/dialer" : "/admin/dashboard"} onClick={() => setOpen(false)} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "15px", letterSpacing: "3px", color: "#111110", textDecoration: "none" }}>
                 HIGHLANDER REI
               </Link>
               <button onClick={() => setOpen(false)} aria-label="Close navigation" style={{ background: "none", border: "none", color: "#8a8a84", cursor: "pointer", padding: "4px" }}>

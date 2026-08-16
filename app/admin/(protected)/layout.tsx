@@ -34,7 +34,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         top: 0,
         zIndex: 50,
       }}>
-        <Link href={role === "caller" ? "/admin/dialer" : "/admin/search"} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#111110", textDecoration: "none" }}>
+        <Link href={role === "caller" ? "/admin/dialer" : "/admin/dashboard"} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#111110", textDecoration: "none" }}>
           HIGHLANDER REI
         </Link>
         <AdminProfileMenu logoutAction={logout} />
