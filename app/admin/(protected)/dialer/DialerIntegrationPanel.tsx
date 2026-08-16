@@ -79,7 +79,7 @@ export default function DialerIntegrationPanel({
         >
           {isPending ? "Dispatching…" : "Send pending assignments"}
         </button>
-        <a href="/admin/dialer/launch" style={{ color: "#1f5c9e", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}>
+        <a href="/admin/dialer/launch" style={{ color: "#111110", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}>
           Open My Dialer →
         </a>
       </div>
