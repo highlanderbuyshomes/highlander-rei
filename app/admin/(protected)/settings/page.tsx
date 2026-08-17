@@ -34,7 +34,6 @@ export default async function SettingsPage({
     short: "New password must be at least 8 characters.",
     wrong: "Current password is incorrect.",
     invalid: "Name, email, and an 8+ character password are required.",
-    exists: "Someone with that email already has an account.",
   };
 
   return (
@@ -91,7 +90,7 @@ export default async function SettingsPage({
         <>
           {params.success && (
             <div style={{ background: "#eaf6f0", border: "1px solid #b8dfc8", borderRadius: "8px", padding: "12px 16px", fontSize: "13px", color: "#3a7a50", marginBottom: "20px" }}>
-              Account created.
+              {params.success === "reset" ? "Password reset — that account can log in with the new password now." : "Account created."}
             </div>
           )}
           {params.error && (
@@ -104,7 +103,7 @@ export default async function SettingsPage({
             <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ fontFamily: "var(--font-display), serif", fontSize: "16px", color: "#111110", letterSpacing: "1px" }}>ADD TEAM MEMBER</div>
               <div style={{ fontSize: "13px", color: "#8a8a84", marginTop: "-8px" }}>
-                Callers only get access to the Dialer — everything else here stays admin-only.
+                Callers only get access to the Dialer — everything else here stays admin-only. Reusing an existing email resets that account&apos;s password instead of creating a new one.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                 <div>
