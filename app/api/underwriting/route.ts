@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/session";
+import { requireAdminApi } from "@/lib/session";
 
 const BASE = "https://www.chatarv.ai/api/public";
 
@@ -11,7 +11,7 @@ function apiKey() {
 
 // POST /api/underwriting — start async comp analysis, return requestRunId
 export async function POST(req: NextRequest) {
-  if (!(await verifySession())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
 // GET /api/underwriting?id=xxx — poll for result
 export async function GET(req: NextRequest) {
-  if (!(await verifySession())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

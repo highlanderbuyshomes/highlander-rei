@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/session";
+import { requireAdminApi } from "@/lib/session";
 import { syncIHomeFinderListings } from "@/lib/integrations/ihomefinder-sync";
 
 export async function POST(req: NextRequest) {
-  if (!(await verifySession())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

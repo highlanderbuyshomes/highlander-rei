@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/session";
+import { requireAdminApi } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 function escapeCell(val: string): string {
@@ -16,7 +16,7 @@ function cell(val: unknown): string {
 }
 
 export async function GET(req: NextRequest) {
-  if (!(await verifySession())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -49,14 +49,18 @@ export default function AdminMobileNav({
               );
             })}
 
-            <div className="admin-mobile-drawer-divider" />
+            {role !== "caller" && (
+              <>
+                <div className="admin-mobile-drawer-divider" />
 
-            <Link href="/admin/contacts" onClick={() => setOpen(false)}>
-              <span>Contacts</span>
-            </Link>
-            <Link href="/admin/leads" onClick={() => setOpen(false)}>
-              <span>Leads</span>
-            </Link>
+                <Link href="/admin/contacts" onClick={() => setOpen(false)}>
+                  <span>Contacts</span>
+                </Link>
+                <Link href="/admin/leads" onClick={() => setOpen(false)}>
+                  <span>Leads</span>
+                </Link>
+              </>
+            )}
 
             <form action={logoutAction}>
               <button type="submit" className="admin-mobile-drawer-signout">

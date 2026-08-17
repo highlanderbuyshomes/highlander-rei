@@ -69,3 +69,12 @@ export async function requireUser(): Promise<SessionPayload> {
   if (!session) redirect("/admin/login");
   return session;
 }
+
+// Admin-only API routes. Unlike requireAdmin(), this can't redirect() — a
+// fetch() call needs a JSON response, not a 3xx to a login page — so it
+// returns the session or null and lets the caller respond itself.
+export async function requireAdminApi(): Promise<SessionPayload | null> {
+  const session = await getSessionUser();
+  if (!session || session.role !== "admin") return null;
+  return session;
+}

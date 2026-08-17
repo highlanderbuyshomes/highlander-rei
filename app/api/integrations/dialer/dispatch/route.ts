@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/session";
+import { requireAdminApi } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 function normalizePhone(value: string): string | null {
@@ -10,7 +10,7 @@ function normalizePhone(value: string): string | null {
 }
 
 export async function POST(request: Request) {
-  if (!(await verifySession())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

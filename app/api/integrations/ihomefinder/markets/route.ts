@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/session";
+import { requireAdminApi } from "@/lib/session";
 import { fetchMarkets, fetchSavedSearches, fetchListingCount, type IHomeFinderMarket, type IHomeFinderSavedSearch } from "@/lib/integrations/ihomefinder";
 
 async function withCounts<T extends { id: string | number }>(
@@ -15,7 +15,7 @@ async function withCounts<T extends { id: string | number }>(
 }
 
 export async function GET() {
-  if (!(await verifySession())) {
+  if (!(await requireAdminApi())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

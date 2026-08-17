@@ -1,4 +1,4 @@
-import { verifySession } from "@/lib/session";
+import { requireAdminApi } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { NextRequest, NextResponse } from "next/server";
@@ -6,7 +6,7 @@ import { createElement } from "react";
 import AgreementPDF from "@/app/admin/(protected)/agreements/AgreementPDF";
 
 export async function GET(req: NextRequest) {
-  const ok = await verifySession();
+  const ok = await requireAdminApi();
   if (!ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const id = req.nextUrl.searchParams.get("id");
