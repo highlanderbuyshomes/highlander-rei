@@ -49,11 +49,11 @@ export default function ResoSyncPanel({ configured }: { configured: boolean }) {
 
       {!configured ? (
         <div style={{ fontSize: "11px", color: "#946200", marginBottom: "16px", lineHeight: 1.6, background: "#fff7e6", border: "1px solid #ead18a", borderRadius: "8px", padding: "12px 14px" }}>
-          Not configured yet. Add <code>RESO_API_URL</code>, <code>RESO_TOKEN_URL</code>, <code>RESO_CLIENT_ID</code>, and <code>RESO_CLIENT_SECRET</code> to <code>.env.local</code> (never entered here) — ask your MLS/RESO platform (ARMLS Spark, Trestle, or Bridge) for these values.
+          Not configured yet. Add <code>RESO_ACCESS_TOKEN</code> (the non-expiring access token from ARMLS/Spark) to <code>.env.local</code> — never entered here. The Spark feed&apos;s OAuth key isn&apos;t needed for requests. Only set <code>RESO_API_URL</code> too if ARMLS gives you a different base URL than Spark&apos;s standard one.
         </div>
       ) : (
         <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "16px", lineHeight: 1.6 }}>
-          Uses <code>RESO_API_URL</code>, <code>RESO_TOKEN_URL</code>, <code>RESO_CLIENT_ID</code>, and <code>RESO_CLIENT_SECRET</code> set as environment variables — not entered here.
+          Uses <code>RESO_ACCESS_TOKEN</code> set as an environment variable — not entered here.
         </div>
       )}
 

@@ -1,7 +1,10 @@
-// RESO Web API client (OAuth2 client_credentials + OData), built against the
-// RESO Data Dictionary standard so it works against any RESO-compliant MLS
-// platform (ARMLS/Spark, Trestle, Bridge Interactive, ...) — only the four
-// RESO_* env vars change between platforms, not this code.
+// RESO Web API client for ARMLS's Spark (FBS) platform.
+//
+// Spark's auth model (confirmed via sparkplatform.com/docs/authentication/access_token,
+// 2026-09-18) is a static, non-expiring Access Token sent as a Bearer header —
+// there is no OAuth2 client_credentials token exchange, unlike some other RESO
+// platforms (Trestle, Bridge). The separately-issued "OAuth key" is Spark's
+// feed identifier, not a request credential; it isn't sent on requests.
 
 export type ResoListing = {
   ListingKey: string;
@@ -48,8 +51,10 @@ export type ResoListing = {
   [key: string]: unknown;
 };
 
-type TokenCache = { accessToken: string; expiresAt: number };
-let tokenCache: TokenCache | null = null;
+// Spark's documented RESO OData base URL (sparkplatform.com/docs/reso/overview) —
+// a fixed public endpoint, not account-specific, so this needs no override
+// unless ARMLS says otherwise. Version/2 also exists; this uses the newer Version/3.
+const DEFAULT_API_URL = "https://replication.sparkapi.com/Version/3/Reso/OData";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -58,50 +63,11 @@ function requireEnv(name: string): string {
 }
 
 export function isResoConfigured(): boolean {
-  return Boolean(
-    process.env.RESO_API_URL &&
-    process.env.RESO_TOKEN_URL &&
-    process.env.RESO_CLIENT_ID &&
-    process.env.RESO_CLIENT_SECRET,
-  );
-}
-
-async function getAccessToken(): Promise<string> {
-  if (tokenCache && tokenCache.expiresAt > Date.now() + 30_000) {
-    return tokenCache.accessToken;
-  }
-
-  const tokenUrl = requireEnv("RESO_TOKEN_URL");
-  const clientId = requireEnv("RESO_CLIENT_ID");
-  const clientSecret = requireEnv("RESO_CLIENT_SECRET");
-
-  const res = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: clientId,
-      client_secret: clientSecret,
-      scope: "api",
-    }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`RESO token request failed: ${res.status} ${res.statusText} — ${body.slice(0, 500)}`);
-  }
-
-  const data = (await res.json()) as { access_token: string; expires_in?: number };
-  tokenCache = {
-    accessToken: data.access_token,
-    expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
-  };
-  return tokenCache.accessToken;
+  return Boolean(process.env.RESO_ACCESS_TOKEN);
 }
 
 async function resoFetch(url: string): Promise<{ value: ResoListing[]; nextLink: string | null }> {
-  const token = await getAccessToken();
+  const token = requireEnv("RESO_ACCESS_TOKEN");
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     cache: "no-store",
@@ -149,7 +115,7 @@ const MAX_PAGES = 100; // safety cap: 20,000 listings per sync run
  * `@odata.nextLink` pagination until exhausted or the safety cap is hit.
  */
 export async function fetchAllResoListings(opts: { zips?: string[]; cities?: string[]; statuses?: string[] } = {}): Promise<ResoListing[]> {
-  const apiUrl = requireEnv("RESO_API_URL");
+  const apiUrl = process.env.RESO_API_URL || DEFAULT_API_URL;
   const filter = buildFilter(opts);
 
   let url = `${apiUrl.replace(/\/$/, "")}/Property?$filter=${encodeURIComponent(filter)}&$top=${PAGE_SIZE}`;
