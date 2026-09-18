@@ -99,13 +99,32 @@ function buildFilter(opts: { zips?: string[]; cities?: string[]; statuses?: stri
 
   const zipList = zips.map((z) => `'${z}'`).join(",");
   const cityList = cities.map((c) => `'${c.replace(/'/g, "''")}'`).join(",");
-  const statusList = statuses.map((s) => `'${s.replace(/'/g, "''")}'`).join(",");
-
   const areaFilter = `(PostalCode in (${zipList}) or City in (${cityList}))`;
-  const statusFilter = `StandardStatus in (${statusList})`;
+
+  // Active/Pending/Under-Contract listings are inherently bounded (can't
+  // accumulate forever), but Closed has no natural ceiling — without a date
+  // bound this pulls every historical sale ever recorded for the area,
+  // which is both far more than Deal Search needs for comps and slow enough
+  // to risk a function timeout. Bound Closed to a recent window instead.
+  const liveStatuses = statuses.filter((s) => s !== "Closed");
+  const includesClosed = statuses.includes("Closed");
+
+  const clauses: string[] = [];
+  if (liveStatuses.length) {
+    const list = liveStatuses.map((s) => `'${s.replace(/'/g, "''")}'`).join(",");
+    clauses.push(`StandardStatus in (${list})`);
+  }
+  if (includesClosed) {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - CLOSED_LOOKBACK_MONTHS);
+    clauses.push(`(StandardStatus eq 'Closed' and CloseDate ge ${cutoff.toISOString()})`);
+  }
+  const statusFilter = clauses.length > 1 ? `(${clauses.join(" or ")})` : clauses[0];
+
   return `${areaFilter} and ${statusFilter}`;
 }
 
+const CLOSED_LOOKBACK_MONTHS = 12;
 const PAGE_SIZE = 200;
 const MAX_PAGES = 100; // safety cap: 20,000 listings per sync run
 
