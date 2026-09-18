@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { fetchResoListingPages, type ResoListing } from "./reso";
+import { fetchResoListingPages, type ResoListing, type ResoScopeOpts } from "./reso";
 
 export type ResoSyncResult = {
   importRunId: string;
@@ -33,31 +33,28 @@ async function findOrCreateAgent(listing: ResoListing) {
   const mlsId = listing.ListAgentKey;
   if (!mlsId && !listing.ListAgentFullName) return null;
 
-  if (mlsId) {
-    const existing = await prisma.mlsAgent.findUnique({ where: { mlsId } });
-    if (existing) return existing;
-  }
+  const data = {
+    fullName: listing.ListAgentFullName ?? null,
+    email: listing.ListAgentEmail ?? null,
+    phone: listing.ListAgentDirectPhone ?? null,
+    brokerageName: listing.ListOfficeName ?? null,
+    rawJson: { source: "reso-listing-agent-field", ListAgentKey: mlsId ?? null },
+  };
 
-  return prisma.mlsAgent.create({
-    data: {
-      mlsId: mlsId ?? null,
-      fullName: listing.ListAgentFullName ?? null,
-      email: listing.ListAgentEmail ?? null,
-      phone: listing.ListAgentDirectPhone ?? null,
-      brokerageName: listing.ListOfficeName ?? null,
-      rawJson: { source: "reso-listing-agent-field", ListAgentKey: mlsId ?? null },
-    },
-  });
+  // Pages are processed concurrently, and the same agent commonly lists
+  // several properties in one page — a find-then-create here races: two
+  // listings can both see "no existing agent" and both try to create it.
+  // upsert is atomic at the DB level, so it can't race the same way.
+  if (mlsId) {
+    return prisma.mlsAgent.upsert({ where: { mlsId }, create: { mlsId, ...data }, update: data });
+  }
+  return prisma.mlsAgent.create({ data: { mlsId: null, ...data } });
 }
 
 async function upsertProperty(listing: ResoListing, importRunId: string) {
   const streetAddress = formatStreetAddress(listing);
   const zip = listing.PostalCode ?? "";
   const fingerprint = zip ? normalizeAddressFingerprint(streetAddress, zip) : null;
-
-  const existing = fingerprint
-    ? await prisma.property.findUnique({ where: { addressFingerprint: fingerprint } })
-    : null;
 
   const data = {
     addressFingerprint: fingerprint,
@@ -82,9 +79,22 @@ async function upsertProperty(listing: ResoListing, importRunId: string) {
     lastRefreshedAt: new Date(),
   };
 
-  if (existing) {
-    const updated = await prisma.property.update({ where: { id: existing.id }, data });
-    return { property: updated, created: false };
+  // Pages are processed concurrently; two listings for the same address
+  // (a relisted property under a new MLS number is common) can otherwise
+  // both see "no existing property" in a find-then-create race. upsert on
+  // the fingerprint is atomic, so it can't hit that race — a plain create
+  // is the only option left when there's no zip to fingerprint against.
+  if (fingerprint) {
+    let created = false;
+    const property = await prisma.property.upsert({
+      where: { addressFingerprint: fingerprint },
+      create: { ...data, importRunId },
+      update: data,
+    }).then((p) => {
+      created = p.createdAt.getTime() === p.updatedAt.getTime();
+      return p;
+    });
+    return { property, created };
   }
 
   const created = await prisma.property.create({ data: { ...data, importRunId } });
@@ -125,7 +135,7 @@ async function upsertListing(listing: ResoListing, propertyId: string, agentId: 
  * buy-box matcher already read from. Deterministic mapping only: no AI/LLM
  * touches this data, consistent with the standing ARMLS compliance decision.
  */
-export async function syncResoListings(opts: { zips?: string[]; cities?: string[]; statuses?: string[] } = {}): Promise<ResoSyncResult> {
+export async function syncResoListings(opts: ResoScopeOpts = {}): Promise<ResoSyncResult> {
   const importRun = await prisma.importRun.create({
     data: { source: "reso", status: "running", startedAt: new Date() },
   });

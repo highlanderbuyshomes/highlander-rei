@@ -92,7 +92,19 @@ export const DEFAULT_SERVICE_AREA_CITIES = ["Scottsdale", "Paradise Valley"];
 
 export const DEFAULT_STATUSES = ["Active", "Active Under Contract", "Pending", "Closed"];
 
-function buildFilter(opts: { zips?: string[]; cities?: string[]; statuses?: string[] }): string {
+export type ResoScopeOpts = {
+  zips?: string[];
+  cities?: string[];
+  statuses?: string[];
+  /** ISO date-time strings bounding the Closed clause (inclusive/exclusive).
+   *  Defaults to the last CLOSED_LOOKBACK_MONTHS when omitted. Callers chunk
+   *  a large Closed pull into windows (e.g. one calendar month each) to keep
+   *  each request well under the serverless function's time limit. */
+  closedAfter?: string;
+  closedBefore?: string;
+};
+
+function buildFilter(opts: ResoScopeOpts): string {
   const zips = opts.zips ?? DEFAULT_SERVICE_AREA_ZIPS;
   const cities = opts.cities ?? DEFAULT_SERVICE_AREA_CITIES;
   const statuses = opts.statuses ?? DEFAULT_STATUSES;
@@ -103,9 +115,9 @@ function buildFilter(opts: { zips?: string[]; cities?: string[]; statuses?: stri
 
   // Active/Pending/Under-Contract listings are inherently bounded (can't
   // accumulate forever), but Closed has no natural ceiling — without a date
-  // bound this pulls every historical sale ever recorded for the area,
-  // which is both far more than Deal Search needs for comps and slow enough
-  // to risk a function timeout. Bound Closed to a recent window instead.
+  // bound this pulls every historical sale ever recorded for the area. A
+  // full year of Closed sales across whole cities is itself too much for
+  // one request, so callers chunk it into windows via closedAfter/Before.
   const liveStatuses = statuses.filter((s) => s !== "Closed");
   const includesClosed = statuses.includes("Closed");
 
@@ -115,9 +127,15 @@ function buildFilter(opts: { zips?: string[]; cities?: string[]; statuses?: stri
     clauses.push(`StandardStatus in (${list})`);
   }
   if (includesClosed) {
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - CLOSED_LOOKBACK_MONTHS);
-    clauses.push(`(StandardStatus eq 'Closed' and CloseDate ge ${cutoff.toISOString()})`);
+    let after = opts.closedAfter;
+    let before = opts.closedBefore;
+    if (!after) {
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - CLOSED_LOOKBACK_MONTHS);
+      after = cutoff.toISOString();
+    }
+    const closedRange = [`CloseDate ge ${after}`, before ? `CloseDate lt ${before}` : null].filter(Boolean).join(" and ");
+    clauses.push(`(StandardStatus eq 'Closed' and ${closedRange})`);
   }
   const statusFilter = clauses.length > 1 ? `(${clauses.join(" or ")})` : clauses[0];
 
@@ -137,7 +155,7 @@ const MAX_PAGES = 100; // safety cap: 20,000 listings per sync run
  * long run shows real progress instead of writing nothing until the very
  * end, and a run that's interrupted still keeps whatever it already wrote.
  */
-export async function* fetchResoListingPages(opts: { zips?: string[]; cities?: string[]; statuses?: string[] } = {}): AsyncGenerator<ResoListing[]> {
+export async function* fetchResoListingPages(opts: ResoScopeOpts = {}): AsyncGenerator<ResoListing[]> {
   const apiUrl = process.env.RESO_API_URL || DEFAULT_API_URL;
   const filter = buildFilter(opts);
 

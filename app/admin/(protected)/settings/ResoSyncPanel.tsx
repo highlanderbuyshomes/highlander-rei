@@ -12,28 +12,82 @@ type SyncResult = {
   errors: { listingNumber: string; message: string }[];
 };
 
+const CLOSED_MONTHS_BACK = 12;
+
+function emptyResult(): SyncResult {
+  return { fetched: 0, propertiesCreated: 0, propertiesUpdated: 0, listingsCreated: 0, listingsUpdated: 0, statusChanges: 0, errors: [] };
+}
+
+function mergeInto(target: SyncResult, part: SyncResult) {
+  target.fetched += part.fetched;
+  target.propertiesCreated += part.propertiesCreated;
+  target.propertiesUpdated += part.propertiesUpdated;
+  target.listingsCreated += part.listingsCreated;
+  target.listingsUpdated += part.listingsUpdated;
+  target.statusChanges += part.statusChanges;
+  target.errors.push(...part.errors);
+}
+
+// One calendar month per window, most recent first — each request stays
+// small enough to comfortably finish inside the serverless time limit even
+// for a full-city scope, instead of one request trying to pull a year of
+// closed sales (and everything else) in a single call.
+function closedMonthWindows(monthsBack: number): { after: string; before: string }[] {
+  const now = new Date();
+  const windows: { after: string; before: string }[] = [];
+  for (let i = 0; i < monthsBack; i++) {
+    const before = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i + 1, 1));
+    const after = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    windows.push({ after: after.toISOString(), before: before.toISOString() });
+  }
+  return windows;
+}
+
 export default function ResoSyncPanel({ configured }: { configured: boolean }) {
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<SyncResult | null>(null);
 
+  async function runChunk(body: Record<string, unknown>): Promise<SyncResult> {
+    const res = await fetch("/api/integrations/reso/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) throw new Error(data?.error ?? `Sync request failed (${res.status})`);
+    return data as SyncResult;
+  }
+
   async function handleSync() {
     setStatus("running");
-    setMessage("Pulling listings from the ARMLS RESO Web API...");
     setResult(null);
+    const aggregate = emptyResult();
 
+    // Split into several small requests instead of one giant one: Active/
+    // Pending/Under-Contract first (bounded, fast), then Closed sales one
+    // calendar month at a time. A broad scope (full cities, a year back)
+    // is too much data for a single request to finish inside the
+    // serverless time limit; chunking keeps each call fast and means one
+    // slow or failed month doesn't lose the rest of the sync.
     try {
-      const res = await fetch("/api/integrations/reso/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Sync failed");
+      setMessage("Syncing active, pending & under-contract listings...");
+      mergeInto(aggregate, await runChunk({ statuses: ["Active", "Active Under Contract", "Pending"] }));
+      setResult({ ...aggregate });
 
-      setResult(data);
+      const windows = closedMonthWindows(CLOSED_MONTHS_BACK);
+      for (let i = 0; i < windows.length; i++) {
+        setMessage(`Syncing closed sales — month ${i + 1} of ${windows.length}...`);
+        try {
+          mergeInto(aggregate, await runChunk({ statuses: ["Closed"], closedAfter: windows[i].after, closedBefore: windows[i].before }));
+        } catch (err) {
+          aggregate.errors.push({ listingNumber: `closed-month-${i + 1}`, message: err instanceof Error ? err.message : String(err) });
+        }
+        setResult({ ...aggregate });
+      }
+
       setStatus("done");
-      setMessage(`Synced ${data.fetched} listings — ${data.propertiesCreated + data.listingsCreated} new, ${data.statusChanges} status change${data.statusChanges === 1 ? "" : "s"}`);
+      setMessage(`Synced ${aggregate.fetched} listings — ${aggregate.propertiesCreated + aggregate.listingsCreated} new, ${aggregate.statusChanges} status change${aggregate.statusChanges === 1 ? "" : "s"}`);
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : String(err));

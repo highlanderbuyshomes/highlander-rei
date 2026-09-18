@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/session";
 import { syncResoListings } from "@/lib/integrations/reso-sync";
-import { isResoConfigured } from "@/lib/integrations/reso";
+import { isResoConfigured, type ResoScopeOpts } from "@/lib/integrations/reso";
 
 export async function POST(req: NextRequest) {
   if (!(await requireAdminApi())) {
@@ -10,12 +10,12 @@ export async function POST(req: NextRequest) {
 
   if (!isResoConfigured()) {
     return NextResponse.json(
-      { error: "RESO_API_URL, RESO_TOKEN_URL, RESO_CLIENT_ID, and RESO_CLIENT_SECRET must all be set" },
+      { error: "RESO_ACCESS_TOKEN must be set" },
       { status: 400 },
     );
   }
 
-  let body: { zips?: string[]; cities?: string[]; statuses?: string[] } = {};
+  let body: ResoScopeOpts = {};
   try {
     body = await req.json();
   } catch {
