@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { fetchAllResoListings, type ResoListing } from "./reso";
+import { fetchResoListingPages, type ResoListing } from "./reso";
 
 export type ResoSyncResult = {
   importRunId: string;
@@ -142,44 +142,56 @@ export async function syncResoListings(opts: { zips?: string[]; cities?: string[
   };
 
   try {
-    const listings = await fetchAllResoListings(opts);
-    result.fetched = listings.length;
+    for await (const page of fetchResoListingPages(opts)) {
+      result.fetched += page.length;
 
-    for (const listing of listings) {
-      try {
-        const { property, created: propertyCreated } = await upsertProperty(listing, importRun.id);
-        propertyCreated ? result.propertiesCreated++ : result.propertiesUpdated++;
+      // Listings within a page touch distinct properties, so writing them
+      // concurrently is safe and cuts wall-clock time dominated by DB
+      // round-trips; pages themselves stay sequential (RESO's pagination
+      // is inherently serial via @odata.nextLink).
+      await Promise.all(page.map(async (listing) => {
+        try {
+          const { property, created: propertyCreated } = await upsertProperty(listing, importRun.id);
+          propertyCreated ? result.propertiesCreated++ : result.propertiesUpdated++;
 
-        const agent = await findOrCreateAgent(listing);
+          const agent = await findOrCreateAgent(listing);
 
-        const { listing: mlsListing, created: listingCreated, previousStatus } = await upsertListing(
-          listing,
-          property.id,
-          agent?.id ?? null,
-          importRun.id,
-        );
-        listingCreated ? result.listingsCreated++ : result.listingsUpdated++;
+          const { listing: mlsListing, created: listingCreated, previousStatus } = await upsertListing(
+            listing,
+            property.id,
+            agent?.id ?? null,
+            importRun.id,
+          );
+          listingCreated ? result.listingsCreated++ : result.listingsUpdated++;
 
-        const newStatus = listing.StandardStatus ?? null;
-        if (!listingCreated && previousStatus !== newStatus && newStatus != null) {
-          await prisma.listingStatusEvent.create({
-            data: {
-              listingId: mlsListing.id,
-              fromStatus: previousStatus,
-              toStatus: newStatus,
-              source: "reso",
-              changedAt: new Date(),
-              rawJson: listing as object,
-            },
+          const newStatus = listing.StandardStatus ?? null;
+          if (!listingCreated && previousStatus !== newStatus && newStatus != null) {
+            await prisma.listingStatusEvent.create({
+              data: {
+                listingId: mlsListing.id,
+                fromStatus: previousStatus,
+                toStatus: newStatus,
+                source: "reso",
+                changedAt: new Date(),
+                rawJson: listing as object,
+              },
+            });
+            result.statusChanges++;
+          }
+        } catch (err) {
+          result.errors.push({
+            listingNumber: listing.ListingId ?? listing.ListingKey,
+            message: err instanceof Error ? err.message : String(err),
           });
-          result.statusChanges++;
         }
-      } catch (err) {
-        result.errors.push({
-          listingNumber: listing.ListingId ?? listing.ListingKey,
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
+      }));
+
+      // Persist progress after every page so a long run is visible and a
+      // partial/interrupted run still reflects real, saved work.
+      await prisma.importRun.update({
+        where: { id: importRun.id },
+        data: { itemCount: result.fetched, rawMeta: { ...result, errors: result.errors.slice(0, 50) } },
+      });
     }
 
     await prisma.importRun.update({

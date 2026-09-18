@@ -129,23 +129,24 @@ const PAGE_SIZE = 200;
 const MAX_PAGES = 100; // safety cap: 20,000 listings per sync run
 
 /**
- * Pulls every Property-resource listing matching the default (or given)
- * service area + status scope, following RESO's server-driven
- * `@odata.nextLink` pagination until exhausted or the safety cap is hit.
+ * Pulls Property-resource listings matching the default (or given) service
+ * area + status scope, following RESO's server-driven `@odata.nextLink`
+ * pagination, yielding one page at a time instead of buffering the whole
+ * result set. A broad scope (e.g. full cities) can run to thousands of
+ * listings; yielding per page lets the caller persist progressively, so a
+ * long run shows real progress instead of writing nothing until the very
+ * end, and a run that's interrupted still keeps whatever it already wrote.
  */
-export async function fetchAllResoListings(opts: { zips?: string[]; cities?: string[]; statuses?: string[] } = {}): Promise<ResoListing[]> {
+export async function* fetchResoListingPages(opts: { zips?: string[]; cities?: string[]; statuses?: string[] } = {}): AsyncGenerator<ResoListing[]> {
   const apiUrl = process.env.RESO_API_URL || DEFAULT_API_URL;
   const filter = buildFilter(opts);
 
   let url = `${apiUrl.replace(/\/$/, "")}/Property?$filter=${encodeURIComponent(filter)}&$top=${PAGE_SIZE}`;
-  const all: ResoListing[] = [];
 
   for (let page = 0; page < MAX_PAGES; page++) {
     const { value, nextLink } = await resoFetch(url);
-    all.push(...value);
+    yield value;
     if (!nextLink) break;
     url = nextLink;
   }
-
-  return all;
 }
