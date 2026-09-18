@@ -142,34 +142,34 @@ export default function SignerSection({
   const anyUnsent = signers.some(s => !s.emailedAt);
 
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px" }}>
+    <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px" }}>
       {readyToSend && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", background: "#faf6ec", border: "1px solid #e8d9a0", borderRadius: "8px", padding: "14px 16px", marginBottom: "18px" }}>
           <div>
-            <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#111110", marginBottom: "3px" }}>Ready for your review</div>
-            <div style={{ fontSize: "11.5px", color: "#5a5a54", lineHeight: 1.5 }}>
+            <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#12161c", marginBottom: "3px" }}>Ready for your review</div>
+            <div style={{ fontSize: "11.5px", color: "#475569", lineHeight: 1.5 }}>
               {emailEnabled
                 ? "Review the PDF and signer emails, then send the signing links."
                 : "Review the PDF and signer emails. Email delivery must be configured before sending."}
             </div>
           </div>
-          <button onClick={handleSend} disabled={sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0} title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined)} style={{ padding: "9px 18px", background: sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0 ? "#d0cfc8" : "#B8962E", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 700, cursor: sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}>
+          <button onClick={handleSend} disabled={sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0} title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined)} style={{ padding: "9px 18px", background: sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0 ? "#c7d0d8" : "#B8962E", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 700, cursor: sending || !emailEnabled || signers.length === 0 || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}>
             {sending ? "Sending…" : "Send for Signature"}
           </button>
         </div>
       )}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-        <div style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}>
+        <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}>
           Signers {signers.length > 0 && `(${signers.length})`}
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           {signers.length > 0 && anyUnsent && !allSigned && (
-            <button onClick={handleSend} disabled={sending || !emailEnabled || sendBlockedReasons.length > 0} title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined)} style={{ padding: "6px 14px", background: sending || !emailEnabled || sendBlockedReasons.length > 0 ? "#d0cfc8" : "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: sending || !emailEnabled || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}>
+            <button onClick={handleSend} disabled={sending || !emailEnabled || sendBlockedReasons.length > 0} title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure RESEND_API_KEY to enable email delivery" : undefined)} style={{ padding: "6px 14px", background: sending || !emailEnabled || sendBlockedReasons.length > 0 ? "#c7d0d8" : "#12161c", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: sending || !emailEnabled || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}>
               {sending ? "Sending…" : "Send Links"}
             </button>
           )}
           {!adding && (
-            <button onClick={() => setAdding(true)} style={{ padding: "6px 14px", background: "transparent", color: "#111110", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>
+            <button onClick={() => setAdding(true)} style={{ padding: "6px 14px", background: "transparent", color: "#12161c", border: "1px solid #c7d0d8", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>
               + Add Signer
             </button>
           )}
@@ -178,7 +178,7 @@ export default function SignerSection({
 
       {/* Signer list */}
       {signers.length === 0 && !adding && (
-        <div style={{ fontSize: "13px", color: "#8a8a84", textAlign: "center", padding: "16px 0" }}>
+        <div style={{ fontSize: "13px", color: "#64748b", textAlign: "center", padding: "16px 0" }}>
           No signers added yet. Add signers from your contact bank.
         </div>
       )}
@@ -193,16 +193,16 @@ export default function SignerSection({
               <span style={{ fontSize: "11px", fontWeight: 700, color }}>{i + 1}</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{s.name}</div>
+              <div style={{ fontSize: "13px", color: "#12161c", fontWeight: 500 }}>{s.name}</div>
               {editingSignerId === s.id ? (
                 <form onSubmit={(event) => handleEmailUpdate(event, s.id)} style={{ display: "flex", gap: "5px", marginTop: "4px", maxWidth: "360px" }}>
-                  <input name="email" type="email" required value={editEmail} onChange={(event) => setEditEmail(event.target.value)} style={{ flex: 1, minWidth: 0, padding: "5px 7px", border: "1px solid #d0cfc8", borderRadius: "5px", fontSize: "11.5px" }} />
-                  <button type="submit" style={{ padding: "4px 8px", border: 0, borderRadius: "5px", background: "#111110", color: "#fff", fontSize: "10.5px", cursor: "pointer" }}>Save</button>
-                  <button type="button" onClick={() => setEditingSignerId(null)} style={{ padding: "4px 7px", border: "1px solid #d0cfc8", borderRadius: "5px", background: "#fff", color: "#5a5a54", fontSize: "10.5px", cursor: "pointer" }}>Cancel</button>
+                  <input name="email" type="email" required value={editEmail} onChange={(event) => setEditEmail(event.target.value)} style={{ flex: 1, minWidth: 0, padding: "5px 7px", border: "1px solid #c7d0d8", borderRadius: "5px", fontSize: "11.5px" }} />
+                  <button type="submit" style={{ padding: "4px 8px", border: 0, borderRadius: "5px", background: "#12161c", color: "#fff", fontSize: "10.5px", cursor: "pointer" }}>Save</button>
+                  <button type="button" onClick={() => setEditingSignerId(null)} style={{ padding: "4px 7px", border: "1px solid #c7d0d8", borderRadius: "5px", background: "#fff", color: "#475569", fontSize: "10.5px", cursor: "pointer" }}>Cancel</button>
                 </form>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ fontSize: "11.5px", color: "#8a8a84" }}>{s.email}</span>
+                  <span style={{ fontSize: "11.5px", color: "#64748b" }}>{s.email}</span>
                   {!s.signedAt && (
                     <button type="button" onClick={() => { setEditingSignerId(s.id); setEditEmail(s.email); }} style={{ padding: 0, border: 0, background: "transparent", color: "#1a56db", fontSize: "10.5px", cursor: "pointer" }}>Edit email</button>
                   )}
@@ -222,7 +222,7 @@ export default function SignerSection({
                   Sent
                 </span>
               ) : (
-                <span style={{ fontSize: "11px", background: "#f0efeb", color: "#5a5a54", border: "1px solid #d0cfc8", borderRadius: "20px", padding: "2px 8px", fontWeight: 600 }}>
+                <span style={{ fontSize: "11px", background: "#f0efeb", color: "#475569", border: "1px solid #c7d0d8", borderRadius: "20px", padding: "2px 8px", fontWeight: 600 }}>
                   Draft
                 </span>
               )}
@@ -232,7 +232,7 @@ export default function SignerSection({
                   onClick={() => handleSignerSend(s)}
                   disabled={!emailEnabled || sendBlockedReasons.length > 0 || sendingSignerId === s.id}
                   title={sendBlockedReasons[0] ?? (!emailEnabled ? "Configure email delivery first" : undefined)}
-                  style={{ fontSize: "11px", padding: "4px 10px", background: !emailEnabled || sendBlockedReasons.length > 0 ? "#d0cfc8" : "#111110", color: "#fff", border: "none", borderRadius: "5px", cursor: !emailEnabled || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}
+                  style={{ fontSize: "11px", padding: "4px 10px", background: !emailEnabled || sendBlockedReasons.length > 0 ? "#c7d0d8" : "#12161c", color: "#fff", border: "none", borderRadius: "5px", cursor: !emailEnabled || sendBlockedReasons.length > 0 ? "default" : "pointer", fontFamily: "inherit" }}
                 >
                   {sendingSignerId === s.id ? "Sending…" : s.emailedAt ? "Resend" : "Send"}
                 </button>
@@ -240,7 +240,7 @@ export default function SignerSection({
               <button
                 onClick={() => copy(signingUrl, s.id)}
                 title="Copy signing link"
-                style={{ fontSize: "11px", padding: "4px 10px", background: copied === s.id ? "#eaf6f0" : "transparent", color: copied === s.id ? "#3a7a50" : "#5a5a54", border: "1px solid #d0cfc8", borderRadius: "5px", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ fontSize: "11px", padding: "4px 10px", background: copied === s.id ? "#eaf6f0" : "transparent", color: copied === s.id ? "#3a7a50" : "#475569", border: "1px solid #c7d0d8", borderRadius: "5px", cursor: "pointer", fontFamily: "inherit" }}
               >
                 {copied === s.id ? "Copied!" : "Copy Link"}
               </button>
@@ -258,8 +258,8 @@ export default function SignerSection({
 
       {/* Add signer form */}
       {adding && (
-        <div style={{ marginTop: "12px", padding: "16px", background: "#fafaf8", borderRadius: "8px", border: "1px solid #e8e7e2" }}>
-          <div style={{ fontSize: "11px", color: "#5a5a54", fontWeight: 600, letterSpacing: "0.5px", marginBottom: "12px", textTransform: "uppercase" }}>Add Signer</div>
+        <div style={{ marginTop: "12px", padding: "16px", background: "#fafaf8", borderRadius: "8px", border: "1px solid #e1e7ec" }}>
+          <div style={{ fontSize: "11px", color: "#475569", fontWeight: 600, letterSpacing: "0.5px", marginBottom: "12px", textTransform: "uppercase" }}>Add Signer</div>
 
           {/* Contact search */}
           <div style={{ position: "relative", marginBottom: "10px" }}>
@@ -267,14 +267,14 @@ export default function SignerSection({
               value={search}
               onChange={(e) => { setSearch(e.target.value); setSelected(null); }}
               placeholder="Search contacts by name or email…"
-              style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#fff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#fff", color: "#12161c", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
             />
             {filtered.length > 0 && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #d0cfc8", borderTop: "none", borderRadius: "0 0 6px 6px", zIndex: 20, maxHeight: "180px", overflowY: "auto" }}>
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #c7d0d8", borderTop: "none", borderRadius: "0 0 6px 6px", zIndex: 20, maxHeight: "180px", overflowY: "auto" }}>
                 {filtered.map(c => (
                   <button key={c.id} type="button" onClick={() => selectContact(c)} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", background: "transparent", border: "none", borderBottom: "1px solid #f0efeb", cursor: "pointer", fontFamily: "inherit" }}>
-                    <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{c.name}</div>
-                    <div style={{ fontSize: "11px", color: "#8a8a84" }}>{c.email}{c.company ? ` · ${c.company}` : ""}</div>
+                    <div style={{ fontSize: "13px", color: "#12161c", fontWeight: 500 }}>{c.name}</div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>{c.email}{c.company ? ` · ${c.company}` : ""}</div>
                   </button>
                 ))}
               </div>
@@ -288,14 +288,14 @@ export default function SignerSection({
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              <input name="name" required value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Full name *" style={{ padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#fff", color: "#111110", fontFamily: "inherit", outline: "none" }} />
-              <input name="email" type="email" required value={customEmail} onChange={(e) => setCustomEmail(e.target.value)} placeholder="Email *" style={{ padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#fff", color: "#111110", fontFamily: "inherit", outline: "none" }} />
+              <input name="name" required value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Full name *" style={{ padding: "9px 12px", fontSize: "13px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#fff", color: "#12161c", fontFamily: "inherit", outline: "none" }} />
+              <input name="email" type="email" required value={customEmail} onChange={(e) => setCustomEmail(e.target.value)} placeholder="Email *" style={{ padding: "9px 12px", fontSize: "13px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#fff", color: "#12161c", fontFamily: "inherit", outline: "none" }} />
             </div>
             <div style={{ display: "flex", gap: "8px" }}>
-              <button type="submit" style={{ padding: "8px 18px", background: "#111110", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              <button type="submit" style={{ padding: "8px 18px", background: "#12161c", color: "#fff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 Add
               </button>
-              <button type="button" onClick={() => { setAdding(false); setSelected(null); setCustomName(""); setCustomEmail(""); setSearch(""); }} style={{ padding: "8px 14px", background: "transparent", color: "#5a5a54", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12.5px", cursor: "pointer", fontFamily: "inherit" }}>
+              <button type="button" onClick={() => { setAdding(false); setSelected(null); setCustomName(""); setCustomEmail(""); setSearch(""); }} style={{ padding: "8px 14px", background: "transparent", color: "#475569", border: "1px solid #c7d0d8", borderRadius: "6px", fontSize: "12.5px", cursor: "pointer", fontFamily: "inherit" }}>
                 Cancel
               </button>
             </div>

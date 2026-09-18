@@ -240,7 +240,7 @@ export default function GoogleMapStage({
 
   return <div className={styles.realMapShell}>
     <div ref={mapNode} className={styles.realMap} aria-label="Interactive Phoenix property map" />
-    {error && <div className={styles.mapError}><strong>Map unavailable</strong><span>{error}</span></div>}
+    {error && <div className={styles.mapError}><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5c0 1.9-.7 3.7-1.7 5.3" /><circle cx="12" cy="9.5" r="2.5" /><line x1="3" y1="3" x2="21" y2="21" /></svg><strong>Map unavailable</strong><span>{error}</span></div>}
     <div className={styles.mapModeControl}><button type="button" className={mapType === "roadmap" ? styles.mapModeActive : ""} onClick={() => setMapType("roadmap")}>Map</button><button type="button" className={mapType === "satellite" ? styles.mapModeActive : ""} onClick={() => setMapType("satellite")}>Satellite</button></div>
     <div className={styles.shapeToolbar} aria-label="Map area drawing tools">
       <button type="button" className={drawingMode === "pan" ? styles.shapeToolActive : ""} onClick={() => stopDrawing()} title="Pan map"><span className={styles.handIcon}>✋</span><small>Pan</small></button>

@@ -28,9 +28,9 @@ export default function TemplateRow({
       {/* Main row */}
       <div className="admin-workspace-table-row template-main-row" style={{ display: "grid", gridTemplateColumns: "1.4fr 1.8fr 110px 1fr", padding: "16px 24px", alignItems: "center", background: "#ffffff" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ color: "#8a8a84" }}>{icon}</span>
+          <span style={{ color: "#64748b" }}>{icon}</span>
           <div>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>{name}</div>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "#12161c" }}>{name}</div>
             {updatedAt && (
               <div style={{ fontSize: "10.5px", color: "#aaa", marginTop: "2px" }}>
                 Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
@@ -39,7 +39,7 @@ export default function TemplateRow({
           </div>
         </div>
 
-        <div style={{ fontSize: "12px", color: "#5a5a54", paddingRight: "16px", lineHeight: 1.5 }}>{description}</div>
+        <div style={{ fontSize: "12px", color: "#475569", paddingRight: "16px", lineHeight: 1.5 }}>{description}</div>
 
         <div>
           {ready ? (
@@ -52,7 +52,7 @@ export default function TemplateRow({
               Needs Fields
             </span>
           ) : (
-            <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600, background: "#f0efeb", color: "#8a8a84", border: "1px solid #d0cfc8" }}>
+            <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 600, background: "#f0efeb", color: "#64748b", border: "1px solid #c7d0d8" }}>
               No PDF
             </span>
           )}
@@ -60,17 +60,17 @@ export default function TemplateRow({
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
           {ready ? (
-            <Link href={`/admin/agreements/new?template=${type}`} style={{ fontSize: "12px", fontWeight: 600, color: "#ffffff", textDecoration: "none", padding: "6px 14px", borderRadius: "6px", background: "#111110", whiteSpace: "nowrap" }}>
+            <Link href={`/admin/agreements/new?template=${type}`} style={{ fontSize: "12px", fontWeight: 600, color: "#ffffff", textDecoration: "none", padding: "6px 14px", borderRadius: "6px", background: "#12161c", whiteSpace: "nowrap" }}>
               Use
             </Link>
           ) : null}
-          <Link href={`/admin/agreements/templates/${type}`} style={{ fontSize: "12px", color: "#5a5a54", textDecoration: "none", padding: "6px 12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", whiteSpace: "nowrap" }}>
+          <Link href={`/admin/agreements/templates/${type}`} style={{ fontSize: "12px", color: "#475569", textDecoration: "none", padding: "6px 12px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#ffffff", whiteSpace: "nowrap" }}>
             {hasPdf && fieldCount === 0 ? "Map Fields" : "Edit"}
           </Link>
           <button
             onClick={() => setOpen(o => !o)}
             title={hasPdf ? "View / Replace PDF" : "Upload PDF"}
-            style={{ fontSize: "12px", color: open ? "#B8962E" : "#5a5a54", background: open ? "rgba(184,150,46,0.08)" : "transparent", border: `1px solid ${open ? "rgba(184,150,46,0.35)" : "#d0cfc8"}`, borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "5px" }}
+            style={{ fontSize: "12px", color: open ? "#B8962E" : "#475569", background: open ? "rgba(184,150,46,0.08)" : "transparent", border: `1px solid ${open ? "rgba(184,150,46,0.35)" : "#c7d0d8"}`, borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "5px" }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -91,22 +91,22 @@ export default function TemplateRow({
             </a>
           )}
           <div style={{ flex: 1 }}>
-            <label style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 600 }}>
+            <label style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 600 }}>
               {hasPdf ? "Replace PDF" : "Upload PDF"}
             </label>
-            <input name="pdfFile" type="file" accept="application/pdf" required style={{ width: "100%", padding: "7px 10px", fontSize: "12px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", outline: "none", fontFamily: "inherit" }} />
+            <input name="pdfFile" type="file" accept="application/pdf" required style={{ width: "100%", padding: "7px 10px", fontSize: "12px", color: "#12161c", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "6px", outline: "none", fontFamily: "inherit" }} />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 600 }}>
+            <label style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 600 }}>
               Notes (optional)
             </label>
-            <input name="description" defaultValue={currentDescription} placeholder="Internal notes…" style={{ width: "100%", padding: "7px 10px", fontSize: "12px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", outline: "none", fontFamily: "inherit" }} />
+            <input name="description" defaultValue={currentDescription} placeholder="Internal notes…" style={{ width: "100%", padding: "7px 10px", fontSize: "12px", color: "#12161c", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "6px", outline: "none", fontFamily: "inherit" }} />
           </div>
           <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
             <button type="submit" style={{ padding: "8px 18px", background: "#B8962E", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
               Save
             </button>
-            <button type="button" onClick={() => setOpen(false)} style={{ padding: "8px 14px", background: "transparent", color: "#8a8a84", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>
+            <button type="button" onClick={() => setOpen(false)} style={{ padding: "8px 14px", background: "transparent", color: "#64748b", border: "1px solid #c7d0d8", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>
               Cancel
             </button>
           </div>

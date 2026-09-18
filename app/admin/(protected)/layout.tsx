@@ -24,7 +24,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
       <header className="admin-header" style={{
         background: "#ffffff",
-        borderBottom: "1px solid #e8e7e2",
+        borderBottom: "1px solid #e4e9ed",
+        boxShadow: "0 1px 2px rgba(15,23,32,.03)",
         padding: "0 28px",
         height: "56px",
         display: "flex",
@@ -34,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         top: 0,
         zIndex: 50,
       }}>
-        <Link href={role === "caller" ? "/admin/dialer" : "/admin/dashboard"} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#111110", textDecoration: "none" }}>
+        <Link href={role === "caller" ? "/admin/dialer" : "/admin/dashboard"} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#12161c", textDecoration: "none" }}>
           HIGHLANDER REI
         </Link>
         <AdminProfileMenu logoutAction={logout} />
@@ -42,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <div style={{ display: "flex" }}>
         <AdminSidebar role={role} />
-        <div className="admin-content-wrap" style={{ background: "#f8f7f4", minHeight: "calc(100vh - 56px)", flex: 1, minWidth: 0 }}>
+        <div className="admin-content-wrap" style={{ background: "#f2f5f8", minHeight: "calc(100vh - 56px)", flex: 1, minWidth: 0 }}>
           {children}
         </div>
       </div>

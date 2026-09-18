@@ -14,7 +14,7 @@ const TYPE_COLORS: Record<string, { bg: string; color: string; border: string }>
   investor:   { bg: "rgba(184,150,46,0.1)",  color: "#8a6a10", border: "rgba(184,150,46,0.3)" },
   buyer:      { bg: "#eaf6f0",               color: "#3a7a50", border: "#b8dfc8" },
   agent:      { bg: "rgba(107,70,193,0.08)", color: "#6b46c1", border: "rgba(107,70,193,0.25)" },
-  sell:       { bg: "#f0efeb",               color: "#5a5a54", border: "#d0cfc8" },
+  sell:       { bg: "#f0efeb",               color: "#475569", border: "#c7d0d8" },
 };
 
 function TypeBadge({ type }: { type: string | null }) {
@@ -46,17 +46,17 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     take: 200,
   });
 
-  const inp: React.CSSProperties = { padding: "8px 14px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none" };
+  const inp: React.CSSProperties = { padding: "8px 14px", fontSize: "13px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#ffffff", color: "#12161c", fontFamily: "inherit", outline: "none" };
 
   return (
     <div style={{ maxWidth: "1100px", padding: "32px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
         <div>
-          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#111110", letterSpacing: "2px", lineHeight: 1 }}>LEADS</div>
-          <div style={{ fontSize: "12px", color: "#8a8a84", marginTop: "4px" }}>From highlanderrei.com &amp; highlanderbuyshomes.com</div>
+          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#12161c", letterSpacing: "2px", lineHeight: 1 }}>LEADS</div>
+          <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>From highlanderrei.com &amp; highlanderbuyshomes.com</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#8a8a84" }}>
-          <span style={{ fontWeight: 600, color: "#111110" }}>{leads.length}</span> leads
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#64748b" }}>
+          <span style={{ fontWeight: 600, color: "#12161c" }}>{leads.length}</span> leads
         </div>
       </div>
 
@@ -68,38 +68,38 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <option value="highlander-buys-homes">highlanderbuyshomes.com</option>
         </select>
         <input name="q" defaultValue={q ?? ""} placeholder="Search name, email…" style={{ ...inp, width: "240px" }} />
-        <button type="submit" style={{ ...inp, cursor: "pointer", background: "#111110", color: "#ffffff", border: "1px solid #111110" }}>Search</button>
+        <button type="submit" style={{ ...inp, cursor: "pointer", background: "#12161c", color: "#ffffff", border: "1px solid #12161c" }}>Search</button>
         {(q || source) && (
-          <a href="/admin/leads" style={{ ...inp, color: "#8a8a84", textDecoration: "none", display: "flex", alignItems: "center" }}>✕ Clear</a>
+          <a href="/admin/leads" style={{ ...inp, color: "#64748b", textDecoration: "none", display: "flex", alignItems: "center" }}>✕ Clear</a>
         )}
       </form>
 
       {leads.length === 0 ? (
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "60px 40px", textAlign: "center" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "60px 40px", textAlign: "center" }}>
           <div style={{ fontSize: "40px", marginBottom: "12px" }}>📬</div>
-          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>NO LEADS YET</div>
-          <div style={{ fontSize: "13px", color: "#8a8a84" }}>Leads from your forms will appear here.</div>
+          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#12161c", letterSpacing: "1.5px", marginBottom: "8px" }}>NO LEADS YET</div>
+          <div style={{ fontSize: "13px", color: "#64748b" }}>Leads from your forms will appear here.</div>
         </div>
       ) : (
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.6fr 1fr 100px 100px 120px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.6fr 1fr 100px 100px 120px", padding: "10px 20px", background: "#eef2f6", borderBottom: "1px solid #e1e7ec" }}>
             {["Name", "Email", "Phone", "Type", "Source", "Submitted"].map((h) => (
-              <div key={h} style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}>{h}</div>
+              <div key={h} style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}>{h}</div>
             ))}
           </div>
           {leads.map((lead, i) => (
-            <div key={lead.id} style={{ display: "grid", gridTemplateColumns: "1.8fr 1.6fr 1fr 100px 100px 120px", padding: "13px 20px", borderBottom: i < leads.length - 1 ? "1px solid #e8e7e2" : "none", alignItems: "center" }}>
+            <div key={lead.id} style={{ display: "grid", gridTemplateColumns: "1.8fr 1.6fr 1fr 100px 100px 120px", padding: "13px 20px", borderBottom: i < leads.length - 1 ? "1px solid #e1e7ec" : "none", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{lead.name}</div>
-                {lead.message && <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "240px" }}>{lead.message}</div>}
+                <div style={{ fontSize: "13px", color: "#12161c", fontWeight: 500 }}>{lead.name}</div>
+                {lead.message && <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "240px" }}>{lead.message}</div>}
               </div>
               <div>
                 <a href={`mailto:${lead.email}`} style={{ fontSize: "12.5px", color: "#1a56db", textDecoration: "none" }}>{lead.email}</a>
               </div>
-              <div style={{ fontSize: "12.5px", color: "#5a5a54" }}>{lead.phone ?? "—"}</div>
+              <div style={{ fontSize: "12.5px", color: "#475569" }}>{lead.phone ?? "—"}</div>
               <div><TypeBadge type={lead.type} /></div>
-              <div style={{ fontSize: "11px", color: "#8a8a84" }}>{SOURCE_LABEL[lead.source ?? ""] ?? (lead.source ?? "—")}</div>
-              <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>
+              <div style={{ fontSize: "11px", color: "#64748b" }}>{SOURCE_LABEL[lead.source ?? ""] ?? (lead.source ?? "—")}</div>
+              <div style={{ fontSize: "11.5px", color: "#64748b" }}>
                 {new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </div>
             </div>

@@ -27,3 +27,20 @@
   .statGrid { grid-template-columns: repeat(2, 1fr); }
   .grid2 { grid-template-columns: 1fr; }
 }
+
+/* Sleeker, cooler polish pass — matches Deal Search's treatment */
+.shell { background: #f2f5f8; color: #12161c; }
+.header { background: #fff; border-bottom-color: #e1e7ec; }
+.header h1 { color: #12161c; }
+.header p { color: #64748b; }
+.statCard,
+.wideCard,
+.panel { border-color: #dde4ea; box-shadow: 0 1px 2px rgba(15,23,32,.04), 0 10px 24px -14px rgba(15,23,32,.2); }
+.statValue { color: #12161c; font-variant-numeric: tabular-nums; }
+.statLabel,
+.panelTitle,
+.listMeta,
+.empty { color: #64748b; }
+.listRow a { color: #12161c; }
+.listRow a:hover { text-decoration-color: rgba(18,22,28,.3); }
+.listRow a:focus-visible { outline: 2px solid #12161c; outline-offset: 2px; border-radius: 2px; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { targetProperty } from "./actions";
 import GoogleMapStage from "./GoogleMapStage";
 import styles from "./search.module.css";
@@ -110,7 +110,15 @@ function median(values: number[]) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function scoreDeals(listings: ListingRecord[]): DealCandidate[] {
+const ARV_THRESHOLD_OPTIONS = [70, 75, 80] as const;
+const ARV_THRESHOLD_MIN = 1;
+const ARV_THRESHOLD_MAX = 99;
+
+function clampThreshold(value: number): number {
+  return Math.min(ARV_THRESHOLD_MAX, Math.max(ARV_THRESHOLD_MIN, Math.round(value)));
+}
+
+function scoreDeals(listings: ListingRecord[], threshold: number): DealCandidate[] {
   const ppsfRows = listings.filter((item) => item.listPrice && item.sqft).map((item) => ({
     zip: item.zip,
     type: item.dwellingType,
@@ -126,7 +134,7 @@ function scoreDeals(listings: ListingRecord[]): DealCandidate[] {
     const arv = listing.estimatedArv ?? modeledArv;
     const arvSource: DealCandidate["arvSource"] = listing.estimatedArv ? "Property estimate" : modeledArv ? "Pocket $/sqft model" : "Insufficient data";
     const listToArvPct = listing.listPrice && arv ? (listing.listPrice / arv) * 100 : null;
-    const rule70Price = arv ? arv * 0.7 : null;
+    const rule70Price = arv ? arv * (threshold / 100) : null;
     const rule70Spread = rule70Price != null && listing.listPrice != null ? rule70Price - listing.listPrice : null;
     const ppsfDiscountPct = pricePerSqft && pocketPricePerSqft ? ((pocketPricePerSqft - pricePerSqft) / pocketPricePerSqft) * 100 : null;
     const remarks = listing.remarks?.toLowerCase() ?? "";
@@ -138,9 +146,9 @@ function scoreDeals(listings: ListingRecord[]): DealCandidate[] {
     let score = 0;
 
     if (listToArvPct != null) {
-      if (listToArvPct <= 70) { score += 50 + Math.min(15, 70 - listToArvPct); reasons.push(`${Math.round(listToArvPct)}% of projected ARV`); }
-      else if (listToArvPct <= 80) { score += 32; reasons.push(`${Math.round(listToArvPct)}% of projected ARV`); }
-      else if (listToArvPct <= 90) score += 15;
+      if (listToArvPct <= threshold) { score += 50 + Math.min(15, threshold - listToArvPct); reasons.push(`${Math.round(listToArvPct)}% of projected ARV`); }
+      else if (listToArvPct <= threshold + 10) { score += 32; reasons.push(`${Math.round(listToArvPct)}% of projected ARV`); }
+      else if (listToArvPct <= threshold + 20) score += 15;
     }
     if (ppsfDiscountPct != null && ppsfDiscountPct >= 15) { score += Math.min(16, Math.round(ppsfDiscountPct / 2)); reasons.push(`${Math.round(ppsfDiscountPct)}% below pocket $/sqft`); }
     if (["Expired", "Canceled"].includes(status)) { score += 14; reasons.push(`${status} listing`); }
@@ -151,7 +159,7 @@ function scoreDeals(listings: ListingRecord[]): DealCandidate[] {
     if (priceReductionPct >= 5) { score += 6; reasons.push(`${Math.round(priceReductionPct)}% price reduction`); }
 
     score = Math.min(99, score);
-    const priority: DealCandidate["priority"] = listToArvPct != null && listToArvPct <= 70 ? "Target now" : score >= 65 ? "High" : score >= 38 ? "Watch" : "Low";
+    const priority: DealCandidate["priority"] = listToArvPct != null && listToArvPct <= threshold ? "Target now" : score >= 65 ? "High" : score >= 38 ? "Watch" : "Low";
     return { ...listing, arv, arvSource, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore: score, priority, reasons: reasons.slice(0, 4) };
   }).sort((a, b) => b.dealScore - a.dealScore);
 }
@@ -178,6 +186,7 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
   const [keyword, setKeyword] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [pocketIds, setPocketIds] = useState<string[] | null>(null);
+  const [arvThreshold, setArvThreshold] = useState<number>(70);
 
   const filtered = useMemo(() => {
     const zipValues = zips.split(/[,\s]+/).map((zip) => zip.trim()).filter(Boolean);
@@ -208,7 +217,7 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
   }, [sourceListings, activeCriteria, statuses, closedWithinMonths, priceMin, priceMax, dwellingTypes, bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword]);
 
   const qualified = useMemo(() => pocketIds ? filtered.filter((listing) => pocketIds.includes(listing.id)) : filtered, [filtered, pocketIds]);
-  const dealCandidates = useMemo(() => scoreDeals(qualified), [qualified]);
+  const dealCandidates = useMemo(() => scoreDeals(qualified, arvThreshold), [qualified, arvThreshold]);
   const targetIds = useMemo(() => new Set(dealCandidates.filter((item) => item.priority === "Target now").map((item) => item.id)), [dealCandidates]);
 
   const selected = selectedId ? sourceListings.find((item) => item.id === selectedId) ?? null : null;
@@ -243,7 +252,7 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
   return (
     <main className={styles.shell}>
       <header className={styles.pageHeader}>
-        <div className={styles.searchTitle}><div><h1>Deal Search</h1><p>MLS filters, map pockets, and 70% ARV deal ranking.</p></div></div>
+        <div className={styles.searchTitle}><div><h1>Deal Search</h1><p>MLS filters, map pockets, and {arvThreshold}% ARV deal ranking.</p></div></div>
         <div className={styles.headerTools}>
           <nav className={styles.viewNav} aria-label="Search views">
             {(["map", "list", "detail"] as WorkspaceView[]).map((item) => <button key={item} type="button" className={view === item ? styles.viewActive : ""} onClick={() => setView(item)}>{item.charAt(0).toUpperCase() + item.slice(1)}</button>)}
@@ -276,7 +285,7 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
           {view === "detail" && <ListingDetail listing={selected} />}
         </section>
       </div>
-      <DealIntelligence candidates={dealCandidates} isPreview={isPreview} />
+      <DealIntelligence candidates={dealCandidates} isPreview={isPreview} threshold={arvThreshold} onThresholdChange={setArvThreshold} />
     </main>
   );
 }
@@ -327,15 +336,26 @@ function ListingDetail({ listing }: { listing: ListingRecord | null }) {
 
 function PlaceholderView({ title, detail }: { title: string; detail: string }) { return <div className={styles.placeholder}><strong>{title}</strong><span>{detail}</span></div>; }
 
-function DealIntelligence({ candidates, isPreview }: { candidates: DealCandidate[]; isPreview: boolean }) {
+function DealIntelligence({ candidates, isPreview, threshold, onThresholdChange }: { candidates: DealCandidate[]; isPreview: boolean; threshold: number; onThresholdChange: (value: number) => void }) {
   const [mode, setMode] = useState<"ranked" | "rule70" | "ppsf" | "motivated">("ranked");
+  const [customInput, setCustomInput] = useState(String(threshold));
+  useEffect(() => setCustomInput(String(threshold)), [threshold]);
+
+  function commitCustomThreshold() {
+    const parsed = Number(customInput);
+    if (Number.isFinite(parsed) && customInput.trim() !== "") {
+      onThresholdChange(clampThreshold(parsed));
+    } else {
+      setCustomInput(String(threshold));
+    }
+  }
   const visible = candidates.filter((item) => {
-    if (mode === "rule70") return item.listToArvPct != null && item.listToArvPct <= 70;
+    if (mode === "rule70") return item.listToArvPct != null && item.listToArvPct <= threshold;
     if (mode === "ppsf") return (item.ppsfDiscountPct ?? 0) >= 10;
     if (mode === "motivated") return ["Expired", "Canceled"].includes(normalizeStatus(item.status)) || (item.dom ?? 0) >= 60 || item.reasons.some((reason) => reason.includes("condition"));
     return true;
   });
-  const rule70Count = candidates.filter((item) => item.listToArvPct != null && item.listToArvPct <= 70).length;
+  const rule70Count = candidates.filter((item) => item.listToArvPct != null && item.listToArvPct <= threshold).length;
   const highPriorityCount = candidates.filter((item) => ["Target now", "High"].includes(item.priority)).length;
   const ratios = candidates.map((item) => item.listToArvPct).filter((value): value is number => value != null);
   const averageRatio = ratios.length ? ratios.reduce((sum, value) => sum + value, 0) / ratios.length : null;
@@ -344,25 +364,41 @@ function DealIntelligence({ candidates, isPreview }: { candidates: DealCandidate
   return (
     <section className={styles.dealSection}>
       <header className={styles.dealHeader}>
-        <div><span>Deal Intelligence</span><h2>Rank the properties most likely to become discounted deals</h2><p>The first pass applies the 70% rule, pocket-level price per square foot, listing motivation, condition language, and seller equity. Run the strongest candidates through AI comps before making an offer.</p></div>
-        <div className={styles.dealLegend}><i /> Orange map pins meet the 70% rule</div>
+        <div><span>Deal Intelligence</span><h2>Rank the properties most likely to become discounted deals</h2><p>The first pass applies the {threshold}% rule, pocket-level price per square foot, listing motivation, condition language, and seller equity. Run the strongest candidates through AI comps before making an offer.</p></div>
+        <div className={styles.dealLegend}><i /> Orange map pins meet the {threshold}% rule</div>
       </header>
 
       <div className={styles.dealMetrics}>
-        <div><span>70% rule matches</span><strong>{rule70Count}</strong><small>List price ≤ 70% projected ARV</small></div>
+        <div><span>{threshold}% rule matches</span><strong>{rule70Count}</strong><small>List price ≤ {threshold}% projected ARV</small></div>
         <div><span>Acquisition priority</span><strong>{highPriorityCount}</strong><small>Target now or high priority</small></div>
         <div><span>Average list / ARV</span><strong>{averageRatio == null ? "—" : `${Math.round(averageRatio)}%`}</strong><small>Across current map results</small></div>
-        <div><span>Potential 70% spread</span><strong>{money(totalSpread, true)}</strong><small>Before rehab and closing costs</small></div>
+        <div><span>Potential {threshold}% spread</span><strong>{money(totalSpread, true)}</strong><small>Before rehab and closing costs</small></div>
       </div>
 
       <div className={styles.dealToolbar}>
-        <div>{([['ranked','Best opportunities'],['rule70','70% rule'],['ppsf','Low $/sqft'],['motivated','Motivated']] as const).map(([key, label]) => <button key={key} type="button" className={mode === key ? styles.dealModeActive : ""} onClick={() => setMode(key)}>{label}</button>)}</div>
+        <div>{([['ranked','Best opportunities'],['rule70',`${threshold}% rule`],['ppsf','Low $/sqft'],['motivated','Motivated']] as const).map(([key, label]) => <button key={key} type="button" className={mode === key ? styles.dealModeActive : ""} onClick={() => setMode(key)}>{label}</button>)}</div>
+        <div className={styles.thresholdGroup}>
+          <span>ARV discount</span>
+          {ARV_THRESHOLD_OPTIONS.map((option) => <button key={option} type="button" className={threshold === option ? styles.dealModeActive : ""} onClick={() => onThresholdChange(option)}>{option}%</button>)}
+          <label className={styles.thresholdCustom}>
+            <input
+              type="number"
+              min={ARV_THRESHOLD_MIN}
+              max={ARV_THRESHOLD_MAX}
+              value={customInput}
+              onChange={(event) => setCustomInput(event.target.value)}
+              onBlur={commitCustomThreshold}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); commitCustomThreshold(); } }}
+            />
+            <span>%</span>
+          </label>
+        </div>
         <span>{visible.length} opportunities ranked</span>
       </div>
 
       <div className={styles.dealTableWrap}>
         <table className={styles.dealTable}>
-          <thead><tr><th>Priority</th><th>Property</th><th>Deal score</th><th>% of ARV · 70% threshold</th><th>Why it surfaced</th><th>Action</th></tr></thead>
+          <thead><tr><th>Priority</th><th>Property</th><th>Deal score</th><th>% of ARV · {threshold}% threshold</th><th>Why it surfaced</th><th>Action</th></tr></thead>
           <tbody>{visible.slice(0, 25).map((candidate) => {
             const fullAddress = `${candidate.address}, ${candidate.city}, ${candidate.state} ${candidate.zip}`;
             const canTarget = !isPreview && !candidate.id.startsWith("p");
@@ -371,7 +407,7 @@ function DealIntelligence({ candidates, isPreview }: { candidates: DealCandidate
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
               <td><strong>{candidate.address}</strong><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
-              <td><strong className={(candidate.listToArvPct ?? 100) <= 70 ? styles.ruleMatch : ""}>{candidate.listToArvPct == null ? "—" : `${Math.round(candidate.listToArvPct)}%`}</strong><small>{candidate.listToArvPct != null && candidate.listToArvPct <= 70 ? "Meets rule" : "Review"}</small></td>
+              <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{candidate.listToArvPct == null ? "—" : `${Math.round(candidate.listToArvPct)}%`}</strong><small>{candidate.listToArvPct != null && candidate.listToArvPct <= threshold ? "Meets rule" : "Review"}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
               <td><div className={styles.dealActions}><a href={`/admin/underwriting?address=${encodeURIComponent(fullAddress)}`}>AI verify ARV</a>{canTarget ? <form action={targetAction}><button type="submit">Target property</button></form> : <button type="button" disabled>Preview only</button>}</div></td>
             </tr>;

@@ -21,10 +21,10 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
         onClick={() => setOpen((o) => !o)}
         style={{
           width: 34, height: 34, borderRadius: "50%",
-          background: "#111110", border: "2px solid #d0cfc8",
+          background: "#12161c", border: "2px solid #cdd6dd",
           color: "#fff", fontSize: "12px", fontWeight: 700, letterSpacing: "0.5px",
           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "inherit",
+          fontFamily: "inherit", boxShadow: "0 1px 2px rgba(15,23,32,.08), 0 4px 10px -5px rgba(15,23,32,.35)",
         }}
         aria-label="Admin menu"
       >
@@ -34,20 +34,20 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
-          background: "#ffffff", border: "1px solid #e8e7e2",
+          background: "#ffffff", border: "1px solid #e1e7ec",
           borderRadius: "10px", padding: "6px", minWidth: "180px",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.1)", zIndex: 100,
+          boxShadow: "0 1px 2px rgba(15,23,32,.04), 0 16px 36px -12px rgba(15,23,32,.28)", zIndex: 100,
         }}>
-          <div style={{ padding: "8px 12px 10px", borderBottom: "1px solid #e8e7e2", marginBottom: "4px" }}>
-            <div style={{ fontSize: "11px", color: "#8a8a84", letterSpacing: "0.5px" }}>Signed in as</div>
-            <div style={{ fontSize: "12.5px", color: "#111110", fontWeight: 500, marginTop: "2px" }}>Admin</div>
+          <div style={{ padding: "8px 12px 10px", borderBottom: "1px solid #e1e7ec", marginBottom: "4px" }}>
+            <div style={{ fontSize: "11px", color: "#64748b", letterSpacing: "0.5px" }}>Signed in as</div>
+            <div style={{ fontSize: "12.5px", color: "#12161c", fontWeight: 500, marginTop: "2px" }}>Admin</div>
           </div>
 
           <Link
             href="/admin/contacts"
             onClick={() => setOpen(false)}
-            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", borderRadius: "6px" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
+            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#475569", textDecoration: "none", borderRadius: "6px" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#eef2f6")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Contacts
@@ -56,23 +56,23 @@ export default function AdminProfileMenu({ logoutAction }: { logoutAction: () =>
           <Link
             href="/admin/leads"
             onClick={() => setOpen(false)}
-            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", borderRadius: "6px" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
+            style={{ display: "block", padding: "8px 12px", fontSize: "13px", color: "#475569", textDecoration: "none", borderRadius: "6px" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#eef2f6")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Leads
           </Link>
 
-          <div style={{ height: "1px", background: "#e8e7e2", margin: "4px 12px" }} />
+          <div style={{ height: "1px", background: "#e1e7ec", margin: "4px 12px" }} />
 
           <form action={logoutAction}>
             <button type="submit" style={{
               display: "block", width: "100%", textAlign: "left",
-              padding: "8px 12px", fontSize: "13px", color: "#5a5a54",
+              padding: "8px 12px", fontSize: "13px", color: "#475569",
               background: "transparent", border: "none", borderRadius: "6px",
               cursor: "pointer", fontFamily: "inherit",
             }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f4")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#eef2f6")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               Sign Out

@@ -16,7 +16,7 @@ export default function CopyButton({ text }: { text: string }) {
       type="button"
       onClick={copy}
       style={{
-        padding: "9px 16px", background: copied ? "#3a7a50" : "#111110", color: "#ffffff",
+        padding: "9px 16px", background: copied ? "#3a7a50" : "#12161c", color: "#ffffff",
         border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600,
         cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "background 0.2s",
       }}

@@ -13,7 +13,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
-  draft:     { label: "Draft",     bg: "#f0efeb",              color: "#5a5a54", border: "#d0cfc8" },
+  draft:     { label: "Draft",     bg: "#f0efeb",              color: "#475569", border: "#c7d0d8" },
   sent:      { label: "Pending",   bg: "rgba(26,86,219,0.08)", color: "#1a56db", border: "rgba(26,86,219,0.25)" },
   signed:    { label: "Completed", bg: "#eaf6f0",              color: "#3a7a50", border: "#b8dfc8" },
   completed: { label: "Completed", bg: "#eaf6f0",              color: "#3a7a50", border: "#b8dfc8" },
@@ -58,28 +58,28 @@ function EmptyState({ folder, hasSearch }: { folder: Folder; hasSearch: boolean 
         <path d="M78 12 L98 32 L78 32 Z" fill="#FAF6EC"/>
         <path d="M78 12 L98 32" stroke="#E8D9A0" strokeWidth="1.5"/>
         <path d="M78 12 L78 32 L98 32" stroke="#E8D9A0" strokeWidth="1.5" fill="none"/>
-        <rect x="32" y="44" width="38" height="3" rx="1.5" fill="#d0cfc8"/>
-        <rect x="32" y="54" width="50" height="2.5" rx="1.25" fill="#e8e7e2"/>
-        <rect x="32" y="61" width="44" height="2.5" rx="1.25" fill="#e8e7e2"/>
-        <rect x="32" y="68" width="48" height="2.5" rx="1.25" fill="#e8e7e2"/>
-        <rect x="32" y="75" width="36" height="2.5" rx="1.25" fill="#e8e7e2"/>
-        <rect x="32" y="92" width="50" height="1" rx="0.5" fill="#d0cfc8"/>
-        <path d="M34 88 C36 85, 40 91, 44 88 C48 85, 51 90, 55 88" stroke="#111110" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+        <rect x="32" y="44" width="38" height="3" rx="1.5" fill="#c7d0d8"/>
+        <rect x="32" y="54" width="50" height="2.5" rx="1.25" fill="#e1e7ec"/>
+        <rect x="32" y="61" width="44" height="2.5" rx="1.25" fill="#e1e7ec"/>
+        <rect x="32" y="68" width="48" height="2.5" rx="1.25" fill="#e1e7ec"/>
+        <rect x="32" y="75" width="36" height="2.5" rx="1.25" fill="#e1e7ec"/>
+        <rect x="32" y="92" width="50" height="1" rx="0.5" fill="#c7d0d8"/>
+        <path d="M34 88 C36 85, 40 91, 44 88 C48 85, 51 90, 55 88" stroke="#12161c" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
         <g transform="translate(82, 70) rotate(-35)">
-          <rect x="-4" y="0" width="8" height="28" rx="2" fill="#111110"/>
-          <polygon points="-4,28 4,28 0,40" fill="#5a5a54"/>
-          <rect x="-4" y="0" width="8" height="5" rx="1" fill="#5a5a54"/>
+          <rect x="-4" y="0" width="8" height="28" rx="2" fill="#12161c"/>
+          <polygon points="-4,28 4,28 0,40" fill="#475569"/>
+          <rect x="-4" y="0" width="8" height="5" rx="1" fill="#475569"/>
           <rect x="-4" y="5" width="8" height="2" fill="#FAF6EC" opacity="0.4"/>
         </g>
       </svg>
-      <div style={{ fontFamily: "var(--font-display), serif", fontSize: "22px", color: "#111110", letterSpacing: "2px", marginBottom: "8px" }}>
+      <div style={{ fontFamily: "var(--font-display), serif", fontSize: "22px", color: "#12161c", letterSpacing: "2px", marginBottom: "8px" }}>
         {hasSearch ? "NO RESULTS FOUND" : title.toUpperCase()}
       </div>
-      <div style={{ fontSize: "13px", color: "#8a8a84", marginBottom: "28px", maxWidth: "280px", lineHeight: 1.7 }}>
+      <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "28px", maxWidth: "280px", lineHeight: 1.7 }}>
         {hasSearch ? "Try adjusting your search or filters." : sub}
       </div>
       {!hasSearch && (
-        <Link className="agreements-empty-new" href="/admin/agreements/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#111110", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
+        <Link className="agreements-empty-new" href="/admin/agreements/new" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#12161c", color: "#ffffff", padding: "11px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           New Agreement
         </Link>
@@ -179,11 +179,11 @@ export default async function AgreementsView({
     <div className="agreements-shell" style={{ display: "flex", flex: 1, minHeight: 0 }}>
 
       {/* ── Sidebar ── */}
-      <aside className="agreements-sidebar" style={{ width: "236px", background: "#ffffff", borderRight: "1px solid #e8e7e2", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
+      <aside className="agreements-sidebar" style={{ width: "236px", background: "#ffffff", borderRight: "1px solid #e1e7ec", display: "flex", flexDirection: "column", flexShrink: 0, paddingBottom: "24px" }}>
 
         {/* New Agreement CTA */}
         <div className="agreements-sidebar-section agreements-new-section" style={{ padding: "16px 14px 12px" }}>
-          <Link href="/admin/agreements/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "#111110", color: "#ffffff", padding: "11px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
+          <Link href="/admin/agreements/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "#12161c", color: "#ffffff", padding: "11px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, textDecoration: "none", letterSpacing: "0.3px" }}>
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             New Agreement
           </Link>
@@ -191,17 +191,17 @@ export default async function AgreementsView({
 
         {/* Envelopes */}
         <div className="agreements-sidebar-section" style={{ padding: "8px 10px 0" }}>
-          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "#8a8a84", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>ENVELOPES</div>
+          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "#64748b", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>ENVELOPES</div>
           {FOLDERS.map(({ key, label, count, icon }) => {
             const active = folder === key;
             return (
-              <Link key={key} href={folderHref(key)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84", transition: "all 0.1s" }}>
+              <Link key={key} href={folderHref(key)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f2f5f8" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #12161c" : "2px solid transparent", color: active ? "#12161c" : "#64748b", transition: "all 0.1s" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <span style={{ opacity: active ? 1 : 0.5 }}>{icon}</span>
                   <span style={{ fontSize: "13px", fontWeight: active ? 600 : 400 }}>{label}</span>
                 </div>
                 {count > 0 && (
-                  <span style={{ fontSize: "10px", background: active ? "#111110" : "#f0efeb", color: active ? "#fff" : "#8a8a84", borderRadius: "20px", padding: "1px 7px", fontWeight: 600 }}>
+                  <span style={{ fontSize: "10px", background: active ? "#12161c" : "#f0efeb", color: active ? "#fff" : "#64748b", borderRadius: "20px", padding: "1px 7px", fontWeight: 600 }}>
                     {count}
                   </span>
                 )}
@@ -212,14 +212,14 @@ export default async function AgreementsView({
 
         {/* Agreement Types */}
         <div className="agreements-sidebar-section" style={{ padding: "20px 10px 0" }}>
-          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "#8a8a84", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>AGREEMENT TYPES</div>
+          <div className="agreements-sidebar-label" style={{ fontSize: "9px", fontWeight: 700, color: "#64748b", letterSpacing: "1.8px", textTransform: "uppercase", padding: "0 8px", marginBottom: "4px" }}>AGREEMENT TYPES</div>
           {TYPES.map(({ key, label, icon }) => {
             const active = typeFilter === key;
             const href = active
               ? `/admin/agreements?folder=${folder}${q ? `&q=${q}` : ""}`
               : `/admin/agreements?folder=${folder}&type=${key}${q ? `&q=${q}` : ""}`;
             return (
-              <Link key={key} href={href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f8f7f4" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #111110" : "2px solid transparent", color: active ? "#111110" : "#8a8a84", transition: "all 0.1s" }}>
+              <Link key={key} href={href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "6px", marginBottom: "1px", background: active ? "#f2f5f8" : "transparent", textDecoration: "none", borderLeft: active ? "2px solid #12161c" : "2px solid transparent", color: active ? "#12161c" : "#64748b", transition: "all 0.1s" }}>
                 <span style={{ opacity: active ? 1 : 0.5 }}>{icon}</span>
                 <span style={{ fontSize: "12.5px", fontWeight: active ? 500 : 400 }}>{label}</span>
               </Link>
@@ -229,16 +229,16 @@ export default async function AgreementsView({
       </aside>
 
       {/* ── Main ── */}
-      <main className="agreements-main" style={{ flex: 1, background: "#f5f4f0", display: "flex", flexDirection: "column" }}>
+      <main className="agreements-main" style={{ flex: 1, background: "#eef2f6", display: "flex", flexDirection: "column" }}>
 
         {/* Main header + search */}
-        <div className="agreements-main-header" style={{ padding: "28px 32px 0", borderBottom: "1px solid #e8e7e2", background: "#ffffff" }}>
+        <div className="agreements-main-header" style={{ padding: "28px 32px 0", borderBottom: "1px solid #e1e7ec", background: "#ffffff" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-            <div style={{ fontFamily: "var(--font-display), serif", fontSize: "28px", color: "#111110", letterSpacing: "2px" }}>
+            <div style={{ fontFamily: "var(--font-display), serif", fontSize: "28px", color: "#12161c", letterSpacing: "2px" }}>
               {FOLDER_TITLES[folder].toUpperCase()}
             </div>
             {filteredTotal > 0 && (
-              <span style={{ fontSize: "12px", color: "#8a8a84" }}>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>
                 {filteredTotal} agreement{filteredTotal !== 1 ? "s" : ""}
               </span>
             )}
@@ -248,15 +248,15 @@ export default async function AgreementsView({
           <form method="GET" action="/admin/agreements" style={{ display: "flex", gap: "8px", paddingBottom: "20px" }}>
             <input type="hidden" name="folder" value={folder} />
             {typeFilter && <input type="hidden" name="type" value={typeFilter} />}
-            <div style={{ display: "flex", flex: 1, alignItems: "center", background: "#f5f4f0", border: "1px solid #d0cfc8", borderRadius: "8px", padding: "0 14px", gap: "8px" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8a84" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input name="q" defaultValue={q ?? ""} placeholder="Search address or seller…" style={{ flex: 1, border: "none", background: "transparent", fontSize: "13px", color: "#111110", outline: "none", padding: "10px 0", fontFamily: "inherit" }} />
+            <div style={{ display: "flex", flex: 1, alignItems: "center", background: "#eef2f6", border: "1px solid #c7d0d8", borderRadius: "8px", padding: "0 14px", gap: "8px" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input name="q" defaultValue={q ?? ""} placeholder="Search address or seller…" style={{ flex: 1, border: "none", background: "transparent", fontSize: "13px", color: "#12161c", outline: "none", padding: "10px 0", fontFamily: "inherit" }} />
             </div>
-            <button type="submit" style={{ padding: "0 20px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "8px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.3px" }}>
+            <button type="submit" style={{ padding: "0 20px", background: "#12161c", color: "#ffffff", border: "none", borderRadius: "8px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.3px" }}>
               Search
             </button>
             {hasSearch && (
-              <Link href={folderHref(folder)} style={{ padding: "0 14px", background: "#ffffff", color: "#8a8a84", border: "1px solid #d0cfc8", borderRadius: "8px", fontSize: "12.5px", display: "flex", alignItems: "center", textDecoration: "none" }}>
+              <Link href={folderHref(folder)} style={{ padding: "0 14px", background: "#ffffff", color: "#64748b", border: "1px solid #c7d0d8", borderRadius: "8px", fontSize: "12.5px", display: "flex", alignItems: "center", textDecoration: "none" }}>
                 ✕ Clear
               </Link>
             )}
@@ -269,11 +269,11 @@ export default async function AgreementsView({
             <EmptyState folder={folder} hasSearch={hasSearch} />
           ) : (
             <>
-              <div className="agreements-table" style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "12px", overflow: "hidden" }}>
+              <div className="agreements-table" style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "12px", overflow: "hidden" }}>
                 {/* Column headers */}
-                <div className="agreements-table-row" style={{ display: "grid", gridTemplateColumns: "180px 1fr 1fr 110px 120px 80px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+                <div className="agreements-table-row" style={{ display: "grid", gridTemplateColumns: "180px 1fr 1fr 110px 120px 80px", padding: "10px 20px", background: "#eef2f6", borderBottom: "1px solid #e1e7ec" }}>
                   {["Type", "Address", "Sellers / Signers", "Status", "Created", ""].map((h) => (
-                    <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
+                    <div key={h} style={{ fontSize: "9.5px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
                   ))}
                 </div>
 
@@ -288,21 +288,21 @@ export default async function AgreementsView({
                     <Link key={a.id} href={`/admin/agreements/${a.id}`} className="hover-row agreements-table-row" style={{ display: "grid", gridTemplateColumns: "180px 1fr 1fr 110px 120px 80px", padding: "15px 20px", borderBottom: i < agreements.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center", textDecoration: "none", background: "#ffffff", transition: "background 0.1s" }}>
                       {/* Type */}
                       <div>
-                        <span style={{ fontSize: "12px", fontWeight: 600, color: "#111110", letterSpacing: "0.3px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: "#12161c", letterSpacing: "0.3px" }}>
                           {TYPE_LABELS[a.type] ?? a.type}
                         </span>
                       </div>
 
                       {/* Address */}
-                      <div style={{ fontSize: "12.5px", color: "#111110", lineHeight: 1.4, paddingRight: "12px" }}>
+                      <div style={{ fontSize: "12.5px", color: "#12161c", lineHeight: 1.4, paddingRight: "12px" }}>
                         {a.address}
                       </div>
 
                       {/* Sellers / Signers */}
                       <div style={{ paddingRight: "12px" }}>
-                        <div style={{ fontSize: "12px", color: "#5a5a54" }}>{signerText}</div>
+                        <div style={{ fontSize: "12px", color: "#475569" }}>{signerText}</div>
                         {signerCount > 0 && (
-                          <div style={{ fontSize: "10.5px", color: "#8a8a84", marginTop: "2px" }}>
+                          <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "2px" }}>
                             {signedCount}/{signerCount} signed
                           </div>
                         )}
@@ -312,13 +312,13 @@ export default async function AgreementsView({
                       <div><StatusBadge status={a.status} /></div>
 
                       {/* Date */}
-                      <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>
+                      <div style={{ fontSize: "11.5px", color: "#64748b" }}>
                         {new Date(a.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </div>
 
                       {/* Arrow */}
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8a84" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
                       </div>
                     </Link>
                   );
@@ -327,14 +327,14 @@ export default async function AgreementsView({
 
               {/* Pagination */}
               {filteredTotal > PAGE_SIZE && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px", fontSize: "12px", color: "#8a8a84" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px", fontSize: "12px", color: "#64748b" }}>
                   <span>Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredTotal)} of {filteredTotal}</span>
                   <div style={{ display: "flex", gap: "8px" }}>
                     {currentPage > 1 && (
-                      <Link href={pageHref(currentPage - 1)} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>← Previous</Link>
+                      <Link href={pageHref(currentPage - 1)} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "6px", color: "#12161c", textDecoration: "none", fontSize: "12px" }}>← Previous</Link>
                     )}
                     {currentPage < totalPages && (
-                      <Link href={pageHref(currentPage + 1)} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>Next →</Link>
+                      <Link href={pageHref(currentPage + 1)} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "6px", color: "#12161c", textDecoration: "none", fontSize: "12px" }}>Next →</Link>
                     )}
                   </div>
                 </div>

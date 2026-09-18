@@ -69,3 +69,35 @@
   .search { order: 3; width: 100%; margin-left: 0; }
   .board { padding-inline: 12px; grid-template-columns: repeat(5, 270px); }
 }
+
+/* Sleeker, cooler polish pass — matches Deal Search's treatment */
+.shell { background: #f2f5f8; color: #12161c; }
+.header, .tabs, .toolbar { border-bottom-color: #e1e7ec; }
+.header h1, .pipelineDot, .columnHeader strong, .columnHeader p span, .cardTop a,
+.offerMeta strong, .nextAction strong, .followUpBadge, .cardActions > button,
+.cardActions details[open] summary { color: #12161c; }
+.header p, .tabs a, .tabs span, .pipelineSelect svg, .search svg, .contactDetails dt,
+.columnHeader p, .nextAction span, .cardActions > button, .cardActions summary, .emptyColumn { color: #64748b; }
+.tabs .activeTab { color: #12161c; border-bottom-color: #12161c; }
+.newOffer { background: #12161c; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 14px -8px rgba(18,22,28,.5); }
+.newOffer:hover { background: #22262c; }
+.pipelineSelect, .search { border-color: #c7d0d8; }
+.countBadge, .offerMeta span, .followUpBadge { background: #eef2f6; }
+.followUpBadge { border-color: #e1e7ec; }
+.column { border-color: #dde4ea; background: #f2f5f8; }
+.dropTarget { border-color: #12161c; background: #eef2f6; }
+.columnHeader { border-bottom-color: #e1e7ec; }
+.card { border-color: #dde4ea; box-shadow: 0 1px 2px rgba(15,23,32,.04), 0 8px 18px -12px rgba(15,23,32,.18); }
+.card:hover { border-color: #b7c2cb; }
+.cardTop a:hover { text-decoration-color: rgba(18,22,28,.3); }
+.cardTop > span { background: #12161c; }
+.contactDetails dd { color: #475569; }
+.progress span { background: #e1e7ec; }
+.progress .progressDone { background: #12161c; }
+.nextAction { background: #eef2f6; border-color: #e1e7ec; }
+.cardActions form { border-color: #e1e7ec; box-shadow: 0 1px 2px rgba(15,23,32,.04), 0 16px 36px -12px rgba(15,23,32,.28); }
+.cardActions label { color: #475569; }
+.cardActions input, .cardActions textarea { border-color: #c7d0d8; color: #12161c; }
+.cardActions form button { background: #12161c; }
+.cardActions form button:hover { background: #22262c; }
+.emptyColumn { border-color: #c7d0d8; }

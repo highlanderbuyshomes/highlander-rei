@@ -646,18 +646,18 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: #111110;
+    background: #12161c;
     color: #ffffff;
     border: none;
     cursor: pointer;
-    box-shadow: 0 12px 30px rgba(17, 17, 16, 0.16);
+    box-shadow: 0 12px 30px rgba(15, 23, 32, 0.18);
   }
 
   .admin-mobile-drawer-overlay {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(17, 17, 16, 0.4);
+    background: rgba(15, 23, 32, 0.4);
     z-index: 110;
   }
 
@@ -692,18 +692,18 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     text-decoration: none;
     font-size: 13.5px;
     font-weight: 500;
-    color: #5a5a54;
+    color: #475569;
   }
 
   .admin-mobile-drawer a.active {
-    color: #111110;
+    color: #12161c;
     font-weight: 600;
-    background: #f5f4f0;
+    background: #eef2f6;
   }
 
   .admin-mobile-drawer-divider {
     height: 1px;
-    background: #e8e7e2;
+    background: #e1e7ec;
     margin: 8px 12px;
   }
 
@@ -715,7 +715,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     border-radius: 8px;
     font-size: 13.5px;
     font-weight: 500;
-    color: #5a5a54;
+    color: #475569;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -727,7 +727,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   .admin-content-wrap {
     min-height: 100vh !important;
     padding-bottom: 110px;
-    background: #f8f7f4 !important;
+    background: #f2f5f8 !important;
   }
 
   /* Main tabs replace dense desktop sidebars on mobile. */

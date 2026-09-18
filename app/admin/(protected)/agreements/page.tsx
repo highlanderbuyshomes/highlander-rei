@@ -22,13 +22,13 @@ export default async function AgreementsPage({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 56px)" }}>
-      <div style={{ display: "flex", gap: "2px", padding: "16px 32px 0", borderBottom: "1px solid #e8e7e2", background: "#ffffff", flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: "2px", padding: "16px 32px 0", borderBottom: "1px solid #e1e7ec", background: "#ffffff", flexShrink: 0 }}>
         {TABS.map(({ key, label, href }) => (
           <Link key={key} href={href} style={{
             fontSize: "12.5px", fontWeight: activeTab === key ? 600 : 400,
-            color: activeTab === key ? "#111110" : "#8a8a84",
+            color: activeTab === key ? "#12161c" : "#64748b",
             textDecoration: "none", padding: "8px 16px 12px",
-            borderBottom: activeTab === key ? "2px solid #111110" : "2px solid transparent",
+            borderBottom: activeTab === key ? "2px solid #12161c" : "2px solid transparent",
             marginBottom: "-1px", letterSpacing: "0.3px",
           }}>
             {label}

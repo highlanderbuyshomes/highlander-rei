@@ -93,31 +93,31 @@ export default function IHomeFinderSyncPanel() {
   }
 
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "28px" }}>
-      <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "4px" }}>iHomefinder</div>
-      <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>
+    <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "28px" }}>
+      <div style={{ fontSize: "14px", fontWeight: 600, color: "#12161c", marginBottom: "4px" }}>iHomefinder</div>
+      <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px" }}>
         Pulls active/pending/sold listings from your iHomefinder account into Search &amp; Offers, and records status changes over time.
       </div>
 
-      <div style={{ fontSize: "11px", color: "#8a8a84", marginBottom: "16px", lineHeight: 1.6 }}>
+      <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "16px", lineHeight: 1.6 }}>
         Requires <code>IHOMEFINDER_USERNAME</code> and <code>IHOMEFINDER_PASSWORD</code> (your iHomefinder login) set as environment variables — not entered here.
       </div>
 
       <div style={{ marginBottom: "16px" }}>
-        <label style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 600 }}>
+        <label style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 600 }}>
           Scope
         </label>
         {loadingOptions ? (
-          <div style={{ fontSize: "12px", color: "#8a8a84" }}>Loading markets &amp; saved searches...</div>
+          <div style={{ fontSize: "12px", color: "#64748b" }}>Loading markets &amp; saved searches...</div>
         ) : markets.length === 0 && savedSearches.length === 0 ? (
-          <div style={{ fontSize: "12px", color: "#8a8a84" }}>
+          <div style={{ fontSize: "12px", color: "#64748b" }}>
             No markets or saved searches found on this account — syncing will use the account default (featured listings), which may return 0 results.
           </div>
         ) : (
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value)}
-            style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", padding: "9px 12px", fontSize: "13px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#ffffff", color: "#12161c", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
           >
             <option value="">Account default (featured listings)</option>
             {markets.length > 0 && (
@@ -146,7 +146,7 @@ export default function IHomeFinderSyncPanel() {
         onClick={handleSync}
         disabled={status === "running"}
         style={{
-          padding: "10px 24px", background: status === "running" ? "#8a8a84" : "#111110", color: "#ffffff",
+          padding: "10px 24px", background: status === "running" ? "#64748b" : "#12161c", color: "#ffffff",
           border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
           cursor: status === "running" ? "not-allowed" : "pointer", fontFamily: "inherit",
         }}
@@ -155,7 +155,7 @@ export default function IHomeFinderSyncPanel() {
       </button>
 
       {message && (
-        <div style={{ marginTop: "14px", fontSize: "12.5px", color: status === "error" ? "#c0392b" : status === "done" ? "#3a7a50" : "#8a8a84" }}>
+        <div style={{ marginTop: "14px", fontSize: "12.5px", color: status === "error" ? "#c0392b" : status === "done" ? "#3a7a50" : "#64748b" }}>
           {message}
         </div>
       )}

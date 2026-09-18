@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# claude code local settings (can hold API keys pasted into permission rules)
+.claude/settings.local.json

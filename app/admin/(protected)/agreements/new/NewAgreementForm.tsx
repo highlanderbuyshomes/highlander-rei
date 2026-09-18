@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createAgreement } from "../actions";
 
-const inp: React.CSSProperties = { width: "100%", padding: "12px 14px", fontSize: "15px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "8px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
-const lbl: React.CSSProperties = { fontSize: "12px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px", display: "block", fontWeight: 600 };
-const secHead: React.CSSProperties = { fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#111110", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e8e7e2" };
+const inp: React.CSSProperties = { width: "100%", padding: "12px 14px", fontSize: "15px", color: "#12161c", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "8px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
+const lbl: React.CSSProperties = { fontSize: "12px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px", display: "block", fontWeight: 600 };
+const secHead: React.CSSProperties = { fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#12161c", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e1e7ec" };
 
 export default function NewAgreementForm({ defaultType }: { defaultType: string }) {
   const router = useRouter();
@@ -50,13 +50,13 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
   return (
     <div className="new-agreement-wrap" style={{ padding: "32px" }}>
       <div style={{ marginBottom: "20px" }}>
-        <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Agreements</Link>
+        <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#64748b", textDecoration: "none" }}>← Agreements</Link>
       </div>
       <div style={{ maxWidth: "640px", margin: "0 auto" }}>
-        <div className="new-agreement-title" style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#111110", letterSpacing: "2px", marginBottom: "28px" }}>NEW AGREEMENT</div>
+        <div className="new-agreement-title" style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#12161c", letterSpacing: "2px", marginBottom: "28px" }}>NEW AGREEMENT</div>
 
         <form onSubmit={handleSubmit}>
-          <div className="new-agreement-card" style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div className="new-agreement-card" style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "18px" }}>
 
             {/* ── Agreement type + address ── */}
             <div>
@@ -85,7 +85,7 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
                 <div>
                   <label style={lbl}>Agreement Date</label>
                   <input name="agreementDate" placeholder={new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} style={inp} />
-                  <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "4px" }}>Leave blank to use today&apos;s date.</div>
+                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Leave blank to use today&apos;s date.</div>
                 </div>
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
                       </div>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => setHasSeller2(true)} style={{ padding: "9px 16px", background: "transparent", color: "#5a5a54", border: "1px dashed #d0cfc8", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <button type="button" onClick={() => setHasSeller2(true)} style={{ padding: "9px 16px", background: "transparent", color: "#475569", border: "1px dashed #c7d0d8", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                       + Add Seller 2
                     </button>
                   )}
@@ -229,7 +229,7 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
             {type && (
               <div>
                 <div style={secHead}>BUYER SIGNER</div>
-                <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "12px" }}>
+                <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
                   Required for every agreement. Shared or test inboxes are allowed; each signer role receives its own signing link.
                 </div>
                 <div className="new-agreement-grid-2">
@@ -251,14 +251,14 @@ export default function NewAgreementForm({ defaultType }: { defaultType: string 
               <textarea name="notes" rows={2} placeholder="Any notes…" style={{ ...inp, resize: "vertical" }} />
             </div>
 
-            <div className="new-agreement-actions" style={{ display: "flex", gap: "10px", paddingTop: "4px", borderTop: "1px solid #e8e7e2" }}>
-              <button type="submit" name="intent" value="review" disabled={pending} style={{ flex: 2, padding: "14px 28px", background: pending ? "#d0cfc8" : "#1a56db", color: "#ffffff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 700, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}>
+            <div className="new-agreement-actions" style={{ display: "flex", gap: "10px", paddingTop: "4px", borderTop: "1px solid #e1e7ec" }}>
+              <button type="submit" name="intent" value="review" disabled={pending} style={{ flex: 2, padding: "14px 28px", background: pending ? "#c7d0d8" : "#1a56db", color: "#ffffff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 700, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}>
                 {pendingIntent === "review" ? "Generating…" : "Review & Send →"}
               </button>
-              <button type="submit" name="intent" value="draft" disabled={pending} style={{ flex: 1, padding: "14px 16px", background: pending ? "#d0cfc8" : "#ffffff", color: pending ? "#ffffff" : "#111110", border: "1px solid #d0cfc8", borderRadius: "8px", fontSize: "14px", fontWeight: 600, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}>
+              <button type="submit" name="intent" value="draft" disabled={pending} style={{ flex: 1, padding: "14px 16px", background: pending ? "#c7d0d8" : "#ffffff", color: pending ? "#ffffff" : "#12161c", border: "1px solid #c7d0d8", borderRadius: "8px", fontSize: "14px", fontWeight: 600, cursor: pending ? "default" : "pointer", fontFamily: "inherit" }}>
                 {pendingIntent === "draft" ? "Saving…" : "Save Draft"}
               </button>
-              <Link href="/admin/agreements" style={{ padding: "14px 16px", background: "transparent", color: "#5a5a54", border: "1px solid #d0cfc8", borderRadius: "8px", fontSize: "14px", textDecoration: "none", display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
+              <Link href="/admin/agreements" style={{ padding: "14px 16px", background: "transparent", color: "#475569", border: "1px solid #c7d0d8", borderRadius: "8px", fontSize: "14px", textDecoration: "none", display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
                 Cancel
               </Link>
             </div>

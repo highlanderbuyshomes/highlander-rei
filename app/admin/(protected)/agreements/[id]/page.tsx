@@ -18,15 +18,15 @@ const TYPE_LABELS: Record<string, string> = {
 
 const STATUS_FLOW = ["draft", "sent", "completed"] as const;
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  draft:     { label: "New",       color: "#5a5a54", bg: "#f0efeb",               border: "#d0cfc8" },
+  draft:     { label: "New",       color: "#475569", bg: "#f0efeb",               border: "#c7d0d8" },
   sent:      { label: "Pending",   color: "#1a56db", bg: "rgba(26,86,219,0.08)",   border: "rgba(26,86,219,0.25)" },
   signed:    { label: "Completed", color: "#3a7a50", bg: "#eaf6f0",               border: "#b8dfc8" },
   completed: { label: "Completed", color: "#3a7a50", bg: "#eaf6f0",               border: "#b8dfc8" },
   void:      { label: "Void",      color: "#c0392b", bg: "rgba(192,57,43,0.06)",   border: "rgba(192,57,43,0.2)" },
 };
 
-const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: "13px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", outline: "none", fontFamily: "inherit" };
-const lbl: React.CSSProperties = { fontSize: "11px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 500 };
+const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: "13px", color: "#12161c", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "6px", outline: "none", fontFamily: "inherit" };
+const lbl: React.CSSProperties = { fontSize: "11px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 500 };
 
 export default async function AgreementDetailPage({
   params,
@@ -90,22 +90,22 @@ export default async function AgreementDetailPage({
   return (
     <div className="agreement-detail-page" style={{ maxWidth: "820px", padding: "32px", margin: "0 auto" }}>
       <div style={{ marginBottom: "20px" }}>
-        <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Agreements</Link>
+        <Link href="/admin/agreements" style={{ fontSize: "12px", color: "#64748b", textDecoration: "none" }}>← Agreements</Link>
       </div>
 
       {/* Header */}
       <div className="agreement-detail-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px", gap: "16px", flexWrap: "wrap" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-            <span style={{ fontFamily: "var(--font-display), serif", fontSize: "26px", color: "#111110", letterSpacing: "2px" }}>
+            <span style={{ fontFamily: "var(--font-display), serif", fontSize: "26px", color: "#12161c", letterSpacing: "2px" }}>
               {TYPE_LABELS[a.type]?.toUpperCase() ?? a.type.toUpperCase()}
             </span>
             <span style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.5px", padding: "3px 10px", borderRadius: "20px", background: statusCfg.bg, color: statusCfg.color, border: `1px solid ${statusCfg.border}` }}>
               {statusCfg.label}
             </span>
           </div>
-          <div style={{ fontSize: "13px", color: "#5a5a54" }}>{a.address}</div>
-          <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "3px" }}>
+          <div style={{ fontSize: "13px", color: "#475569" }}>{a.address}</div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "3px" }}>
             Created {new Date(a.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
           </div>
         </div>
@@ -117,7 +117,7 @@ export default async function AgreementDetailPage({
             </a>
           )}
           {a.pdfUrl && (
-            <a href={a.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12.5px", color: "#111110", textDecoration: "none", fontWeight: 500, background: "#ffffff" }}>
+            <a href={a.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", border: "1px solid #c7d0d8", borderRadius: "6px", fontSize: "12.5px", color: "#12161c", textDecoration: "none", fontWeight: 500, background: "#ffffff" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               View PDF
             </a>
@@ -126,29 +126,29 @@ export default async function AgreementDetailPage({
       </div>
 
       {!a.pdfUrl && (
-        <div style={{ background: "#ffffff", border: "2px dashed #d0cfc8", borderRadius: "14px", padding: "36px 24px", marginBottom: "16px", textAlign: "center" }}>
+        <div style={{ background: "#ffffff", border: "2px dashed #c7d0d8", borderRadius: "14px", padding: "36px 24px", marginBottom: "16px", textAlign: "center" }}>
           <div style={{ fontSize: "32px", marginBottom: "10px", opacity: 0.25 }}>📄</div>
-          <div style={{ fontSize: "14px", fontWeight: 600, color: "#5a5a54", marginBottom: "6px" }}>No fixed template PDF attached</div>
-          <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Upload and map this agreement type under Templates, then create a new agreement from it.</div>
-          <Link href={`/admin/agreements/templates/${a.type}`} style={{ display: "inline-flex", padding: "9px 18px", background: "#111110", color: "#fff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "#475569", marginBottom: "6px" }}>No fixed template PDF attached</div>
+          <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px" }}>Upload and map this agreement type under Templates, then create a new agreement from it.</div>
+          <Link href={`/admin/agreements/templates/${a.type}`} style={{ display: "inline-flex", padding: "9px 18px", background: "#12161c", color: "#fff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
             Open Template Mapping
           </Link>
         </div>
       )}
 
       {a.pdfUrl && (
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: "#111110", marginBottom: "4px" }}>Fixed template document</div>
-            <div style={{ fontSize: "12px", color: "#8a8a84", lineHeight: 1.5 }}>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#12161c", marginBottom: "4px" }}>Fixed template document</div>
+            <div style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.5 }}>
               This agreement uses an immutable copy of the uploaded template. Field positions can only be changed from Templates.
             </div>
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <a href={a.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ padding: "9px 16px", background: "#111110", color: "#ffffff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+            <a href={a.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ padding: "9px 16px", background: "#12161c", color: "#ffffff", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
               Open Exact PDF
             </a>
-            <Link href={`/admin/agreements/templates/${a.type}`} style={{ padding: "9px 16px", background: "#ffffff", color: "#111110", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+            <Link href={`/admin/agreements/templates/${a.type}`} style={{ padding: "9px 16px", background: "#ffffff", color: "#12161c", border: "1px solid #c7d0d8", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
               Edit Template Mappings
             </Link>
           </div>
@@ -157,8 +157,8 @@ export default async function AgreementDetailPage({
 
       {/* Status progression */}
       {a.status !== "void" && (
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px" }}>
-          <div style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>Status</div>
+        <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px" }}>
+          <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>Status</div>
           <div style={{ display: "flex", alignItems: "center" }}>
             {STATUS_FLOW.map((s, i) => {
               const done = i <= currentFlowIdx;
@@ -170,14 +170,14 @@ export default async function AgreementDetailPage({
                   <form action={updateStatusWithId}>
                     <input type="hidden" name="status" value={s} />
                     <button type="submit" disabled={locked} title={locked ? "All signers must sign before completion" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", background: "none", border: "none", cursor: locked || i === currentFlowIdx ? "default" : "pointer", opacity: locked ? 0.55 : 1, padding: "0 4px" }}>
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? (current ? cfg.bg : "#eaf6f0") : "#f0efeb", border: `2px solid ${done ? (current ? cfg.border : "#b8dfc8") : "#d0cfc8"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? (current ? cfg.bg : "#eaf6f0") : "#f0efeb", border: `2px solid ${done ? (current ? cfg.border : "#b8dfc8") : "#c7d0d8"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {done && !current && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#3a7a50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         {current && <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color }} />}
                       </div>
-                      <span style={{ fontSize: "10px", fontWeight: current ? 600 : 400, color: current ? cfg.color : done ? "#3a7a50" : "#8a8a84" }}>{cfg.label}</span>
+                      <span style={{ fontSize: "10px", fontWeight: current ? 600 : 400, color: current ? cfg.color : done ? "#3a7a50" : "#64748b" }}>{cfg.label}</span>
                     </button>
                   </form>
-                  {i < STATUS_FLOW.length - 1 && <div style={{ flex: 1, height: 2, background: i < currentFlowIdx ? "#b8dfc8" : "#e8e7e2", margin: "0 2px", marginBottom: "18px" }} />}
+                  {i < STATUS_FLOW.length - 1 && <div style={{ flex: 1, height: 2, background: i < currentFlowIdx ? "#b8dfc8" : "#e1e7ec", margin: "0 2px", marginBottom: "18px" }} />}
                 </div>
               );
             })}
@@ -207,21 +207,21 @@ export default async function AgreementDetailPage({
 
       {/* Legacy signing link (for old single-signer agreements) */}
       {signingUrl && a.signers.length === 0 && (
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px" }}>
-          <div style={{ fontSize: "10px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600, marginBottom: "12px" }}>Legacy Signing Link</div>
+        <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "20px 24px", marginBottom: "16px" }}>
+          <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600, marginBottom: "12px" }}>Legacy Signing Link</div>
           {a.signedAt ? (
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <span style={{ fontSize: "20px" }}>✅</span>
               <div>
                 <div style={{ fontSize: "13px", fontWeight: 600, color: "#3a7a50" }}>Signed by {a.signerName ?? "signer"}</div>
-                <div style={{ fontSize: "11px", color: "#8a8a84", marginTop: "2px" }}>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
                   {new Date(a.signedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </div>
               </div>
             </div>
           ) : (
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <input readOnly value={signingUrl} style={{ flex: 1, padding: "9px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#f5f4f0", color: "#5a5a54", fontFamily: "monospace", outline: "none" }} />
+              <input readOnly value={signingUrl} style={{ flex: 1, padding: "9px 12px", fontSize: "12px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#eef2f6", color: "#475569", fontFamily: "monospace", outline: "none" }} />
               <CopyButton text={signingUrl} />
             </div>
           )}
@@ -230,17 +230,17 @@ export default async function AgreementDetailPage({
 
       {/* Edit form */}
       <form action={updateWithId}>
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", marginBottom: "16px" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", marginBottom: "16px" }}>
           <div>
-            <div style={{ fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#111110", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e8e7e2" }}>DETAILS</div>
+            <div style={{ fontFamily: "var(--font-display), serif", fontSize: "13px", letterSpacing: "1.5px", color: "#12161c", marginBottom: "14px", paddingBottom: "8px", borderBottom: "1px solid #e1e7ec" }}>DETAILS</div>
             <div style={{ display: "grid", gap: "14px" }}>
               <div><label style={lbl}>Property Address *</label><input name="address" required defaultValue={a.address} style={inp} /></div>
               <div><label style={lbl}>Seller(s)</label><input name="sellers" required defaultValue={a.sellers} style={inp} /></div>
               <div><label style={lbl}>Notes (internal)</label><textarea name="notes" rows={2} defaultValue={a.notes ?? ""} style={{ ...inp, resize: "vertical" }} /></div>
             </div>
           </div>
-          <div style={{ borderTop: "1px solid #e8e7e2", paddingTop: "14px" }}>
-            <button type="submit" style={{ padding: "9px 22px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          <div style={{ borderTop: "1px solid #e1e7ec", paddingTop: "14px" }}>
+            <button type="submit" style={{ padding: "9px 22px", background: "#12161c", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Save Changes
             </button>
           </div>

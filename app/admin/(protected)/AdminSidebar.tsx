@@ -14,11 +14,12 @@ export default function AdminSidebar({ role }: { role?: string }) {
       style={{
         width: "88px",
         flexShrink: 0,
-        background: "#111110",
+        background: "#12161c",
         minHeight: "calc(100vh - 56px)",
         position: "sticky",
         top: "56px",
         alignSelf: "flex-start",
+        boxShadow: "1px 0 0 rgba(0,0,0,.06), 4px 0 16px -8px rgba(15,23,32,.35)",
       }}
     >
       <nav className="flex flex-col items-center gap-2 py-4">

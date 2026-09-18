@@ -6,8 +6,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Contact | Highlander REI" };
 
-const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: "13px", color: "#111110", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
-const lbl: React.CSSProperties = { fontSize: "11px", color: "#5a5a54", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 500 };
+const inp: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: "13px", color: "#12161c", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "6px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
+const lbl: React.CSSProperties = { fontSize: "11px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "5px", display: "block", fontWeight: 500 };
 
 export default async function NewContactPage({
   searchParams,
@@ -27,14 +27,14 @@ export default async function NewContactPage({
   return (
     <div style={{ maxWidth: "600px", padding: "32px" }}>
       <div style={{ marginBottom: "20px" }}>
-        <Link href="/admin/contacts" style={{ fontSize: "12px", color: "#8a8a84", textDecoration: "none" }}>← Contacts</Link>
+        <Link href="/admin/contacts" style={{ fontSize: "12px", color: "#64748b", textDecoration: "none" }}>← Contacts</Link>
       </div>
-      <div style={{ fontFamily: "var(--font-display), serif", fontSize: "32px", color: "#111110", letterSpacing: "2px", marginBottom: "28px" }}>
+      <div style={{ fontFamily: "var(--font-display), serif", fontSize: "32px", color: "#12161c", letterSpacing: "2px", marginBottom: "28px" }}>
         {isEdit ? "EDIT CONTACT" : "NEW CONTACT"}
       </div>
 
       <form action={action}>
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "18px" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "28px", display: "flex", flexDirection: "column", gap: "18px" }}>
 
           {/* Name row */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
@@ -58,7 +58,7 @@ export default async function NewContactPage({
               defaultValue={existing?.email ?? ""}
               placeholder="john@example.com"
               readOnly={isEdit}
-              style={{ ...inp, ...(isEdit ? { background: "#f5f4f0", color: "#8a8a84" } : {}) }}
+              style={{ ...inp, ...(isEdit ? { background: "#eef2f6", color: "#64748b" } : {}) }}
             />
           </div>
 
@@ -84,14 +84,14 @@ export default async function NewContactPage({
               ].map(({ value, label, desc, icon }) => {
                 const selected = (existing?.contactType ?? "") === value;
                 return (
-                  <label key={value} style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px 16px", border: `1px solid ${selected ? "#B8962E" : "#d0cfc8"}`, borderRadius: "8px", cursor: "pointer", background: selected ? "#FAF6EC" : "#ffffff" }}>
+                  <label key={value} style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px 16px", border: `1px solid ${selected ? "#B8962E" : "#c7d0d8"}`, borderRadius: "8px", cursor: "pointer", background: selected ? "#FAF6EC" : "#ffffff" }}>
                     <input type="radio" name="contactType" value={value} defaultChecked={selected} style={{ marginTop: "2px", accentColor: "#B8962E" }} />
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
-                        <span style={{ color: selected ? "#B8962E" : "#5a5a54" }}>{icon}</span>
-                        <span style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>{label}</span>
+                        <span style={{ color: selected ? "#B8962E" : "#475569" }}>{icon}</span>
+                        <span style={{ fontSize: "13px", fontWeight: 600, color: "#12161c" }}>{label}</span>
                       </div>
-                      <div style={{ fontSize: "11px", color: "#8a8a84", lineHeight: 1.4 }}>{desc}</div>
+                      <div style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.4 }}>{desc}</div>
                     </div>
                   </label>
                 );
@@ -105,11 +105,11 @@ export default async function NewContactPage({
             <textarea name="notes" rows={2} defaultValue={existing?.notes ?? ""} placeholder="Any notes…" style={{ ...inp, resize: "vertical" }} />
           </div>
 
-          <div style={{ display: "flex", gap: "10px", paddingTop: "4px", borderTop: "1px solid #e8e7e2" }}>
+          <div style={{ display: "flex", gap: "10px", paddingTop: "4px", borderTop: "1px solid #e1e7ec" }}>
             <button type="submit" style={{ padding: "10px 24px", background: "#B8962E", color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               {isEdit ? "Save Changes" : "Add Contact"}
             </button>
-            <Link href="/admin/contacts" style={{ padding: "10px 18px", border: "1px solid #d0cfc8", borderRadius: "6px", fontSize: "13px", color: "#5a5a54", textDecoration: "none", display: "flex", alignItems: "center" }}>
+            <Link href="/admin/contacts" style={{ padding: "10px 18px", border: "1px solid #c7d0d8", borderRadius: "6px", fontSize: "13px", color: "#475569", textDecoration: "none", display: "flex", alignItems: "center" }}>
               Cancel
             </Link>
           </div>

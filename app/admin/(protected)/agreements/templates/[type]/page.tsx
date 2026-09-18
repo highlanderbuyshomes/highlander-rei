@@ -45,10 +45,10 @@ export default async function TemplateFieldsPage({ params }: { params: Promise<{
   return (
     <div style={{ margin: "-32px" }}>
       {/* Top bar */}
-      <div style={{ background: "#111110", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "12px 24px", display: "flex", alignItems: "center", gap: "16px" }}>
+      <div style={{ background: "#12161c", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "12px 24px", display: "flex", alignItems: "center", gap: "16px" }}>
         <Link href="/admin/agreements?tab=templates" style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>← Templates</Link>
         <span style={{ color: "rgba(255,255,255,0.15)" }}>|</span>
-        <span style={{ fontFamily: "var(--font-display), serif", fontSize: "14px", letterSpacing: "2px", color: "#f5f4f0" }}>
+        <span style={{ fontFamily: "var(--font-display), serif", fontSize: "14px", letterSpacing: "2px", color: "#eef2f6" }}>
           {TEMPLATE_NAMES[type]?.toUpperCase() ?? type.toUpperCase()} — FIELDS
         </span>
         {template?.fields.length ? (

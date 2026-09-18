@@ -44,10 +44,10 @@ export default function DialerIntegrationPanel({
   }
 
   return (
-    <section style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "32px" }}>
+    <section style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "32px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#111110", letterSpacing: "1.5px", marginBottom: "8px" }}>
+          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#12161c", letterSpacing: "1.5px", marginBottom: "8px" }}>
             MY DIALER QUEUE
           </div>
           <p style={{ margin: 0, color: "#6f6f69", fontSize: "13px", lineHeight: 1.7, maxWidth: "560px" }}>
@@ -61,12 +61,12 @@ export default function DialerIntegrationPanel({
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginTop: "28px" }}>
         <div style={{ background: "#f7f7f4", borderRadius: "10px", padding: "18px" }}>
-          <div style={{ color: "#8a8a84", fontSize: "11px", fontWeight: 700, letterSpacing: "1px" }}>PENDING</div>
-          <div style={{ color: "#111110", fontSize: "28px", fontWeight: 750, marginTop: "6px" }}>{pending}</div>
+          <div style={{ color: "#64748b", fontSize: "11px", fontWeight: 700, letterSpacing: "1px" }}>PENDING</div>
+          <div style={{ color: "#12161c", fontSize: "28px", fontWeight: 750, marginTop: "6px" }}>{pending}</div>
         </div>
         <div style={{ background: "#f7f7f4", borderRadius: "10px", padding: "18px" }}>
-          <div style={{ color: "#8a8a84", fontSize: "11px", fontWeight: 700, letterSpacing: "1px" }}>BATCH SIZE</div>
-          <div style={{ color: "#111110", fontSize: "28px", fontWeight: 750, marginTop: "6px" }}>100</div>
+          <div style={{ color: "#64748b", fontSize: "11px", fontWeight: 700, letterSpacing: "1px" }}>BATCH SIZE</div>
+          <div style={{ color: "#12161c", fontSize: "28px", fontWeight: 750, marginTop: "6px" }}>100</div>
         </div>
       </div>
 
@@ -75,11 +75,11 @@ export default function DialerIntegrationPanel({
           type="button"
           onClick={dispatchAssignments}
           disabled={!configured || isPending || pending === 0}
-          style={{ border: 0, borderRadius: "9px", padding: "11px 18px", fontSize: "13px", fontWeight: 750, color: "#ffffff", background: !configured || pending === 0 ? "#aaa9a3" : "#111110", cursor: !configured || pending === 0 ? "not-allowed" : "pointer" }}
+          style={{ border: 0, borderRadius: "9px", padding: "11px 18px", fontSize: "13px", fontWeight: 750, color: "#ffffff", background: !configured || pending === 0 ? "#aaa9a3" : "#12161c", cursor: !configured || pending === 0 ? "not-allowed" : "pointer" }}
         >
           {isPending ? "Dispatching…" : "Send pending assignments"}
         </button>
-        <a href="/admin/dialer/launch" style={{ color: "#111110", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}>
+        <a href="/admin/dialer/launch" style={{ color: "#12161c", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}>
           Open My Dialer →
         </a>
       </div>

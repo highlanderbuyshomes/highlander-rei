@@ -49,3 +49,36 @@
 @media (max-width: 1150px) { .workspace { grid-template-columns: 230px minmax(0,1fr); }.listPanel { grid-column: 1 / -1; grid-row: 2; }.buyerListCompact { max-height: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
 @media (max-width: 900px) { .pageHeader { align-items: flex-start; flex-direction: column; }.workspace { grid-template-columns: 1fr; }.listPanel { grid-column: 1; grid-row: auto; }.buyerListCompact { grid-template-columns: 1fr 1fr; }.addPanel { position: static; }.metrics { width: 100%; }.metrics div { flex: 1; } }
 @media (max-width: 620px) { .shell { padding: 15px 10px; }.metrics { display: grid; grid-template-columns: repeat(3,1fr); }.metrics div { min-width: 0; padding: 9px; }.listPanelHeader { align-items: flex-start; flex-direction: column; gap: 4px; }.buyerListCompact { grid-template-columns: 1fr; } }
+
+/* Sleeker, cooler polish pass — matches Deal Search's treatment */
+.shell { background: #f2f5f8; color: #12161c; }
+.pageHeader > div:first-child > span, .addPanel > span, .listHeader span,
+.pageHeader h1, .metrics strong, .addPanel h2, .listPanelHeader span, .listPanelHeader strong,
+.rowText strong, .buyerCard h2, .buyBox > div:first-child > strong, .emptyState strong { color: #12161c; }
+.pageHeader p, .metrics span, .addPanel > p, .rowText small, .boxCount, .buyerCard header p,
+.notes, .emptyBox, .emptyState { color: #64748b; }
+.addPanel label, .editBuyerForm label { color: #475569; }
+.metrics,
+.addPanel,
+.listPanel,
+.buyerCard { border-color: #dde4ea; box-shadow: 0 1px 2px rgba(15,23,32,.04), 0 10px 24px -14px rgba(15,23,32,.2); }
+.metrics div { border-right-color: #e6ebef; }
+.buyerRow { border-color: #e1e7ec; }
+.buyerRow:hover { border-color: #c7d0d8; }
+.buyerRowActive { border-color: #12161c; background: #eef2f6; box-shadow: 0 0 0 1px #12161c inset; }
+.avatarSm, .avatar { background: #eef2f6; color: #12161c; }
+.boxCount { background: #f2f5f8; }
+.activeBadge, .boxActive { background: #eef2f6; color: #12161c; }
+.pausedBadge, .boxPaused { background: #f2f5f8; color: #64748b; }
+.editLink, .buyBoxActions button, .buyerCard footer button, .editFormActions button { border-color: #c7d0d8; color: #334155; }
+.addPanel input, .addPanel textarea,
+.editBuyerForm input, .editBuyerForm textarea,
+.editBuyBoxForm input, .addBuyBoxForm input { border-color: #c7d0d8; }
+.addPanel input:focus, .addPanel textarea:focus,
+.editBuyerForm input:focus, .editBuyerForm textarea:focus,
+.editBuyBoxForm input:focus, .addBuyBoxForm input:focus { border-color: #12161c; box-shadow: 0 0 0 3px rgba(18,22,28,.1); }
+.addPanel form > button, .editFormActions button[type="submit"], .addBuyBoxForm button { background: #12161c; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 14px -8px rgba(18,22,28,.5); }
+.editBuyBoxForm, .buyBoxes, .criteria span { background: #f2f5f8; }
+.criteria span { border-color: #e1e7ec; color: #475569; }
+.buyBoxHeading strong { color: #475569; }
+.buyBoxHeading span { background: #eef2f6; color: #12161c; }
