@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
-import { hasDistressLanguage } from "@/lib/distress";
+import { Prisma } from "@prisma/client";
+import { DISTRESS_WORDS } from "@/lib/distress";
 import MlsSearchWorkspace, { type ListingRecord } from "./MlsSearchWorkspace";
 
 export const metadata: Metadata = { title: "Deal Search | Highlander REI" };
@@ -55,22 +56,77 @@ function rawLevels(raw: unknown) {
   return null;
 }
 
+const LIVE_STATUSES = ["Active", "Active Under Contract", "Pending", "Coming Soon"];
+
+// The MLS rawJson blobs are ~10KB each; pulling them for thousands of rows
+// just to read a handful of keys made this page take 15s+. Postgres extracts
+// only the keys the mapping below reads (plus the distress-language flag
+// from remarks), and the rows are reshaped to what the mapping expects.
+const RAW_KEYS = [
+  "PropertySubType", "PropertyType", "DwellingType", "LivingArea", "LivingAreaSqFt", "ApproxSQFT",
+  "LotSizeSquareFeet", "LotSqFt", "LotSize", "PoolPrivateYN", "PrivatePoolYN", "PrivatePool", "HasPool", "pool",
+  "Stories", "StoriesTotal", "NumberOfStories", "InteriorLevels", "Levels",
+  "OriginalListPrice", "OriginalPrice", "PreviousListPrice",
+];
+const liteOf = (col: string) => Prisma.raw(`jsonb_strip_nulls(jsonb_build_object(${RAW_KEYS.map((k) => `'${k}', ${col}->'${k}'`).join(", ")}))`);
+const remarksOf = (col: string) => Prisma.raw(`${col}->>'PublicRemarks', ${col}->>'Remarks', ${col}->>'MarketingRemarks', ${col}->>'description'`);
+
+type Row = Record<string, unknown> & {
+  id: string; apn: string | null; streetAddress: string; city: string; state: string; zip: string;
+  subdivision: string | null; propertyType: string | null; beds: number | null; baths: number | null;
+  sqft: number | null; lotSqft: number | null; yearBuilt: number | null; latitude: number | null; longitude: number | null;
+  estimatedValue: number | null; lastSaleDate: Date | string | null; source: string; propLite: unknown; distress: boolean;
+  mlsNumber: string | null; mlsStatus: string | null; listPrice: number | null; dom: number | null;
+  listDate: Date | string | null; soldDate: Date | string | null; listSource: string | null; listLite: unknown;
+  ownerFullName: string | null; ownerFirstName: string | null; ownerLastName: string | null;
+  estimatedEquityPct: number | null; ownerOccupied: boolean | null; hasOwner: boolean;
+};
+
+async function loadProperties(kind: "live" | "other", limit: number) {
+  const liveExists = Prisma.sql`EXISTS (SELECT 1 FROM "MlsListing" x WHERE x."propertyId" = p.id AND x."mlsStatus" IN (${Prisma.join(LIVE_STATUSES)}))`;
+  const where = kind === "live" ? liveExists : Prisma.sql`NOT ${liveExists}`;
+  const distressRegex = DISTRESS_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+
+  const rows = await prisma.$queryRaw<Row[]>`
+    SELECT p.id, p.apn, p."streetAddress", p.city, p.state, p.zip, p.subdivision, p."propertyType",
+           p.beds, p.baths, p.sqft, p."lotSqft", p."yearBuilt", p.latitude, p.longitude,
+           p."estimatedValue", p."lastSaleDate", p.source,
+           ${liteOf('p."rawJson"')} AS "propLite",
+           COALESCE(COALESCE(${remarksOf('l."rawJson"')}, ${remarksOf('p."rawJson"')}) ~* ${distressRegex}, false) AS distress,
+           l."mlsNumber", l."mlsStatus", l."listPrice", l.dom, l."listDate", l."soldDate", l.source AS "listSource",
+           ${liteOf('COALESCE(l."rawJson", p."rawJson")')} AS "listLite",
+           o."fullName" AS "ownerFullName", o."firstName" AS "ownerFirstName", o."lastName" AS "ownerLastName",
+           o."estimatedEquityPct", o."ownerOccupied", (o.id IS NOT NULL) AS "hasOwner"
+    FROM "Property" p
+    LEFT JOIN LATERAL (SELECT * FROM "MlsListing" WHERE "propertyId" = p.id ORDER BY "updatedAt" DESC LIMIT 1) l ON true
+    LEFT JOIN LATERAL (SELECT * FROM "PropertyOwner" WHERE "propertyId" = p.id ORDER BY "updatedAt" DESC LIMIT 1) o ON true
+    WHERE ${where}
+    ORDER BY p."updatedAt" DESC
+    LIMIT ${limit}`;
+
+  // Reshape to the nested form the mapping below reads.
+  // Dates are normalised in case the driver hands back ISO strings.
+  const toDate = (v: Date | string | null) => (v ? new Date(v) : null);
+  return rows.map((r) => ({
+    ...r,
+    lastSaleDate: toDate(r.lastSaleDate),
+    rawJson: r.propLite,
+    mlsListings: r.mlsNumber
+      ? [{ mlsNumber: r.mlsNumber, mlsStatus: r.mlsStatus, listPrice: r.listPrice, dom: r.dom, listDate: toDate(r.listDate), soldDate: toDate(r.soldDate), source: r.listSource, rawJson: r.listLite }]
+      : [],
+    owners: r.hasOwner
+      ? [{ fullName: r.ownerFullName, firstName: r.ownerFirstName, lastName: r.ownerLastName, estimatedEquityPct: r.estimatedEquityPct, ownerOccupied: r.ownerOccupied }]
+      : [],
+  }));
+}
+
 export default async function SearchPage() {
   await requireAdmin();
 
   // The workspace filters client-side and defaults to live statuses, so live
   // listings are always loaded in full; everything else (Closed history,
   // off-market records) is capped to the most recently updated.
-  const LIVE_STATUSES = ["Active", "Active Under Contract", "Pending", "Coming Soon"];
-  const isLive = { mlsListings: { some: { mlsStatus: { in: LIVE_STATUSES } } } };
-  const include = {
-    owners: { take: 1, orderBy: { updatedAt: "desc" as const } },
-    mlsListings: { take: 1, orderBy: { updatedAt: "desc" as const } },
-  };
-  const [live, other] = await Promise.all([
-    prisma.property.findMany({ where: isLive, orderBy: { updatedAt: "desc" }, take: 6000, include }),
-    prisma.property.findMany({ where: { NOT: isLive }, orderBy: { updatedAt: "desc" }, take: 1000, include }),
-  ]);
+  const [live, other] = await Promise.all([loadProperties("live", 6000), loadProperties("other", 1000)]);
   const properties = [...live, ...other];
 
   const listings: ListingRecord[] = properties.map((property) => {
@@ -107,7 +163,7 @@ export default async function SearchPage() {
       ownerOccupied: owner?.ownerOccupied ?? null,
       estimatedArv: property.estimatedValue,
       originalListPrice: rawNumber(source, ["OriginalListPrice", "OriginalPrice", "PreviousListPrice"]),
-      distressSignal: hasDistressLanguage(rawString(source, ["PublicRemarks", "Remarks", "MarketingRemarks", "description"]) ?? rawString(property.rawJson, ["PublicRemarks", "Remarks", "MarketingRemarks", "description"])),
+      distressSignal: property.distress,
       source: listing?.source ?? property.source,
     };
   });
