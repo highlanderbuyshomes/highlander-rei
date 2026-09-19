@@ -1,0 +1,25 @@
+name: RESO live sync
+
+# Keeps the admin Search data current from the ARMLS feed. Vercel cron on the
+# Hobby plan is daily-only, so a GitHub schedule calls the secured endpoint.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: reso-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Call incremental sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --max-time 330 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://highlanderrei.com/api/cron/reso-sync"

@@ -43,7 +43,15 @@ function closedMonthWindows(monthsBack: number): { after: string; before: string
   return windows;
 }
 
-export default function ResoSyncPanel({ configured }: { configured: boolean }) {
+function ago(iso: string) {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs < 48 ? `${hrs} hr ago` : `${Math.round(hrs / 24)} days ago`;
+}
+
+export default function ResoSyncPanel({ configured, lastLiveSync }: { configured: boolean; lastLiveSync: string | null }) {
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<SyncResult | null>(null);
@@ -119,6 +127,10 @@ export default function ResoSyncPanel({ configured }: { configured: boolean }) {
       <div style={{ fontSize: "14px", fontWeight: 600, color: "#12161c", marginBottom: "4px" }}>ARMLS RESO Web API</div>
       <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px" }}>
         Pulls Active, Under Contract, Pending, and Closed listings for the default service area into Property &amp; Search — powers the Deal Search 70% rule ranking with real MLS data instead of an empty table.
+      </div>
+
+      <div style={{ fontSize: "12px", color: lastLiveSync ? "#3a7a50" : "#946200", marginBottom: "16px" }}>
+        Live sync (every 10 min): {lastLiveSync ? `last ran ${ago(lastLiveSync)}` : "hasn't run yet"}. The button below is only for a manual full re-pull.
       </div>
 
       {!configured ? (

@@ -224,9 +224,9 @@ async function processPage(page: ResoListing[], importRunId: string, result: Res
  * buy-box matcher already read from. Deterministic mapping only: no AI/LLM
  * touches this data, consistent with the standing ARMLS compliance decision.
  */
-export async function syncResoListings(opts: ResoScopeOpts = {}): Promise<ResoSyncResult> {
+export async function syncResoListings(opts: ResoScopeOpts = {}, importSource = "reso"): Promise<ResoSyncResult> {
   const importRun = await prisma.importRun.create({
-    data: { source: "reso", status: "running", startedAt: new Date() },
+    data: { source: importSource, status: "running", startedAt: new Date() },
   });
 
   const result: ResoSyncResult = {

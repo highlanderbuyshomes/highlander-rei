@@ -102,6 +102,11 @@ export type ResoScopeOpts = {
    *  each request well under the serverless function's time limit. */
   closedAfter?: string;
   closedBefore?: string;
+  /** ISO date-time. Incremental mode: returns every listing in the service
+   *  area modified after this instant, in any status (so cancellations,
+   *  expirations and price/status changes all flow through) — statuses and
+   *  the closed window are ignored. */
+  modifiedSince?: string;
 };
 
 function buildFilter(opts: ResoScopeOpts): string {
@@ -112,6 +117,8 @@ function buildFilter(opts: ResoScopeOpts): string {
   const zipList = zips.map((z) => `'${z}'`).join(",");
   const cityList = cities.map((c) => `'${c.replace(/'/g, "''")}'`).join(",");
   const areaFilter = `(PostalCode in (${zipList}) or City in (${cityList}))`;
+
+  if (opts.modifiedSince) return `${areaFilter} and ModificationTimestamp gt ${opts.modifiedSince}`;
 
   // Active/Pending/Under-Contract listings are inherently bounded (can't
   // accumulate forever), but Closed has no natural ceiling — without a date

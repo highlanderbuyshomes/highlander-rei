@@ -29,6 +29,9 @@ export default async function SettingsPage({
   const activeTab = (["password", "team", "connections", "billing"].includes(params.tab ?? "") ? params.tab : "password") as Tab;
   const team = activeTab === "team" ? await prisma.adminUser.findMany({ orderBy: { createdAt: "asc" } }) : [];
   const pendingAssignments = activeTab === "connections" ? await prisma.callAssignment.count({ where: { status: "pending" } }) : 0;
+  const lastLiveSync = activeTab === "connections"
+    ? await prisma.importRun.findFirst({ where: { source: "reso-incremental", status: { in: ["completed", "completed_with_errors"] } }, orderBy: { startedAt: "desc" }, select: { completedAt: true } })
+    : null;
   const dialerConfigured = Boolean(process.env.COLD_CALL_DOGS_URL && process.env.INTEGRATION_SHARED_SECRET);
 
   const errorMsg: Record<string, string> = {
@@ -158,7 +161,7 @@ export default async function SettingsPage({
             configured={dialerConfigured}
             initialPending={pendingAssignments}
           />
-          <ResoSyncPanel configured={isResoConfigured()} />
+          <ResoSyncPanel configured={isResoConfigured()} lastLiveSync={lastLiveSync?.completedAt?.toISOString() ?? null} />
           <GhlPanel configured={Boolean(process.env.GHL_WEBHOOK_URL)} />
           <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
             <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#12161c", letterSpacing: "1.5px", marginBottom: "8px" }}>MORE CONNECTIONS</div>
