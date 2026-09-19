@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { fetchResoListingPages, type ResoListing, type ResoScopeOpts } from "./reso";
 
@@ -95,14 +94,82 @@ function buildListingData(listing: ResoListing, propertyId: string, agentId: str
   };
 }
 
-// Updates can't be bulk-written with differing values, so they go out as
-// batched transactions — one round-trip per UPDATE_BATCH rows on one
-// connection, instead of one pool checkout per row.
-const UPDATE_BATCH = 50;
+// Vercel -> Neon is ~65ms per round trip, so even batched per-row UPDATEs
+// cost ~27s per 200-listing page. Instead each page's updates go out as ONE
+// statement per table: the rows travel as a single jsonb array and Postgres
+// joins them to the target table.
+const BULK_CHUNK = 100;
 
-async function runUpdates(ops: Prisma.PrismaPromise<unknown>[]) {
-  for (let i = 0; i < ops.length; i += UPDATE_BATCH) {
-    await prisma.$transaction(ops.slice(i, i + UPDATE_BATCH));
+const int = (v: number | null | undefined) => (v == null ? null : Math.round(v));
+const iso = (d: Date | null) => (d ? d.toISOString() : null);
+
+async function bulkUpdateProperties(rows: { id: string; data: ReturnType<typeof buildPropertyData> }[]) {
+  for (let i = 0; i < rows.length; i += BULK_CHUNK) {
+    const payload = rows.slice(i, i + BULK_CHUNK).map(({ id, data: d }) => ({
+      id,
+      streetAddress: d.streetAddress,
+      city: d.city,
+      state: d.state,
+      zip: d.zip,
+      county: d.county,
+      subdivision: d.subdivision,
+      propertyType: d.propertyType,
+      beds: int(d.beds),
+      baths: d.baths,
+      sqft: int(d.sqft),
+      lotSqft: int(d.lotSqft),
+      yearBuilt: int(d.yearBuilt),
+      estimatedValue: d.estimatedValue,
+      latitude: d.latitude,
+      longitude: d.longitude,
+      sourceId: d.sourceId,
+      rawJson: d.rawJson,
+    }));
+    await prisma.$executeRaw`
+      UPDATE "Property" AS p SET
+        "streetAddress" = x."streetAddress", city = x.city, state = x.state, zip = x.zip,
+        county = x.county, subdivision = x.subdivision, "propertyType" = x."propertyType",
+        beds = x.beds, baths = x.baths, sqft = x.sqft, "lotSqft" = x."lotSqft", "yearBuilt" = x."yearBuilt",
+        "estimatedValue" = x."estimatedValue", latitude = x.latitude, longitude = x.longitude,
+        "sourceId" = x."sourceId", "rawJson" = x."rawJson", "lastRefreshedAt" = now(), "updatedAt" = now()
+      FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb) AS x(
+        id text, "streetAddress" text, city text, state text, zip text, county text, subdivision text,
+        "propertyType" text, beds int, baths double precision, sqft int, "lotSqft" int, "yearBuilt" int,
+        "estimatedValue" double precision, latitude double precision, longitude double precision,
+        "sourceId" text, "rawJson" jsonb
+      )
+      WHERE p.id = x.id`;
+  }
+}
+
+async function bulkUpdateListings(rows: { id: string; data: ReturnType<typeof buildListingData> }[]) {
+  for (let i = 0; i < rows.length; i += BULK_CHUNK) {
+    const payload = rows.slice(i, i + BULK_CHUNK).map(({ id, data: d }) => ({
+      id,
+      propertyId: d.propertyId,
+      mlsStatus: d.mlsStatus,
+      listPrice: d.listPrice,
+      listDate: iso(d.listDate),
+      pendingDate: iso(d.pendingDate),
+      soldDate: iso(d.soldDate),
+      soldPrice: d.soldPrice,
+      dom: int(d.dom),
+      agentId: d.agentId,
+      sourceId: d.sourceId,
+      rawJson: d.rawJson,
+    }));
+    await prisma.$executeRaw`
+      UPDATE "MlsListing" AS l SET
+        "propertyId" = x."propertyId", "mlsStatus" = x."mlsStatus", "listPrice" = x."listPrice",
+        "listDate" = x."listDate", "pendingDate" = x."pendingDate", "soldDate" = x."soldDate",
+        "soldPrice" = x."soldPrice", dom = x.dom, "agentId" = x."agentId",
+        "sourceId" = x."sourceId", "rawJson" = x."rawJson", "updatedAt" = now()
+      FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb) AS x(
+        id text, "propertyId" text, "mlsStatus" text, "listPrice" double precision,
+        "listDate" timestamp, "pendingDate" timestamp, "soldDate" timestamp, "soldPrice" double precision,
+        dom int, "agentId" text, "sourceId" text, "rawJson" jsonb
+      )
+      WHERE l.id = x.id`;
   }
 }
 
@@ -110,8 +177,7 @@ async function runUpdates(ops: Prisma.PrismaPromise<unknown>[]) {
  * Writes one RESO page with a fixed number of bulk queries instead of ~6
  * per listing: agents and properties are resolved with one lookup plus one
  * `createMany({ skipDuplicates })` each (race-safe against concurrent
- * chunks), listings likewise, then the remaining updates go out in batched
- * transactions. Known trade-offs: agents that already exist are not
+ * chunks), listings likewise, then updates go out as one bulk UPDATE per table. Known trade-offs: agents that already exist are not
  * refreshed, and listings with no ListAgentKey get no agent link.
  */
 async function processPage(page: ResoListing[], importRunId: string, result: ResoSyncResult) {
@@ -181,12 +247,7 @@ async function processPage(page: ResoListing[], importRunId: string, result: Res
     for (const p of created) propIdByKey.set(`nofp:${p.sourceId}`, p.id);
   }
 
-  await runUpdates(
-    existingProps.map((e) => {
-      const { data } = propByKey.get(e.addressFingerprint!)!;
-      return prisma.property.update({ where: { id: e.id }, data });
-    }),
-  );
+  await bulkUpdateProperties(existingProps.map((e) => ({ id: e.id, data: propByKey.get(e.addressFingerprint!)!.data })));
   result.propertiesUpdated += existingProps.length;
 
   // --- Listings ---
@@ -213,9 +274,7 @@ async function processPage(page: ResoListing[], importRunId: string, result: Res
   }
 
   const toUpdate = listings.filter(([n]) => existingByMls.has(n));
-  await runUpdates(
-    toUpdate.map(([mlsNumber, l]) => prisma.mlsListing.update({ where: { id: existingByMls.get(mlsNumber)!.id }, data: resolve(mlsNumber, l) })),
-  );
+  await bulkUpdateListings(toUpdate.map(([mlsNumber, l]) => ({ id: existingByMls.get(mlsNumber)!.id, data: resolve(mlsNumber, l) })));
   result.listingsUpdated += toUpdate.length;
 
   const events = toUpdate.flatMap(([mlsNumber, l]) => {

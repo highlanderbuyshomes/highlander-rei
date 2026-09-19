@@ -30,7 +30,7 @@ export default async function SettingsPage({
   const team = activeTab === "team" ? await prisma.adminUser.findMany({ orderBy: { createdAt: "asc" } }) : [];
   const pendingAssignments = activeTab === "connections" ? await prisma.callAssignment.count({ where: { status: "pending" } }) : 0;
   const lastLiveSync = activeTab === "connections"
-    ? await prisma.importRun.findFirst({ where: { source: "reso-incremental", status: { in: ["completed", "completed_with_errors"] } }, orderBy: { startedAt: "desc" }, select: { completedAt: true } })
+    ? await prisma.importRun.findFirst({ where: { source: "reso-incremental", status: { in: ["completed", "completed_with_errors", "partial"] } }, orderBy: { startedAt: "desc" }, select: { completedAt: true } })
     : null;
   const dialerConfigured = Boolean(process.env.COLD_CALL_DOGS_URL && process.env.INTEGRATION_SHARED_SECRET);
 
