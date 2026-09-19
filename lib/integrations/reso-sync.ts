@@ -11,6 +11,18 @@ export type ResoSyncResult = {
   listingsUpdated: number;
   statusChanges: number;
   errors: { listingNumber: string; message: string }[];
+  /** Set when the time budget ran out before the feed did; pass back as
+   *  `resumeUrl` to continue where this run stopped. */
+  resumeUrl?: string | null;
+};
+
+export type ResoSyncControl = {
+  /** Epoch ms after which no new page is started; the run is saved as "partial". */
+  deadline?: number;
+  /** Continue from a previous partial run's `resumeUrl`. */
+  resumeUrl?: string;
+  /** Extra fields persisted in ImportRun.rawMeta on every write. */
+  meta?: Record<string, unknown>;
 };
 
 function normalizeAddressFingerprint(streetAddress: string, zip: string): string {
@@ -224,7 +236,7 @@ async function processPage(page: ResoListing[], importRunId: string, result: Res
  * buy-box matcher already read from. Deterministic mapping only: no AI/LLM
  * touches this data, consistent with the standing ARMLS compliance decision.
  */
-export async function syncResoListings(opts: ResoScopeOpts = {}, importSource = "reso"): Promise<ResoSyncResult> {
+export async function syncResoListings(opts: ResoScopeOpts = {}, importSource = "reso", control: ResoSyncControl = {}): Promise<ResoSyncResult> {
   const importRun = await prisma.importRun.create({
     data: { source: importSource, status: "running", startedAt: new Date() },
   });
@@ -240,24 +252,41 @@ export async function syncResoListings(opts: ResoScopeOpts = {}, importSource = 
     errors: [],
   };
 
+  const persist = (extra: Record<string, unknown> = {}) => ({ ...control.meta, ...result, errors: result.errors.slice(0, 50), ...extra });
+
   try {
     let pageNumber = 1;
-    for await (const page of fetchResoListingPages(opts)) {
+    let fetchStarted = Date.now();
+    for await (const { listings: page, nextLink } of fetchResoListingPages(opts, control.resumeUrl)) {
+      const fetchMs = Date.now() - fetchStarted;
       result.fetched += page.length;
 
+      const writeStarted = Date.now();
       try {
         await processPage(page, importRun.id, result);
       } catch (err) {
         result.errors.push({ listingNumber: `page-${pageNumber}`, message: err instanceof Error ? err.message : String(err) });
       }
+      console.log(`[reso/sync ${importSource}] page ${pageNumber}: ${page.length} listings, fetch ${fetchMs}ms, write ${Date.now() - writeStarted}ms`);
       pageNumber++;
+
+      // Out of time with more feed to go: save a resume point and stop cleanly.
+      if (nextLink && control.deadline && Date.now() > control.deadline) {
+        result.resumeUrl = nextLink;
+        await prisma.importRun.update({
+          where: { id: importRun.id },
+          data: { status: "partial", itemCount: result.fetched, completedAt: new Date(), rawMeta: persist({ resumeUrl: nextLink, scope: opts as object }) },
+        });
+        return result;
+      }
 
       // Persist progress after every page so a long run is visible and a
       // partial/interrupted run still reflects real, saved work.
       await prisma.importRun.update({
         where: { id: importRun.id },
-        data: { itemCount: result.fetched, rawMeta: { ...result, errors: result.errors.slice(0, 50) } },
+        data: { itemCount: result.fetched, rawMeta: persist() },
       });
+      fetchStarted = Date.now();
     }
 
     await prisma.importRun.update({
@@ -266,7 +295,7 @@ export async function syncResoListings(opts: ResoScopeOpts = {}, importSource = 
         status: result.errors.length > 0 ? "completed_with_errors" : "completed",
         itemCount: result.fetched,
         completedAt: new Date(),
-        rawMeta: { ...result, errors: result.errors.slice(0, 50) },
+        rawMeta: persist(),
       },
     });
   } catch (err) {

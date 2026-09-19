@@ -1,8 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { syncResoListings } from "@/lib/integrations/reso-sync";
-import { isResoConfigured } from "@/lib/integrations/reso";
+import { syncResoListings, type ResoSyncControl } from "@/lib/integrations/reso-sync";
+import { isResoConfigured, type ResoScopeOpts } from "@/lib/integrations/reso";
 
 // Live MLS feed: called every ~10 minutes by .github/workflows/reso-sync.yml
 // (Vercel cron on the Hobby plan only runs daily). Pulls just what changed
@@ -15,6 +15,8 @@ const SOURCE = "reso-incremental";
 const OVERLAP_MS = 5 * 60_000;
 // A run still marked "running" this recently is treated as in progress.
 const OVERLAP_GUARD_MS = 6 * 60_000;
+// Stop starting new pages after this, leaving headroom under maxDuration.
+const TIME_BUDGET_MS = 200_000;
 // First run ever (no watermark): pull the live statuses in full.
 const BOOTSTRAP_STATUSES = ["Active", "Active Under Contract", "Pending"];
 
@@ -36,22 +38,37 @@ async function handle(req: NextRequest) {
   });
   if (inFlight) return NextResponse.json({ skipped: "previous run still in progress" });
 
-  // Only a fully clean run advances the watermark, so records that errored
-  // are retried next time instead of being skipped past.
-  const last = await prisma.importRun.findFirst({
-    where: { source: SOURCE, status: "completed" },
+  // The feed can be too big for one 300s invocation (first pull especially),
+  // so a run stops at a time budget, saves a "partial" resume point, and the
+  // next run picks up from it. `watermark` is when the logical sync began —
+  // carried through continuations — and only a fully clean run makes it the
+  // next incremental start, so records that errored are retried, not skipped.
+  const latest = await prisma.importRun.findFirst({
+    where: { source: SOURCE, status: { in: ["completed", "partial"] } },
     orderBy: { startedAt: "desc" },
-    select: { startedAt: true },
+    select: { status: true, startedAt: true, rawMeta: true },
   });
+  const meta = (latest?.rawMeta ?? {}) as { watermark?: string; resumeUrl?: string; scope?: ResoScopeOpts };
+  const startedNow = new Date().toISOString();
 
-  const scope = last
-    ? { modifiedSince: new Date(last.startedAt!.getTime() - OVERLAP_MS).toISOString() }
-    : { statuses: BOOTSTRAP_STATUSES };
+  let scope: ResoScopeOpts;
+  let control: ResoSyncControl;
+  if (latest?.status === "partial" && meta.resumeUrl && meta.scope && meta.watermark) {
+    scope = meta.scope;
+    control = { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark, scope } };
+  } else if (latest?.status === "completed" && meta.watermark) {
+    scope = { modifiedSince: new Date(new Date(meta.watermark).getTime() - OVERLAP_MS).toISOString() };
+    control = { meta: { watermark: startedNow, scope } };
+  } else {
+    scope = { statuses: BOOTSTRAP_STATUSES };
+    control = { meta: { watermark: startedNow, scope } };
+  }
+  control.deadline = Date.now() + TIME_BUDGET_MS;
 
   try {
-    const result = await syncResoListings(scope, SOURCE);
+    const result = await syncResoListings(scope, SOURCE, control);
     console.log("[reso/cron] scope:", JSON.stringify(scope), "result:", JSON.stringify({ ...result, errors: result.errors.slice(0, 5) }));
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, partial: Boolean(result.resumeUrl) });
   } catch (err) {
     console.error("[reso/cron] failed:", err);
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 502 });

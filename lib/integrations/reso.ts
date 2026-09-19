@@ -162,15 +162,23 @@ const MAX_PAGES = 100; // safety cap: 20,000 listings per sync run
  * long run shows real progress instead of writing nothing until the very
  * end, and a run that's interrupted still keeps whatever it already wrote.
  */
-export async function* fetchResoListingPages(opts: ResoScopeOpts = {}): AsyncGenerator<ResoListing[]> {
+export async function* fetchResoListingPages(
+  opts: ResoScopeOpts = {},
+  resumeUrl?: string,
+): AsyncGenerator<{ listings: ResoListing[]; nextLink: string | null }> {
   const apiUrl = process.env.RESO_API_URL || DEFAULT_API_URL;
-  const filter = buildFilter(opts);
 
-  let url = `${apiUrl.replace(/\/$/, "")}/Property?$filter=${encodeURIComponent(filter)}&$top=${PAGE_SIZE}`;
+  // A resume URL comes back out of our own DB, but it carries the bearer
+  // token on the next request — never send that to a different host.
+  if (resumeUrl && new URL(resumeUrl).origin !== new URL(apiUrl).origin) {
+    throw new Error("Refusing to resume from a URL on a different host than the RESO API");
+  }
+
+  let url = resumeUrl ?? `${apiUrl.replace(/\/$/, "")}/Property?$filter=${encodeURIComponent(buildFilter(opts))}&$top=${PAGE_SIZE}`;
 
   for (let page = 0; page < MAX_PAGES; page++) {
     const { value, nextLink } = await resoFetch(url);
-    yield value;
+    yield { listings: value, nextLink };
     if (!nextLink) break;
     url = nextLink;
   }
