@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
+import { hasDistressLanguage } from "@/lib/distress";
 import MlsSearchWorkspace, { type ListingRecord } from "./MlsSearchWorkspace";
 
 export const metadata: Metadata = { title: "Deal Search | Highlander REI" };
@@ -64,10 +65,10 @@ export default async function SearchPage() {
   const isLive = { mlsListings: { some: { mlsStatus: { in: LIVE_STATUSES } } } };
   const include = {
     owners: { take: 1, orderBy: { updatedAt: "desc" as const } },
-    mlsListings: { take: 1, orderBy: { updatedAt: "desc" as const }, include: { agent: true } },
+    mlsListings: { take: 1, orderBy: { updatedAt: "desc" as const } },
   };
   const [live, other] = await Promise.all([
-    prisma.property.findMany({ where: isLive, orderBy: { updatedAt: "desc" }, take: 2000, include }),
+    prisma.property.findMany({ where: isLive, orderBy: { updatedAt: "desc" }, take: 6000, include }),
     prisma.property.findMany({ where: { NOT: isLive }, orderBy: { updatedAt: "desc" }, take: 1000, include }),
   ]);
   const properties = [...live, ...other];
@@ -106,7 +107,7 @@ export default async function SearchPage() {
       ownerOccupied: owner?.ownerOccupied ?? null,
       estimatedArv: property.estimatedValue,
       originalListPrice: rawNumber(source, ["OriginalListPrice", "OriginalPrice", "PreviousListPrice"]),
-      remarks: rawString(source, ["PublicRemarks", "Remarks", "MarketingRemarks", "description"]) ?? rawString(property.rawJson, ["PublicRemarks", "Remarks", "MarketingRemarks", "description"]),
+      distressSignal: hasDistressLanguage(rawString(source, ["PublicRemarks", "Remarks", "MarketingRemarks", "description"]) ?? rawString(property.rawJson, ["PublicRemarks", "Remarks", "MarketingRemarks", "description"])),
       source: listing?.source ?? property.source,
     };
   });

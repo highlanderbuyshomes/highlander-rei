@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { hasDistressLanguage } from "@/lib/distress";
 import { targetProperty } from "./actions";
 import GoogleMapStage from "./GoogleMapStage";
 import styles from "./search.module.css";
@@ -34,6 +35,8 @@ export type ListingRecord = {
   estimatedArv?: number | null;
   originalListPrice?: number | null;
   remarks?: string | null;
+  /** Precomputed server-side from remarks so the long text needn't ship to the browser. */
+  distressSignal?: boolean;
   source: string;
 };
 
@@ -137,9 +140,7 @@ function scoreDeals(listings: ListingRecord[], threshold: number): DealCandidate
     const rule70Price = arv ? arv * (threshold / 100) : null;
     const rule70Spread = rule70Price != null && listing.listPrice != null ? rule70Price - listing.listPrice : null;
     const ppsfDiscountPct = pricePerSqft && pocketPricePerSqft ? ((pocketPricePerSqft - pricePerSqft) / pocketPricePerSqft) * 100 : null;
-    const remarks = listing.remarks?.toLowerCase() ?? "";
-    const distressWords = ["fixer", "as-is", "as is", "cash only", "needs repair", "needs updating", "investor", "estate sale", "original condition", "handyman"];
-    const conditionSignal = distressWords.some((word) => remarks.includes(word));
+    const conditionSignal = listing.distressSignal ?? hasDistressLanguage(listing.remarks);
     const status = normalizeStatus(listing.status);
     const priceReductionPct = listing.originalListPrice && listing.listPrice && listing.originalListPrice > listing.listPrice ? ((listing.originalListPrice - listing.listPrice) / listing.originalListPrice) * 100 : 0;
     const reasons: string[] = [];
