@@ -1,5 +1,10 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { fetchResoListingPages, type ResoListing, type ResoScopeOpts } from "./reso";
+
+function isUniqueConstraintError(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+}
 
 export type ResoSyncResult = {
   importRunId: string;
@@ -44,9 +49,16 @@ async function findOrCreateAgent(listing: ResoListing) {
   // Pages are processed concurrently, and the same agent commonly lists
   // several properties in one page — a find-then-create here races: two
   // listings can both see "no existing agent" and both try to create it.
-  // upsert is atomic at the DB level, so it can't race the same way.
+  // (DB-level upsert would sidestep this, but Postgres rejected ON CONFLICT
+  // against this column here, so instead: try to create, and if a
+  // concurrent insert already won that race, fetch and update it.)
   if (mlsId) {
-    return prisma.mlsAgent.upsert({ where: { mlsId }, create: { mlsId, ...data }, update: data });
+    try {
+      return await prisma.mlsAgent.create({ data: { mlsId, ...data } });
+    } catch (err) {
+      if (!isUniqueConstraintError(err)) throw err;
+      return prisma.mlsAgent.update({ where: { mlsId }, data });
+    }
   }
   return prisma.mlsAgent.create({ data: { mlsId: null, ...data } });
 }
@@ -81,20 +93,18 @@ async function upsertProperty(listing: ResoListing, importRunId: string) {
 
   // Pages are processed concurrently; two listings for the same address
   // (a relisted property under a new MLS number is common) can otherwise
-  // both see "no existing property" in a find-then-create race. upsert on
-  // the fingerprint is atomic, so it can't hit that race — a plain create
-  // is the only option left when there's no zip to fingerprint against.
+  // both see "no existing property" in a find-then-create race. Try create
+  // first; if a concurrent insert already won that race, fall back to
+  // fetching and updating it instead.
   if (fingerprint) {
-    let created = false;
-    const property = await prisma.property.upsert({
-      where: { addressFingerprint: fingerprint },
-      create: { ...data, importRunId },
-      update: data,
-    }).then((p) => {
-      created = p.createdAt.getTime() === p.updatedAt.getTime();
-      return p;
-    });
-    return { property, created };
+    try {
+      const property = await prisma.property.create({ data: { ...data, importRunId } });
+      return { property, created: true };
+    } catch (err) {
+      if (!isUniqueConstraintError(err)) throw err;
+      const property = await prisma.property.update({ where: { addressFingerprint: fingerprint }, data });
+      return { property, created: false };
+    }
   }
 
   const created = await prisma.property.create({ data: { ...data, importRunId } });
