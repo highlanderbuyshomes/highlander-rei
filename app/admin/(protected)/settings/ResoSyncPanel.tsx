@@ -72,7 +72,11 @@ export default function ResoSyncPanel({ configured }: { configured: boolean }) {
     // slow or failed month doesn't lose the rest of the sync.
     try {
       setMessage("Syncing active, pending & under-contract listings...");
-      mergeInto(aggregate, await runChunk({ statuses: ["Active", "Active Under Contract", "Pending"] }));
+      try {
+        mergeInto(aggregate, await runChunk({ statuses: ["Active", "Active Under Contract", "Pending"] }));
+      } catch (err) {
+        aggregate.errors.push({ listingNumber: "active-pending", message: err instanceof Error ? err.message : String(err) });
+      }
       setResult({ ...aggregate });
 
       const windows = closedMonthWindows(CLOSED_MONTHS_BACK);

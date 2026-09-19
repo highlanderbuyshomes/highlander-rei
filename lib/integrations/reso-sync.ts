@@ -1,10 +1,6 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { fetchResoListingPages, type ResoListing, type ResoScopeOpts } from "./reso";
-
-function isUniqueConstraintError(err: unknown): boolean {
-  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
-}
 
 export type ResoSyncResult = {
   importRunId: string;
@@ -34,46 +30,24 @@ function toBaths(listing: ResoListing): number | undefined {
   return (listing.BathroomsFull ?? 0) + (listing.BathroomsHalf ?? 0) * 0.5;
 }
 
-async function findOrCreateAgent(listing: ResoListing) {
-  const mlsId = listing.ListAgentKey;
-  if (!mlsId && !listing.ListAgentFullName) return null;
-
-  const data = {
+function buildAgentData(listing: ResoListing) {
+  return {
     fullName: listing.ListAgentFullName ?? null,
     email: listing.ListAgentEmail ?? null,
     phone: listing.ListAgentDirectPhone ?? null,
     brokerageName: listing.ListOfficeName ?? null,
-    rawJson: { source: "reso-listing-agent-field", ListAgentKey: mlsId ?? null },
+    rawJson: { source: "reso-listing-agent-field", ListAgentKey: listing.ListAgentKey ?? null },
   };
-
-  // Pages are processed concurrently, and the same agent commonly lists
-  // several properties in one page — a find-then-create here races: two
-  // listings can both see "no existing agent" and both try to create it.
-  // (DB-level upsert would sidestep this, but Postgres rejected ON CONFLICT
-  // against this column here, so instead: try to create, and if a
-  // concurrent insert already won that race, fetch and update it.)
-  if (mlsId) {
-    try {
-      return await prisma.mlsAgent.create({ data: { mlsId, ...data } });
-    } catch (err) {
-      if (!isUniqueConstraintError(err)) throw err;
-      return prisma.mlsAgent.update({ where: { mlsId }, data });
-    }
-  }
-  return prisma.mlsAgent.create({ data: { mlsId: null, ...data } });
 }
 
-async function upsertProperty(listing: ResoListing, importRunId: string) {
+function buildPropertyData(listing: ResoListing, fingerprint: string | null) {
   const streetAddress = formatStreetAddress(listing);
-  const zip = listing.PostalCode ?? "";
-  const fingerprint = zip ? normalizeAddressFingerprint(streetAddress, zip) : null;
-
-  const data = {
+  return {
     addressFingerprint: fingerprint,
     streetAddress,
     city: listing.City ?? "Unknown",
     state: listing.StateOrProvince ?? "AZ",
-    zip,
+    zip: listing.PostalCode ?? "",
     county: listing.CountyOrParish ?? null,
     subdivision: listing.SubdivisionName ?? null,
     propertyType: listing.PropertySubType ?? listing.PropertyType ?? null,
@@ -90,32 +64,10 @@ async function upsertProperty(listing: ResoListing, importRunId: string) {
     rawJson: listing as object,
     lastRefreshedAt: new Date(),
   };
-
-  // Pages are processed concurrently; two listings for the same address
-  // (a relisted property under a new MLS number is common) can otherwise
-  // both see "no existing property" in a find-then-create race. Try create
-  // first; if a concurrent insert already won that race, fall back to
-  // fetching and updating it instead.
-  if (fingerprint) {
-    try {
-      const property = await prisma.property.create({ data: { ...data, importRunId } });
-      return { property, created: true };
-    } catch (err) {
-      if (!isUniqueConstraintError(err)) throw err;
-      const property = await prisma.property.update({ where: { addressFingerprint: fingerprint }, data });
-      return { property, created: false };
-    }
-  }
-
-  const created = await prisma.property.create({ data: { ...data, importRunId } });
-  return { property: created, created: true };
 }
 
-async function upsertListing(listing: ResoListing, propertyId: string, agentId: string | null, importRunId: string) {
-  const mlsNumber = listing.ListingId ?? listing.ListingKey;
-  const existing = await prisma.mlsListing.findUnique({ where: { mlsNumber } });
-
-  const data = {
+function buildListingData(listing: ResoListing, propertyId: string, agentId: string | null) {
+  return {
     propertyId,
     mlsStatus: listing.StandardStatus ?? null,
     listPrice: listing.ListPrice ?? null,
@@ -129,14 +81,141 @@ async function upsertListing(listing: ResoListing, propertyId: string, agentId: 
     sourceId: listing.ListingKey,
     rawJson: listing as object,
   };
+}
 
-  if (existing) {
-    const updated = await prisma.mlsListing.update({ where: { id: existing.id }, data });
-    return { listing: updated, created: false, previousStatus: existing.mlsStatus };
+// Updates can't be bulk-written with differing values, so they go out as
+// batched transactions — one round-trip per UPDATE_BATCH rows on one
+// connection, instead of one pool checkout per row.
+const UPDATE_BATCH = 50;
+
+async function runUpdates(ops: Prisma.PrismaPromise<unknown>[]) {
+  for (let i = 0; i < ops.length; i += UPDATE_BATCH) {
+    await prisma.$transaction(ops.slice(i, i + UPDATE_BATCH));
+  }
+}
+
+/**
+ * Writes one RESO page with a fixed number of bulk queries instead of ~6
+ * per listing: agents and properties are resolved with one lookup plus one
+ * `createMany({ skipDuplicates })` each (race-safe against concurrent
+ * chunks), listings likewise, then the remaining updates go out in batched
+ * transactions. Known trade-offs: agents that already exist are not
+ * refreshed, and listings with no ListAgentKey get no agent link.
+ */
+async function processPage(page: ResoListing[], importRunId: string, result: ResoSyncResult) {
+  // Same MLS number twice in a page: last one wins.
+  const byMls = new Map<string, ResoListing>();
+  for (const l of page) byMls.set(l.ListingId ?? l.ListingKey, l);
+  const listings = [...byMls.entries()];
+
+  // --- Agents ---
+  const agentRows = new Map<string, ResoListing>();
+  for (const [, l] of listings) if (l.ListAgentKey) agentRows.set(l.ListAgentKey, l);
+  const agentIdByMlsId = new Map<string, string>();
+  if (agentRows.size) {
+    await prisma.mlsAgent.createMany({
+      data: [...agentRows].map(([mlsId, l]) => ({ mlsId, ...buildAgentData(l) })),
+      skipDuplicates: true,
+    });
+    const agents = await prisma.mlsAgent.findMany({ where: { mlsId: { in: [...agentRows.keys()] } }, select: { id: true, mlsId: true } });
+    for (const a of agents) if (a.mlsId) agentIdByMlsId.set(a.mlsId, a.id);
   }
 
-  const created = await prisma.mlsListing.create({ data: { ...data, mlsNumber, importRunId } });
-  return { listing: created, created: true, previousStatus: null };
+  // --- Properties --- (key = address fingerprint, or ListingKey if no zip)
+  const propByKey = new Map<string, { fingerprint: string | null; data: ReturnType<typeof buildPropertyData> }>();
+  const keyByMls = new Map<string, string>();
+  for (const [mlsNumber, l] of listings) {
+    const zip = l.PostalCode ?? "";
+    const fingerprint = zip ? normalizeAddressFingerprint(formatStreetAddress(l), zip) : null;
+    const key = fingerprint ?? `nofp:${l.ListingKey}`;
+    propByKey.set(key, { fingerprint, data: buildPropertyData(l, fingerprint) });
+    keyByMls.set(mlsNumber, key);
+  }
+
+  const propIdByKey = new Map<string, string>();
+  const fingerprints = [...propByKey.values()].map((p) => p.fingerprint).filter((f): f is string => f != null);
+  const existingProps = fingerprints.length
+    ? await prisma.property.findMany({ where: { addressFingerprint: { in: fingerprints } }, select: { id: true, addressFingerprint: true } })
+    : [];
+  const existingFp = new Set<string>();
+  for (const p of existingProps) {
+    existingFp.add(p.addressFingerprint!);
+    propIdByKey.set(p.addressFingerprint!, p.id);
+  }
+
+  const newFp = [...propByKey].filter(([, p]) => p.fingerprint && !existingFp.has(p.fingerprint));
+  if (newFp.length) {
+    const { count } = await prisma.property.createMany({
+      data: newFp.map(([, p]) => ({ ...p.data, importRunId })),
+      skipDuplicates: true,
+    });
+    result.propertiesCreated += count;
+    // Rows a concurrent chunk inserted first weren't counted as ours; count them as updates.
+    result.propertiesUpdated += newFp.length - count;
+    const created = await prisma.property.findMany({
+      where: { addressFingerprint: { in: newFp.map(([k]) => k) } },
+      select: { id: true, addressFingerprint: true },
+    });
+    for (const p of created) propIdByKey.set(p.addressFingerprint!, p.id);
+  }
+
+  const noFp = [...propByKey].filter(([, p]) => !p.fingerprint);
+  if (noFp.length) {
+    const created = await prisma.property.createManyAndReturn({
+      data: noFp.map(([, p]) => ({ ...p.data, importRunId })),
+      select: { id: true, sourceId: true },
+    });
+    result.propertiesCreated += created.length;
+    for (const p of created) propIdByKey.set(`nofp:${p.sourceId}`, p.id);
+  }
+
+  await runUpdates(
+    existingProps.map((e) => {
+      const { data } = propByKey.get(e.addressFingerprint!)!;
+      return prisma.property.update({ where: { id: e.id }, data });
+    }),
+  );
+  result.propertiesUpdated += existingProps.length;
+
+  // --- Listings ---
+  const existingListings = await prisma.mlsListing.findMany({
+    where: { mlsNumber: { in: listings.map(([n]) => n) } },
+    select: { id: true, mlsNumber: true, mlsStatus: true },
+  });
+  const existingByMls = new Map(existingListings.map((e) => [e.mlsNumber, e]));
+
+  const resolve = (mlsNumber: string, l: ResoListing) => {
+    const propertyId = propIdByKey.get(keyByMls.get(mlsNumber)!);
+    if (!propertyId) throw new Error(`No property resolved for listing ${mlsNumber}`);
+    return buildListingData(l, propertyId, l.ListAgentKey ? agentIdByMlsId.get(l.ListAgentKey) ?? null : null);
+  };
+
+  const toCreate = listings.filter(([n]) => !existingByMls.has(n));
+  if (toCreate.length) {
+    const { count } = await prisma.mlsListing.createMany({
+      data: toCreate.map(([mlsNumber, l]) => ({ ...resolve(mlsNumber, l), mlsNumber, importRunId })),
+      skipDuplicates: true,
+    });
+    result.listingsCreated += count;
+    result.listingsUpdated += toCreate.length - count;
+  }
+
+  const toUpdate = listings.filter(([n]) => existingByMls.has(n));
+  await runUpdates(
+    toUpdate.map(([mlsNumber, l]) => prisma.mlsListing.update({ where: { id: existingByMls.get(mlsNumber)!.id }, data: resolve(mlsNumber, l) })),
+  );
+  result.listingsUpdated += toUpdate.length;
+
+  const events = toUpdate.flatMap(([mlsNumber, l]) => {
+    const prev = existingByMls.get(mlsNumber)!;
+    const newStatus = l.StandardStatus ?? null;
+    if (newStatus == null || prev.mlsStatus === newStatus) return [];
+    return [{ listingId: prev.id, fromStatus: prev.mlsStatus, toStatus: newStatus, source: "reso", changedAt: new Date(), rawJson: l as object }];
+  });
+  if (events.length) {
+    await prisma.listingStatusEvent.createMany({ data: events });
+    result.statusChanges += events.length;
+  }
 }
 
 /**
@@ -162,49 +241,16 @@ export async function syncResoListings(opts: ResoScopeOpts = {}): Promise<ResoSy
   };
 
   try {
+    let pageNumber = 1;
     for await (const page of fetchResoListingPages(opts)) {
       result.fetched += page.length;
 
-      // Listings within a page touch distinct properties, so writing them
-      // concurrently is safe and cuts wall-clock time dominated by DB
-      // round-trips; pages themselves stay sequential (RESO's pagination
-      // is inherently serial via @odata.nextLink).
-      await Promise.all(page.map(async (listing) => {
-        try {
-          const { property, created: propertyCreated } = await upsertProperty(listing, importRun.id);
-          propertyCreated ? result.propertiesCreated++ : result.propertiesUpdated++;
-
-          const agent = await findOrCreateAgent(listing);
-
-          const { listing: mlsListing, created: listingCreated, previousStatus } = await upsertListing(
-            listing,
-            property.id,
-            agent?.id ?? null,
-            importRun.id,
-          );
-          listingCreated ? result.listingsCreated++ : result.listingsUpdated++;
-
-          const newStatus = listing.StandardStatus ?? null;
-          if (!listingCreated && previousStatus !== newStatus && newStatus != null) {
-            await prisma.listingStatusEvent.create({
-              data: {
-                listingId: mlsListing.id,
-                fromStatus: previousStatus,
-                toStatus: newStatus,
-                source: "reso",
-                changedAt: new Date(),
-                rawJson: listing as object,
-              },
-            });
-            result.statusChanges++;
-          }
-        } catch (err) {
-          result.errors.push({
-            listingNumber: listing.ListingId ?? listing.ListingKey,
-            message: err instanceof Error ? err.message : String(err),
-          });
-        }
-      }));
+      try {
+        await processPage(page, importRun.id, result);
+      } catch (err) {
+        result.errors.push({ listingNumber: `page-${pageNumber}`, message: err instanceof Error ? err.message : String(err) });
+      }
+      pageNumber++;
 
       // Persist progress after every page so a long run is visible and a
       // partial/interrupted run still reflects real, saved work.
