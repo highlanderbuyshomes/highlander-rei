@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { addTeamMember, changePassword } from "./actions";
-import IHomeFinderSyncPanel from "./IHomeFinderSyncPanel";
+import GhlPanel from "./GhlPanel";
 import ResoSyncPanel from "./ResoSyncPanel";
 import DialerIntegrationPanel from "../dialer/DialerIntegrationPanel";
 import { isResoConfigured } from "@/lib/integrations/reso";
@@ -159,10 +159,10 @@ export default async function SettingsPage({
             initialPending={pendingAssignments}
           />
           <ResoSyncPanel configured={isResoConfigured()} />
-          <IHomeFinderSyncPanel />
+          <GhlPanel configured={Boolean(process.env.GHL_WEBHOOK_URL)} />
           <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "48px 40px", textAlign: "center" }}>
             <div style={{ fontFamily: "var(--font-display), serif", fontSize: "20px", color: "#12161c", letterSpacing: "1.5px", marginBottom: "8px" }}>MORE CONNECTIONS</div>
-            <div style={{ fontSize: "13px", color: "#64748b" }}>Coming soon — manage GHL and Apify connections here.</div>
+            <div style={{ fontSize: "13px", color: "#64748b" }}>Coming soon — manage Apify connections here.</div>
           </div>
         </div>
       )}
