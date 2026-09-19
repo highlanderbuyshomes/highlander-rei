@@ -48,7 +48,21 @@ export default function ResoSyncPanel({ configured }: { configured: boolean }) {
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<SyncResult | null>(null);
 
-  async function runChunk(body: Record<string, unknown>): Promise<SyncResult> {
+  // Spark answers 429 "try again in a few minutes" when a request overlaps or
+  // repeats a recent one, so wait and retry instead of failing the chunk.
+  async function runChunk(body: Record<string, unknown>, attempt = 0): Promise<SyncResult> {
+    try {
+      return await runChunkOnce(body);
+    } catch (err) {
+      if (attempt < 3 && err instanceof Error && err.message.includes("429")) {
+        await new Promise((r) => setTimeout(r, 20_000 * (attempt + 1)));
+        return runChunk(body, attempt + 1);
+      }
+      throw err;
+    }
+  }
+
+  async function runChunkOnce(body: Record<string, unknown>): Promise<SyncResult> {
     const res = await fetch("/api/integrations/reso/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -71,13 +85,15 @@ export default function ResoSyncPanel({ configured }: { configured: boolean }) {
     // serverless time limit; chunking keeps each call fast and means one
     // slow or failed month doesn't lose the rest of the sync.
     try {
-      setMessage("Syncing active, pending & under-contract listings...");
-      try {
-        mergeInto(aggregate, await runChunk({ statuses: ["Active", "Active Under Contract", "Pending"] }));
-      } catch (err) {
-        aggregate.errors.push({ listingNumber: "active-pending", message: err instanceof Error ? err.message : String(err) });
+      for (const status of ["Active", "Active Under Contract", "Pending"]) {
+        setMessage(`Syncing ${status} listings...`);
+        try {
+          mergeInto(aggregate, await runChunk({ statuses: [status] }));
+        } catch (err) {
+          aggregate.errors.push({ listingNumber: status, message: err instanceof Error ? err.message : String(err) });
+        }
+        setResult({ ...aggregate });
       }
-      setResult({ ...aggregate });
 
       const windows = closedMonthWindows(CLOSED_MONTHS_BACK);
       for (let i = 0; i < windows.length; i++) {

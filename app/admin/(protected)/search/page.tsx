@@ -57,14 +57,20 @@ function rawLevels(raw: unknown) {
 export default async function SearchPage() {
   await requireAdmin();
 
-  const properties = await prisma.property.findMany({
-    orderBy: { updatedAt: "desc" },
-    take: 250,
-    include: {
-      owners: { take: 1, orderBy: { updatedAt: "desc" } },
-      mlsListings: { take: 1, orderBy: { updatedAt: "desc" }, include: { agent: true } },
-    },
-  });
+  // The workspace filters client-side and defaults to live statuses, so live
+  // listings are always loaded in full; everything else (Closed history,
+  // off-market records) is capped to the most recently updated.
+  const LIVE_STATUSES = ["Active", "Active Under Contract", "Pending", "Coming Soon"];
+  const isLive = { mlsListings: { some: { mlsStatus: { in: LIVE_STATUSES } } } };
+  const include = {
+    owners: { take: 1, orderBy: { updatedAt: "desc" as const } },
+    mlsListings: { take: 1, orderBy: { updatedAt: "desc" as const }, include: { agent: true } },
+  };
+  const [live, other] = await Promise.all([
+    prisma.property.findMany({ where: isLive, orderBy: { updatedAt: "desc" }, take: 2000, include }),
+    prisma.property.findMany({ where: { NOT: isLive }, orderBy: { updatedAt: "desc" }, take: 1000, include }),
+  ]);
+  const properties = [...live, ...other];
 
   const listings: ListingRecord[] = properties.map((property) => {
     const listing = property.mlsListings[0];
