@@ -8,10 +8,15 @@ export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id query parameter is required" }, { status: 400 });
 
-  const rows = await loadRowsByIds([id]);
-  const row = rows[0];
+  try {
+    const rows = await loadRowsByIds([id]);
+    const row = rows[0];
 
-  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  return NextResponse.json(row);
+    return NextResponse.json(row);
+  } catch (err) {
+    console.error("[admin/search/listing] failed:", err);
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
