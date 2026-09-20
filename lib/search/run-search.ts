@@ -2,7 +2,7 @@ import { isPointInsideShape } from "@/lib/filter-listings";
 import { loadCandidates, loadRowsByIds } from "./load";
 import { scoreDeals } from "./score-deals";
 import type { DealCandidate, DrawnShape, Pin, SearchRequest, SearchResponse } from "./types";
-import { PAGE_SIZE } from "./types";
+import { MAX_PINS, PAGE_SIZE } from "./types";
 
 export function applyShape<T extends { latitude: number | null; longitude: number | null }>(
   rows: T[],
@@ -12,6 +12,17 @@ export function applyShape<T extends { latitude: number | null; longitude: numbe
   return rows.filter((r) => r.latitude != null && r.longitude != null && isPointInsideShape(r.latitude, r.longitude, shape));
 }
 
+/** Score-ordered pins for rows with coordinates, capped at MAX_PINS. */
+export function capPins(scored: DealCandidate[], max: number = MAX_PINS): Pin[] {
+  const pins: Pin[] = [];
+  for (const d of scored) {
+    if (pins.length >= max) break;
+    if (d.latitude == null || d.longitude == null) continue;
+    pins.push({ id: d.id, lat: d.latitude, lng: d.longitude, price: d.listPrice, status: d.status, target: d.priority === "Target now" });
+  }
+  return pins;
+}
+
 export async function runSearch(req: SearchRequest): Promise<SearchResponse> {
   const threshold = Math.min(99, Math.max(1, Math.round(req.arvThreshold)));
   const page = Math.max(0, Math.floor(req.page ?? 0));
@@ -19,9 +30,7 @@ export async function runSearch(req: SearchRequest): Promise<SearchResponse> {
   const candidates = applyShape(await loadCandidates(req.filters), req.shape);
   const scored = scoreDeals(candidates, threshold); // already sorted by score desc
 
-  const pins: Pin[] = scored
-    .filter((d) => d.latitude != null && d.longitude != null)
-    .map((d) => ({ id: d.id, lat: d.latitude!, lng: d.longitude!, price: d.listPrice, status: d.status, target: d.priority === "Target now" }));
+  const pins = capPins(scored);
 
   const pageIds = scored.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((d) => d.id);
   const full = await loadRowsByIds(pageIds);

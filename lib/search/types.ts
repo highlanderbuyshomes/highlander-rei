@@ -70,3 +70,6 @@ export type Pin = { id: string; lat: number; lng: number; price: number | null; 
 export type SearchResponse = { total: number; pins: Pin[]; rows: DealCandidate[]; targetCount: number };
 
 export const PAGE_SIZE = 100;
+
+/** Most map pins returned per search; the client draws only the top 250 anyway. `total`/`targetCount` still reflect every match. */
+export const MAX_PINS = 500;
