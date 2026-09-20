@@ -69,12 +69,16 @@ function pointInPolygon(lat: number, lng: number, path: { lat: number; lng: numb
   return inside;
 }
 
-export function isInsideShape(listing: MlsListing, shape: DrawnShape | null): boolean {
+export function isPointInsideShape(lat: number, lng: number, shape: DrawnShape | null): boolean {
   if (!shape) return true;
-  if (shape.type === "rectangle") return pointInRectangle(listing.lat, listing.lng, shape.bounds);
-  if (shape.type === "circle") return pointInCircle(listing.lat, listing.lng, shape.center, shape.radiusMeters);
-  if (shape.type === "marker") return pointInCircle(listing.lat, listing.lng, shape.position, shape.radiusMeters);
-  return pointInPolygon(listing.lat, listing.lng, shape.path);
+  if (shape.type === "rectangle") return pointInRectangle(lat, lng, shape.bounds);
+  if (shape.type === "circle") return pointInCircle(lat, lng, shape.center, shape.radiusMeters);
+  if (shape.type === "marker") return pointInCircle(lat, lng, shape.position, shape.radiusMeters);
+  return pointInPolygon(lat, lng, shape.path);
+}
+
+export function isInsideShape(listing: MlsListing, shape: DrawnShape | null): boolean {
+  return isPointInsideShape(listing.lat, listing.lng, shape);
 }
 
 export function filterListings(listings: MlsListing[], filters: ListingFilters, shape: DrawnShape | null): MlsListing[] {
