@@ -67,6 +67,48 @@ const RAW_KEYS = [
 const liteOf = (col: string) => Prisma.raw(`jsonb_strip_nulls(jsonb_build_object(${RAW_KEYS.map((k) => `'${k}', ${col}->'${k}'`).join(", ")}))`);
 const remarksOf = (col: string) => Prisma.raw(`${col}->>'PublicRemarks', ${col}->>'Remarks', ${col}->>'MarketingRemarks', ${col}->>'description'`);
 
+/**
+ * Leading number of a text value. Bracket form on purpose: `$queryRaw`
+ * templates are COOKED strings, so a backslash-dot would reach Postgres as a bare `.` (any
+ * char) and "1,834" would capture "1,834" and blow up `::numeric`. Exactly one
+ * capturing group (the decimal part is non-capturing).
+ */
+export const NUMERIC_PREFIX = "^(-?[0-9]+(?:[.][0-9]+)?)";
+// Inlined as a literal (safe: no quotes in the pattern) so Postgres resolves
+// substring(text from text) as the regex form rather than a bound-param guess.
+const numPrefix = (expr: string) => Prisma.raw(`substring(${expr} from '${NUMERIC_PREFIX}')::float8`);
+const srcKey = (k: string) => `src->>'${k}'`;
+const propKey = (k: string) => `NULLIF(p."rawJson"->>'${k}', '')`;
+const coalesceKeys = (keys: string[]) => keys.map((k) => srcKey(k)).join(", ");
+const coalescePropKeys = (keys: string[]) => keys.map((k) => propKey(k)).join(", ");
+
+const DWELLING_KEYS = ["PropertySubType", "PropertyType", "DwellingType"];
+const POOL_KEYS = ["PoolPrivateYN", "PrivatePoolYN", "PrivatePool", "HasPool", "pool"];
+const STORY_KEYS = ["Stories", "StoriesTotal", "NumberOfStories", "InteriorLevels"];
+
+const poolCase = (txt: string) =>
+  `CASE WHEN lower(${txt}) IN ('yes','y','true','1','private') THEN TRUE WHEN lower(${txt}) IN ('no','n','false','0','none') THEN FALSE END`;
+const levelsText = (lv: string) =>
+  `CASE WHEN lower(${lv}) LIKE '%three%' THEN 3 WHEN lower(${lv}) LIKE '%two%' THEN 2 WHEN lower(${lv}) LIKE '%one%' OR lower(${lv}) LIKE '%single%' THEN 1 END`;
+
+// Per-key fallback from the listing/property `src` blob to Property.rawJson,
+// mirroring rawString/rawBoolean/rawLevels(source) ?? rawX(propLite) in loadRowsByIds.
+export const DWELLING_SQL = Prisma.raw(`COALESCE(p."propertyType", ${coalesceKeys(DWELLING_KEYS)}, ${coalescePropKeys(DWELLING_KEYS)}, 'Single Family')`);
+export const POOL_SQL = Prisma.raw(`COALESCE(${poolCase(`COALESCE(${coalesceKeys(POOL_KEYS)})`)}, ${poolCase(`COALESCE(${coalescePropKeys(POOL_KEYS)})`)})`);
+export const LEVELS_SQL = Prisma.raw(`COALESCE(
+  ${numPrefix(`COALESCE(${coalesceKeys(STORY_KEYS)})`).sql},
+  ${levelsText(srcKey("Levels"))},
+  ${numPrefix(`COALESCE(${coalescePropKeys(STORY_KEYS)})`).sql},
+  ${levelsText(propKey("Levels"))})::float8`);
+export const sqftSql = (col: string, keys: string[]) =>
+  Prisma.raw(`COALESCE(${col}, ${keys.map((k) => numPrefix(srcKey(k)).sql).join(", ")})::float8`);
+
+const num = (v: unknown): number | null => {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
+};
+
 function distressRegex() {
   return DISTRESS_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 }
@@ -114,31 +156,19 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
              ELSE COALESCE(NULLIF(l."mlsStatus",''), 'Off Market') END AS status,
         COALESCE(l."listPrice", p."estimatedValue") AS price,
         p.beds, p.baths,
-        COALESCE(p.sqft,
-          substring(src->>'LivingArea' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
-          substring(src->>'LivingAreaSqFt' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
-          substring(src->>'ApproxSQFT' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric) AS sqft,
-        COALESCE(p."lotSqft",
-          substring(src->>'LotSizeSquareFeet' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
-          substring(src->>'LotSqFt' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
-          substring(src->>'LotSize' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric) AS lot,
+        ${sqftSql("p.sqft", ["LivingArea", "LivingAreaSqFt", "ApproxSQFT"])} AS sqft,
+        ${sqftSql('p."lotSqft"', ["LotSizeSquareFeet", "LotSqFt", "LotSize"])} AS lot,
         p.zip,
-        COALESCE(p."propertyType", src->>'PropertySubType', src->>'PropertyType', src->>'DwellingType', 'Single Family') AS dwelling,
-        CASE WHEN lower(COALESCE(src->>'PoolPrivateYN', src->>'PrivatePoolYN', src->>'PrivatePool', src->>'HasPool', src->>'pool')) IN ('yes','y','true','1','private') THEN TRUE
-             WHEN lower(COALESCE(src->>'PoolPrivateYN', src->>'PrivatePoolYN', src->>'PrivatePool', src->>'HasPool', src->>'pool')) IN ('no','n','false','0','none') THEN FALSE END AS pool,
-        COALESCE(
-          substring(COALESCE(src->>'Stories', src->>'StoriesTotal', src->>'NumberOfStories', src->>'InteriorLevels') from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
-          CASE WHEN lower(src->>'Levels') LIKE '%three%' THEN 3
-               WHEN lower(src->>'Levels') LIKE '%two%' THEN 2
-               WHEN lower(src->>'Levels') LIKE '%one%' OR lower(src->>'Levels') LIKE '%single%' THEN 1 END
-        ) AS levels,
+        ${DWELLING_SQL} AS dwelling,
+        ${POOL_SQL} AS pool,
+        ${LEVELS_SQL} AS levels,
         COALESCE(l."soldDate", p."lastSaleDate") AS closed,
         COALESCE(l."mlsNumber", 'PR-' || COALESCE(right(p.apn, 7), upper(right(p.id, 7)))) AS mls,
         p."streetAddress" AS address, p.city,
         l.dom,
         o."estimatedEquityPct", o."ownerOccupied",
         p."estimatedValue" AS "estimatedArv",
-        substring(COALESCE(src->>'OriginalListPrice', src->>'OriginalPrice', src->>'PreviousListPrice') from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric AS "originalListPrice",
+        ${numPrefix("COALESCE(src->>'OriginalListPrice', src->>'OriginalPrice', src->>'PreviousListPrice')")} AS "originalListPrice",
         COALESCE(COALESCE(l."rawJson"->>'PublicRemarks', l."rawJson"->>'Remarks', l."rawJson"->>'MarketingRemarks', l."rawJson"->>'description',
                            p."rawJson"->>'PublicRemarks', p."rawJson"->>'Remarks', p."rawJson"->>'MarketingRemarks', p."rawJson"->>'description') ~* ${regex}, false) AS distress,
         p.latitude, p.longitude
@@ -148,14 +178,14 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
       CROSS JOIN LATERAL (SELECT COALESCE(l."rawJson", p."rawJson") AS src) s
     )
     SELECT id, status, price, sqft, zip, dwelling, dom, "estimatedEquityPct", "ownerOccupied", "estimatedArv", "originalListPrice", distress, latitude, longitude, address
-    FROM c WHERE ${buildWhere(filters)}`;
+    FROM c WHERE ${buildWhere(filters)} ORDER BY c.id`;
 
   return rows.map((r) => ({
     id: r.id,
     mlsNumber: "",
     status: r.status,
-    listPrice: r.price,
-    dom: r.dom,
+    listPrice: num(r.price),
+    dom: num(r.dom),
     listDate: null,
     address: r.address,
     city: "",
@@ -165,18 +195,18 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
     dwellingType: r.dwelling,
     beds: null,
     baths: null,
-    sqft: r.sqft,
+    sqft: num(r.sqft),
     lotSqft: null,
     pool: null,
     interiorLevels: null,
     yearBuilt: null,
-    latitude: r.latitude,
-    longitude: r.longitude,
+    latitude: num(r.latitude),
+    longitude: num(r.longitude),
     ownerName: null,
-    estimatedEquityPct: r.estimatedEquityPct,
+    estimatedEquityPct: num(r.estimatedEquityPct),
     ownerOccupied: r.ownerOccupied,
-    estimatedArv: r.estimatedArv,
-    originalListPrice: r.originalListPrice,
+    estimatedArv: num(r.estimatedArv),
+    originalListPrice: num(r.originalListPrice),
     remarks: null,
     distressSignal: r.distress,
     source: "",
@@ -232,8 +262,8 @@ export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
       mlsNumber: r.mlsNumber ?? `PR-${r.apn?.slice(-7) ?? r.id.slice(-7).toUpperCase()}`,
       status: r.mlsStatus ?? "Off Market",
       closedDate: closedDate?.toISOString() ?? null,
-      listPrice: r.listPrice ?? r.estimatedValue,
-      dom: r.dom ?? null,
+      listPrice: num(r.listPrice) ?? num(r.estimatedValue),
+      dom: num(r.dom),
       listDate: toDate(r.listDate)?.toISOString() ?? null,
       address: r.streetAddress,
       city: r.city,
@@ -241,19 +271,19 @@ export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
       zip: r.zip,
       subdivision: r.subdivision,
       dwellingType: r.propertyType ?? rawString(source, ["PropertySubType", "PropertyType", "DwellingType"]) ?? rawString(r.propLite, ["PropertySubType", "PropertyType", "DwellingType"]) ?? "Single Family",
-      beds: r.beds,
-      baths: r.baths,
-      sqft: r.sqft ?? rawNumber(source, ["LivingArea", "LivingAreaSqFt", "ApproxSQFT"]),
-      lotSqft: r.lotSqft ?? rawNumber(source, ["LotSizeSquareFeet", "LotSqFt", "LotSize"]),
+      beds: num(r.beds),
+      baths: num(r.baths),
+      sqft: num(r.sqft) ?? rawNumber(source, ["LivingArea", "LivingAreaSqFt", "ApproxSQFT"]),
+      lotSqft: num(r.lotSqft) ?? rawNumber(source, ["LotSizeSquareFeet", "LotSqFt", "LotSize"]),
       pool: rawBoolean(source, ["PoolPrivateYN", "PrivatePoolYN", "PrivatePool", "HasPool", "pool"]) ?? rawBoolean(r.propLite, ["PoolPrivateYN", "PrivatePoolYN", "PrivatePool", "HasPool", "pool"]),
       interiorLevels: rawLevels(source) ?? rawLevels(r.propLite),
-      yearBuilt: r.yearBuilt,
-      latitude: r.latitude,
-      longitude: r.longitude,
+      yearBuilt: num(r.yearBuilt),
+      latitude: num(r.latitude),
+      longitude: num(r.longitude),
       ownerName: r.ownerFullName ?? ([r.ownerFirstName, r.ownerLastName].filter(Boolean).join(" ") || null),
-      estimatedEquityPct: r.estimatedEquityPct ?? null,
+      estimatedEquityPct: num(r.estimatedEquityPct),
       ownerOccupied: r.ownerOccupied ?? null,
-      estimatedArv: r.estimatedValue,
+      estimatedArv: num(r.estimatedValue),
       originalListPrice: rawNumber(source, ["OriginalListPrice", "OriginalPrice", "PreviousListPrice"]),
       distressSignal: r.distress,
       source: r.listSource ?? r.source,
