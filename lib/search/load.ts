@@ -115,19 +115,19 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
         COALESCE(l."listPrice", p."estimatedValue") AS price,
         p.beds, p.baths,
         COALESCE(p.sqft,
-          substring(src->>'LivingArea' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
-          substring(src->>'LivingAreaSqFt' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
-          substring(src->>'ApproxSQFT' from '^-?[0-9]+(\.[0-9]+)?')::numeric) AS sqft,
+          substring(src->>'LivingArea' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
+          substring(src->>'LivingAreaSqFt' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
+          substring(src->>'ApproxSQFT' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric) AS sqft,
         COALESCE(p."lotSqft",
-          substring(src->>'LotSizeSquareFeet' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
-          substring(src->>'LotSqFt' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
-          substring(src->>'LotSize' from '^-?[0-9]+(\.[0-9]+)?')::numeric) AS lot,
+          substring(src->>'LotSizeSquareFeet' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
+          substring(src->>'LotSqFt' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
+          substring(src->>'LotSize' from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric) AS lot,
         p.zip,
         COALESCE(p."propertyType", src->>'PropertySubType', src->>'PropertyType', src->>'DwellingType', 'Single Family') AS dwelling,
         CASE WHEN lower(COALESCE(src->>'PoolPrivateYN', src->>'PrivatePoolYN', src->>'PrivatePool', src->>'HasPool', src->>'pool')) IN ('yes','y','true','1','private') THEN TRUE
              WHEN lower(COALESCE(src->>'PoolPrivateYN', src->>'PrivatePoolYN', src->>'PrivatePool', src->>'HasPool', src->>'pool')) IN ('no','n','false','0','none') THEN FALSE END AS pool,
         COALESCE(
-          substring(COALESCE(src->>'Stories', src->>'StoriesTotal', src->>'NumberOfStories', src->>'InteriorLevels') from '^-?[0-9]+(\.[0-9]+)?')::numeric,
+          substring(COALESCE(src->>'Stories', src->>'StoriesTotal', src->>'NumberOfStories', src->>'InteriorLevels') from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric,
           CASE WHEN lower(src->>'Levels') LIKE '%three%' THEN 3
                WHEN lower(src->>'Levels') LIKE '%two%' THEN 2
                WHEN lower(src->>'Levels') LIKE '%one%' OR lower(src->>'Levels') LIKE '%single%' THEN 1 END
@@ -138,7 +138,7 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
         l.dom,
         o."estimatedEquityPct", o."ownerOccupied",
         p."estimatedValue" AS "estimatedArv",
-        substring(COALESCE(src->>'OriginalListPrice', src->>'OriginalPrice', src->>'PreviousListPrice') from '^-?[0-9]+(\.[0-9]+)?')::numeric AS "originalListPrice",
+        substring(COALESCE(src->>'OriginalListPrice', src->>'OriginalPrice', src->>'PreviousListPrice') from '^(-?[0-9]+(?:\.[0-9]+)?)')::numeric AS "originalListPrice",
         COALESCE(COALESCE(l."rawJson"->>'PublicRemarks', l."rawJson"->>'Remarks', l."rawJson"->>'MarketingRemarks', l."rawJson"->>'description',
                            p."rawJson"->>'PublicRemarks', p."rawJson"->>'Remarks', p."rawJson"->>'MarketingRemarks', p."rawJson"->>'description') ~* ${regex}, false) AS distress,
         p.latitude, p.longitude
