@@ -17,14 +17,14 @@ export function buildWhere(f: SearchFilters): Prisma.Sql {
     parts.push(Prisma.sql`(c.status <> 'Closed' OR c.closed >= ${cutoff})`);
   }
   if (f.priceMin != null) parts.push(Prisma.sql`COALESCE(c.price, 0) >= ${f.priceMin}`);
-  if (f.priceMax != null) parts.push(Prisma.sql`(c.price IS NULL OR c.price <= ${f.priceMax})`);
+  if (f.priceMax != null) parts.push(Prisma.sql`c.price <= ${f.priceMax}`);
   if (f.dwellingTypes?.length) parts.push(Prisma.sql`c.dwelling IN (${Prisma.join(f.dwellingTypes)})`);
   if (f.bedsMin != null) parts.push(Prisma.sql`COALESCE(c.beds, 0) >= ${f.bedsMin}`);
   if (f.bathsMin != null) parts.push(Prisma.sql`COALESCE(c.baths, 0) >= ${f.bathsMin}`);
   if (f.sqftMin != null) parts.push(Prisma.sql`COALESCE(c.sqft, 0) >= ${f.sqftMin}`);
-  if (f.sqftMax != null) parts.push(Prisma.sql`(c.sqft IS NULL OR c.sqft <= ${f.sqftMax})`);
+  if (f.sqftMax != null) parts.push(Prisma.sql`c.sqft <= ${f.sqftMax}`);
   if (f.lotMin != null) parts.push(Prisma.sql`COALESCE(c.lot, 0) >= ${f.lotMin}`);
-  if (f.lotMax != null) parts.push(Prisma.sql`(c.lot IS NULL OR c.lot <= ${f.lotMax})`);
+  if (f.lotMax != null) parts.push(Prisma.sql`c.lot <= ${f.lotMax}`);
   if (f.pool === true) parts.push(Prisma.sql`c.pool IS TRUE`);
   if (f.pool === false) parts.push(Prisma.sql`c.pool IS FALSE`);
   if (f.levels === "3+") parts.push(Prisma.sql`COALESCE(c.levels, 0) >= 3`);

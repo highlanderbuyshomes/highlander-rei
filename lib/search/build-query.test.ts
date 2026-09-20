@@ -46,4 +46,13 @@ describe("buildWhere", () => {
   it("joins conditions with AND", () => {
     expect(text({ zips: ["85018"], dwellingTypes: ["Condo"] })).toContain(" AND ");
   });
+
+  it("excludes NULL rows from a max filter", () => {
+    expect(text({ priceMax: 500000 })).not.toContain("IS NULL OR c.");
+    expect(text({ sqftMax: 2000 })).not.toContain("IS NULL OR c.");
+    expect(text({ lotMax: 10000 })).not.toContain("IS NULL OR c.");
+    expect(text({ priceMax: 500000 })).toBe("c.price <= ?");
+    expect(text({ sqftMax: 2000 })).toBe("c.sqft <= ?");
+    expect(text({ lotMax: 10000 })).toBe("c.lot <= ?");
+  });
 });

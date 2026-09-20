@@ -113,7 +113,16 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
              WHEN lower(COALESCE(l."mlsStatus",'')) LIKE '%closed%' OR lower(COALESCE(l."mlsStatus",'')) LIKE '%sold%' THEN 'Closed'
              ELSE COALESCE(NULLIF(l."mlsStatus",''), 'Off Market') END AS status,
         COALESCE(l."listPrice", p."estimatedValue") AS price,
-        p.beds, p.baths, p.sqft, p."lotSqft" AS lot, p.zip,
+        p.beds, p.baths,
+        COALESCE(p.sqft,
+          substring(src->>'LivingArea' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
+          substring(src->>'LivingAreaSqFt' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
+          substring(src->>'ApproxSQFT' from '^-?[0-9]+(\.[0-9]+)?')::numeric) AS sqft,
+        COALESCE(p."lotSqft",
+          substring(src->>'LotSizeSquareFeet' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
+          substring(src->>'LotSqFt' from '^-?[0-9]+(\.[0-9]+)?')::numeric,
+          substring(src->>'LotSize' from '^-?[0-9]+(\.[0-9]+)?')::numeric) AS lot,
+        p.zip,
         COALESCE(p."propertyType", src->>'PropertySubType', src->>'PropertyType', src->>'DwellingType', 'Single Family') AS dwelling,
         CASE WHEN lower(COALESCE(src->>'PoolPrivateYN', src->>'PrivatePoolYN', src->>'PrivatePool', src->>'HasPool', src->>'pool')) IN ('yes','y','true','1','private') THEN TRUE
              WHEN lower(COALESCE(src->>'PoolPrivateYN', src->>'PrivatePoolYN', src->>'PrivatePool', src->>'HasPool', src->>'pool')) IN ('no','n','false','0','none') THEN FALSE END AS pool,
