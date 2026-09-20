@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { buildFilters, type CriteriaKey } from "@/lib/search/build-filters";
 import { normalizeStatus } from "@/lib/search/score-deals";
 import type { DealCandidate, DrawnShape, ListingRecord, SearchFilters, SearchResponse } from "@/lib/search/types";
 import { targetProperty } from "./actions";
 import GoogleMapStage from "./GoogleMapStage";
 import styles from "./search.module.css";
 
-type CriteriaKey = "status" | "price" | "dwelling" | "beds" | "baths" | "sqft" | "lot" | "pool" | "levels" | "zip";
 type WorkspaceView = "map" | "list" | "detail";
 
 const criteria: { key: CriteriaKey; label: string }[] = [
@@ -43,60 +43,6 @@ const ARV_THRESHOLD_MAX = 99;
 
 function clampThreshold(value: number): number {
   return Math.min(ARV_THRESHOLD_MAX, Math.max(ARV_THRESHOLD_MIN, Math.round(value)));
-}
-
-type FilterState = {
-  activeCriteria: Set<CriteriaKey>;
-  statuses: string[];
-  closedWithinMonths: string;
-  priceMin: string; priceMax: string;
-  dwellingTypes: string[];
-  bedsMin: string; bathsMin: string;
-  sqftMin: string; sqftMax: string;
-  lotMin: string; lotMax: string;
-  pool: string; levels: string; zips: string; keyword: string;
-};
-
-/**
- * Numeric text box -> filter value. An empty box contributes nothing, which
- * mirrors the old `min && (value ?? 0) < Number(min)` guards; an unparseable
- * box (the inputs allow bare "." ) compared as NaN before, i.e. it never
- * excluded anything, so dropping the bound keeps that behaviour.
- */
-function num(value: string): number | undefined {
-  if (value === "") return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-/**
- * The server-side inverse of what the old client-side `filtered` memo did:
- * a criterion contributes only while its checkbox is active, "Any" and empty
- * strings contribute nothing, and the keyword box applies regardless of the
- * checkboxes (exactly as before).
- */
-export function buildFilters(state: FilterState): SearchFilters {
-  const on = (key: CriteriaKey) => state.activeCriteria.has(key);
-  const zipValues = state.zips.split(/[,\s]+/).map((zip) => zip.trim()).filter(Boolean);
-  const keyword = state.keyword.trim();
-
-  return {
-    keyword: keyword || undefined,
-    statuses: on("status") && state.statuses.length ? state.statuses : undefined,
-    closedWithinMonths: on("status") && state.closedWithinMonths !== "Any" ? num(state.closedWithinMonths) : undefined,
-    priceMin: on("price") ? num(state.priceMin) : undefined,
-    priceMax: on("price") ? num(state.priceMax) : undefined,
-    dwellingTypes: on("dwelling") && state.dwellingTypes.length ? state.dwellingTypes : undefined,
-    bedsMin: on("beds") ? num(state.bedsMin) : undefined,
-    bathsMin: on("baths") ? num(state.bathsMin) : undefined,
-    sqftMin: on("sqft") ? num(state.sqftMin) : undefined,
-    sqftMax: on("sqft") ? num(state.sqftMax) : undefined,
-    lotMin: on("lot") ? num(state.lotMin) : undefined,
-    lotMax: on("lot") ? num(state.lotMax) : undefined,
-    pool: on("pool") && state.pool !== "Any" ? state.pool === "Yes" : undefined,
-    levels: on("levels") && state.levels !== "Any" ? (state.levels === "3+" ? "3+" : num(state.levels)) : undefined,
-    zips: on("zip") && zipValues.length ? zipValues : undefined,
-  };
 }
 
 export default function MlsSearchWorkspace({ initial }: { initial: SearchResponse }) {
@@ -268,7 +214,7 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
 
         <section className={styles.mainStage}>
           {view === "map" && <GoogleMapStage pins={result.pins} selected={selected} total={result.total} onSelect={setSelectedId} onShapeChange={handleShapeChange} />}
-          {view === "list" && <ResultsList listings={rows} total={result.total} loadingMore={loadingMore} onLoadMore={loadMore} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
+          {view === "list" && <ResultsList listings={rows} total={result.total} loading={loading} loadingMore={loadingMore} onLoadMore={loadMore} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
           {view === "detail" && <ListingDetail listing={selected} />}
         </section>
       </div>
@@ -312,9 +258,9 @@ function MinSelect({ value, update, options, exact = false }: { value: string; u
   return <select className={styles.singleInput} value={value} onChange={(event) => update(event.target.value)}>{!exact && <option value="">No minimum</option>}{options.map((option) => <option key={option} value={option}>{exact ? option : `${option}+`}</option>)}</select>;
 }
 
-function ResultsList({ listings, total, loadingMore, onLoadMore, onSelect }: { listings: ListingRecord[]; total: number; loadingMore: boolean; onLoadMore: () => void; onSelect: (id: string) => void }) {
+function ResultsList({ listings, total, loading, loadingMore, onLoadMore, onSelect }: { listings: ListingRecord[]; total: number; loading: boolean; loadingMore: boolean; onLoadMore: () => void; onSelect: (id: string) => void }) {
   return <div className={styles.resultsTable}><table><thead><tr><th>Status</th><th>Closed date</th><th>MLS #</th><th>Address</th><th>Price</th><th>Type</th><th>Bed/Bath</th><th>Sq Ft</th><th>Lot</th><th>Pool</th><th>Levels</th><th>ZIP</th></tr></thead><tbody>{listings.map((listing) => <tr key={listing.id} onClick={() => onSelect(listing.id)}><td>{normalizeStatus(listing.status)}</td><td>{shortDate(listing.closedDate)}</td><td>{listing.mlsNumber}</td><td><strong>{listing.address}</strong><small>{listing.city}</small></td><td>{money(listing.listPrice)}</td><td>{listing.dwellingType}</td><td>{listing.beds ?? "—"} / {listing.baths ?? "—"}</td><td>{listing.sqft?.toLocaleString() ?? "—"}</td><td>{listing.lotSqft?.toLocaleString() ?? "—"}</td><td>{listing.pool == null ? "—" : listing.pool ? "Yes" : "No"}</td><td>{listing.interiorLevels ?? "—"}</td><td>{listing.zip}</td></tr>)}</tbody></table>
-    {listings.length < total && <div className={styles.criteriaFooter}><button type="button" className={styles.applyButton} onClick={onLoadMore} disabled={loadingMore}>{loadingMore ? "Loading…" : `Load more — ${listings.length.toLocaleString()} of ${total.toLocaleString()}`}</button></div>}
+    {listings.length < total && <div className={styles.criteriaFooter}><button type="button" className={styles.applyButton} onClick={onLoadMore} disabled={loadingMore || loading}>{loadingMore ? "Loading…" : `Load more — ${listings.length.toLocaleString()} of ${total.toLocaleString()}`}</button></div>}
     {listings.length === 0 && <PlaceholderView title="No results" detail="Change or reset the selected criteria." />}</div>;
 }
 

@@ -176,5 +176,6 @@ export async function* fetchResoListingPages(
     yield { listings: value, nextLink };
     if (!nextLink) break;
     url = nextLink;
+    if (page === MAX_PAGES - 1) console.warn(`[reso] MAX_PAGES (${MAX_PAGES}) reached; feed truncated for this run`);
   }
 }
