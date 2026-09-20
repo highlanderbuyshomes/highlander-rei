@@ -17,7 +17,12 @@ const OVERLAP_MS = 5 * 60_000;
 const OVERLAP_GUARD_MS = 6 * 60_000;
 // Stop starting new pages after this, leaving headroom under maxDuration.
 const TIME_BUDGET_MS = 200_000;
-// First run ever (no watermark): pull the live statuses in full.
+// First run ever (no watermark): pull the live statuses in full, statewide
+// (no zip/city restriction — all of ARMLS). Incremental runs afterwards pick up
+// Coming Soon and every status change.
+// Bump SCOPE_VERSION when the sync scope widens: older completed runs are then
+// treated as having no watermark, forcing one fresh bootstrap.
+const SCOPE_VERSION = 2;
 const BOOTSTRAP_STATUSES = ["Active", "Active Under Contract", "Pending"];
 
 function authorized(req: NextRequest): boolean {
@@ -48,20 +53,23 @@ async function handle(req: NextRequest) {
     orderBy: { startedAt: "desc" },
     select: { status: true, startedAt: true, rawMeta: true },
   });
-  const meta = (latest?.rawMeta ?? {}) as { watermark?: string; resumeUrl?: string; scope?: ResoScopeOpts };
+  const meta = (latest?.rawMeta ?? {}) as { watermark?: string; resumeUrl?: string; scope?: ResoScopeOpts; scopeVersion?: number };
   const startedNow = new Date().toISOString();
 
   let scope: ResoScopeOpts;
   let control: ResoSyncControl;
-  if (latest?.status === "partial" && meta.resumeUrl && meta.scope && meta.watermark) {
+  // Runs from before the full-MLS widening (scopeVersion !== 2) covered only the
+  // old service area; their watermark/resume point must not be reused.
+  const current = meta.scopeVersion === SCOPE_VERSION;
+  if (latest?.status === "partial" && current && meta.resumeUrl && meta.scope && meta.watermark) {
     scope = meta.scope;
-    control = { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark, scope } };
-  } else if (latest?.status === "completed" && meta.watermark) {
+    control = { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark, scope, scopeVersion: SCOPE_VERSION } };
+  } else if (latest?.status === "completed" && current && meta.watermark) {
     scope = { modifiedSince: new Date(new Date(meta.watermark).getTime() - OVERLAP_MS).toISOString() };
-    control = { meta: { watermark: startedNow, scope } };
+    control = { meta: { watermark: startedNow, scope, scopeVersion: SCOPE_VERSION } };
   } else {
     scope = { statuses: BOOTSTRAP_STATUSES };
-    control = { meta: { watermark: startedNow, scope } };
+    control = { meta: { watermark: startedNow, scope, scopeVersion: SCOPE_VERSION } };
   }
   control.deadline = Date.now() + TIME_BUDGET_MS;
 

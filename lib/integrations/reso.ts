@@ -82,14 +82,6 @@ async function resoFetch(url: string): Promise<{ value: ResoListing[]; nextLink:
   return { value: payload.value ?? [], nextLink: payload["@odata.nextLink"] ?? null };
 }
 
-// Default service area — the same ZIPs/cities used as location presets
-// elsewhere in the app (see ImportRunner.tsx PRESETS). Keeps the initial
-// pull scoped to Highlander's actual buy-box area instead of all of ARMLS.
-export const DEFAULT_SERVICE_AREA_ZIPS = [
-  "85018", "85008", "85254", "85016", "85251", "85255", "85258", "85253",
-];
-export const DEFAULT_SERVICE_AREA_CITIES = ["Scottsdale", "Paradise Valley"];
-
 export const DEFAULT_STATUSES = ["Active", "Active Under Contract", "Pending", "Closed"];
 
 export type ResoScopeOpts = {
@@ -110,15 +102,18 @@ export type ResoScopeOpts = {
 };
 
 function buildFilter(opts: ResoScopeOpts): string {
-  const zips = opts.zips ?? DEFAULT_SERVICE_AREA_ZIPS;
-  const cities = opts.cities ?? DEFAULT_SERVICE_AREA_CITIES;
   const statuses = opts.statuses ?? DEFAULT_STATUSES;
 
-  const zipList = zips.map((z) => `'${z}'`).join(",");
-  const cityList = cities.map((c) => `'${c.replace(/'/g, "''")}'`).join(",");
-  const areaFilter = `(PostalCode in (${zipList}) or City in (${cityList}))`;
+  // zips/cities are optional restrictions; with neither set there is no area
+  // clause and the scope is all of ARMLS.
+  const zips = opts.zips, cities = opts.cities;
+  const areaParts: string[] = [];
+  if (zips?.length) areaParts.push(`PostalCode in (${zips.map((z) => `'${z.replace(/'/g, "''")}'`).join(",")})`);
+  if (cities?.length) areaParts.push(`City in (${cities.map((c) => `'${c.replace(/'/g, "''")}'`).join(",")})`);
+  const areaFilter = areaParts.length ? `(${areaParts.join(" or ")})` : null;
+  const withArea = (f: string) => (areaFilter ? `${areaFilter} and ${f}` : f);
 
-  if (opts.modifiedSince) return `${areaFilter} and ModificationTimestamp gt ${opts.modifiedSince}`;
+  if (opts.modifiedSince) return withArea(`ModificationTimestamp gt ${opts.modifiedSince}`);
 
   // Active/Pending/Under-Contract listings are inherently bounded (can't
   // accumulate forever), but Closed has no natural ceiling — without a date
@@ -146,16 +141,16 @@ function buildFilter(opts: ResoScopeOpts): string {
   }
   const statusFilter = clauses.length > 1 ? `(${clauses.join(" or ")})` : clauses[0];
 
-  return `${areaFilter} and ${statusFilter}`;
+  return withArea(statusFilter);
 }
 
 const CLOSED_LOOKBACK_MONTHS = 12;
 const PAGE_SIZE = 200;
-const MAX_PAGES = 100; // safety cap: 20,000 listings per sync run
+const MAX_PAGES = 1000; // safety cap: 200,000 listings per sync run
 
 /**
- * Pulls Property-resource listings matching the default (or given) service
- * area + status scope, following RESO's server-driven `@odata.nextLink`
+ * Pulls Property-resource listings matching the given (or all-of-ARMLS) area
+ * + status scope, following RESO's server-driven `@odata.nextLink`
  * pagination, yielding one page at a time instead of buffering the whole
  * result set. A broad scope (e.g. full cities) can run to thousands of
  * listings; yielding per page lets the caller persist progressively, so a

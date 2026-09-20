@@ -126,7 +126,7 @@ export default function ResoSyncPanel({ configured, lastLiveSync }: { configured
     <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "28px" }}>
       <div style={{ fontSize: "14px", fontWeight: 600, color: "#12161c", marginBottom: "4px" }}>ARMLS RESO Web API</div>
       <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px" }}>
-        Pulls Active, Under Contract, Pending, and Closed listings for the default service area into Property &amp; Search — powers the Deal Search 70% rule ranking with real MLS data instead of an empty table.
+        Pulls Active, Under Contract, Pending, and Closed listings for all of ARMLS into Property &amp; Search — powers the Deal Search 70% rule ranking with real MLS data instead of an empty table. The manual Closed month-by-month backfill now covers the whole MLS and is very large.
       </div>
 
       <div style={{ fontSize: "12px", color: lastLiveSync ? "#3a7a50" : "#946200", marginBottom: "16px" }}>
