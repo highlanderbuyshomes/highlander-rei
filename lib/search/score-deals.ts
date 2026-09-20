@@ -19,18 +19,36 @@ export function median(values: number[]) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+const groupKey = (zip: string, type: string) => `${zip}\u0000${type}`;
+
+function pushTo(map: Map<string, number[]>, key: string, value: number) {
+  const list = map.get(key);
+  if (list) list.push(value);
+  else map.set(key, [value]);
+}
+
 export function scoreDeals(listings: ListingRecord[], threshold: number): DealCandidate[] {
-  const ppsfRows = listings.filter((item) => item.listPrice && item.sqft).map((item) => ({
-    zip: item.zip,
-    type: item.dwellingType,
-    value: item.listPrice! / item.sqft!,
-  }));
+  // Pocket = same zip + dwelling type; fallback = same dwelling type; last
+  // resort = all listings. Each group's median is computed once, not per listing.
+  const allValues: number[] = [];
+  const pocketValues = new Map<string, number[]>();
+  const typeValues = new Map<string, number[]>();
+  for (const item of listings) {
+    if (!(item.listPrice && item.sqft)) continue;
+    const value = item.listPrice / item.sqft;
+    allValues.push(value);
+    pushTo(pocketValues, groupKey(item.zip, item.dwellingType), value);
+    pushTo(typeValues, item.dwellingType, value);
+  }
+  const pocketStats = new Map([...pocketValues].map(([k, v]) => [k, { count: v.length, median: median(v) }] as const));
+  const typeMedians = new Map([...typeValues].map(([k, v]) => [k, median(v)] as const));
+  const overallMedian = median(allValues);
 
   return listings.map((listing) => {
     const pricePerSqft = listing.listPrice && listing.sqft ? listing.listPrice / listing.sqft : null;
-    const pocketRows = ppsfRows.filter((row) => row.zip === listing.zip && row.type === listing.dwellingType);
-    const comparableRows = pocketRows.length >= 2 ? pocketRows : ppsfRows.filter((row) => row.type === listing.dwellingType);
-    const pocketPricePerSqft = median(comparableRows.map((row) => row.value)) ?? median(ppsfRows.map((row) => row.value));
+    const pocket = pocketStats.get(groupKey(listing.zip, listing.dwellingType));
+    const comparableMedian = pocket && pocket.count >= 2 ? pocket.median : (typeMedians.get(listing.dwellingType) ?? null);
+    const pocketPricePerSqft = comparableMedian ?? overallMedian;
     const modeledArv = listing.sqft && pocketPricePerSqft ? listing.sqft * pocketPricePerSqft : null;
     const arv = listing.estimatedArv ?? modeledArv;
     const arvSource: DealCandidate["arvSource"] = listing.estimatedArv ? "Property estimate" : modeledArv ? "Pocket $/sqft model" : "Insufficient data";
@@ -60,5 +78,5 @@ export function scoreDeals(listings: ListingRecord[], threshold: number): DealCa
     score = Math.min(99, score);
     const priority: DealCandidate["priority"] = listToArvPct != null && listToArvPct <= threshold ? "Target now" : score >= 65 ? "High" : score >= 38 ? "Watch" : "Low";
     return { ...listing, arv, arvSource, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore: score, priority, reasons: reasons.slice(0, 4) };
-  }).sort((a, b) => b.dealScore - a.dealScore);
+  }).sort((a, b) => b.dealScore - a.dealScore || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
