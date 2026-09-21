@@ -22,7 +22,7 @@ describe("resolveSyncPlan", () => {
     expect(p.kind).toBe("incremental");
     expect(p.scope).toEqual({ modifiedSince: new Date(new Date(wm).getTime() - OVERLAP_MS).toISOString(), counties: VALLEY_COUNTIES });
     expect(p.control.meta?.watermark).toBe(now.toISOString());
-    expect(p.control.meta?.scopeVersion).toBe(2);
+    expect(p.control.meta?.scopeVersion).toBe(SCOPE_VERSION);
   });
 
   it("treats completed_with_errors at the current scopeVersion as incremental", () => {
