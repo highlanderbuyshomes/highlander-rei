@@ -3,7 +3,9 @@ import type { ResoSyncControl } from "./reso-sync";
 
 // Bump SCOPE_VERSION when the sync scope widens: older completed runs are then
 // treated as having no watermark, forcing one fresh bootstrap.
-export const SCOPE_VERSION = 2;
+export const SCOPE_VERSION = 3;
+// The valley: Maricopa County plus Pinal (San Tan Valley, Queen Creek, Apache Junction).
+export const VALLEY_COUNTIES = ["Maricopa", "Pinal"];
 export const BOOTSTRAP_STATUSES = ["Active", "Active Under Contract", "Pending"];
 // Re-fetch a little before the last run's start so a listing modified while
 // that run was mid-flight isn't missed; writes are idempotent.
@@ -37,9 +39,9 @@ export function resolveSyncPlan(latest: LatestRun, now: Date = new Date()): Sync
     return { kind: "resume-partial", scope, control: { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark, scope, scopeVersion: SCOPE_VERSION } } };
   }
   if ((latest?.status === "completed" || latest?.status === "completed_with_errors") && current && meta.watermark) {
-    const scope: ResoScopeOpts = { modifiedSince: new Date(new Date(meta.watermark).getTime() - OVERLAP_MS).toISOString() };
+    const scope: ResoScopeOpts = { modifiedSince: new Date(new Date(meta.watermark).getTime() - OVERLAP_MS).toISOString(), counties: VALLEY_COUNTIES };
     return { kind: "incremental", scope, control: { meta: { watermark: startedNow, scope, scopeVersion: SCOPE_VERSION } } };
   }
-  const scope: ResoScopeOpts = { statuses: BOOTSTRAP_STATUSES };
+  const scope: ResoScopeOpts = { statuses: BOOTSTRAP_STATUSES, counties: VALLEY_COUNTIES };
   return { kind: "bootstrap", scope, control: { meta: { watermark: startedNow, scope, scopeVersion: SCOPE_VERSION } } };
 }
