@@ -167,7 +167,8 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
         p."streetAddress" AS address, p.city,
         l.dom,
         o."estimatedEquityPct", o."ownerOccupied",
-        p."estimatedValue" AS "estimatedArv",
+        CASE WHEN p.source = 'reso' THEN NULL ELSE p."estimatedValue" END AS "estimatedArv",
+        COALESCE(lower(COALESCE(src->>'PropertyType', '')) LIKE '%lease%' OR lower(COALESCE(src->>'PropertyType', '')) LIKE '%rental%', false) AS lease,
         ${numPrefix("COALESCE(src->>'OriginalListPrice', src->>'OriginalPrice', src->>'PreviousListPrice')")} AS "originalListPrice",
         COALESCE(COALESCE(l."rawJson"->>'PublicRemarks', l."rawJson"->>'Remarks', l."rawJson"->>'MarketingRemarks', l."rawJson"->>'description',
                            p."rawJson"->>'PublicRemarks', p."rawJson"->>'Remarks', p."rawJson"->>'MarketingRemarks', p."rawJson"->>'description') ~* ${regex}, false) AS distress,
@@ -178,7 +179,7 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
       CROSS JOIN LATERAL (SELECT COALESCE(l."rawJson", p."rawJson") AS src) s
     )
     SELECT id, status, price, sqft, zip, dwelling, dom, "estimatedEquityPct", "ownerOccupied", "estimatedArv", "originalListPrice", distress, latitude, longitude, address
-    FROM c WHERE ${buildWhere(filters)} ORDER BY c.id`;
+    FROM c WHERE c.lease IS NOT TRUE AND ${buildWhere(filters)} ORDER BY c.id`;
 
   return rows.map((r) => ({
     id: r.id,
@@ -283,7 +284,7 @@ export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
       ownerName: r.ownerFullName ?? ([r.ownerFirstName, r.ownerLastName].filter(Boolean).join(" ") || null),
       estimatedEquityPct: num(r.estimatedEquityPct),
       ownerOccupied: r.ownerOccupied ?? null,
-      estimatedArv: num(r.estimatedValue),
+      estimatedArv: r.source === "reso" ? null : num(r.estimatedValue),
       originalListPrice: rawNumber(source, ["OriginalListPrice", "OriginalPrice", "PreviousListPrice"]),
       distressSignal: r.distress,
       source: r.listSource ?? r.source,

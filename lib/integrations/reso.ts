@@ -111,7 +111,9 @@ function buildFilter(opts: ResoScopeOpts): string {
   if (zips?.length) areaParts.push(`PostalCode in (${zips.map((z) => `'${z.replace(/'/g, "''")}'`).join(",")})`);
   if (cities?.length) areaParts.push(`City in (${cities.map((c) => `'${c.replace(/'/g, "''")}'`).join(",")})`);
   const areaFilter = areaParts.length ? `(${areaParts.join(" or ")})` : null;
-  const withArea = (f: string) => (areaFilter ? `${areaFilter} and ${f}` : f);
+  // Deal Search is for sales; skip lease/rental listings at the source.
+  const salesOnly = `PropertyType ne 'Residential Lease' and PropertyType ne 'Commercial Lease'`;
+  const withArea = (f: string) => (areaFilter ? `${areaFilter} and ${f} and ${salesOnly}` : `${f} and ${salesOnly}`);
 
   if (opts.modifiedSince) return withArea(`ModificationTimestamp gt ${opts.modifiedSince}`);
 
