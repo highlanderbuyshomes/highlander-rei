@@ -67,9 +67,10 @@ shows via `DealCandidate`), so list/detail rendering is unchanged.
 
 - `lib/search/build-query.ts` — pure: `SearchRequest["filters"]` → SQL
   `WHERE` fragments. Normalised statuses map to raw `mlsStatus` values the
-  same way `normalizeStatus` does today (Pending = "Pending" or any status
-  containing "contract"; Canceled = "Canceled"/"Withdrawn"; Coming Soon;
-  Expired; Closed; Active = contains "active" but not "contract"). Column filters (status, price, beds, baths, sqft, lot,
+  same way `normalizeStatus` does today (precedence as normalizeStatus:
+  coming → Coming Soon; contains "active" → Active [so "Active Under
+  Contract" is Active]; pending/contract → Pending; expire → Expired;
+  cancel/withdraw → Canceled; closed/sold → Closed). Column filters (status, price, beds, baths, sqft, lot,
   zip, dwelling type, keyword, closed window) are plain SQL. Pool and
   interior levels read the MLS JSON (`rawJson`) with the same key lists the
   page uses today (`PoolPrivateYN`, `PrivatePoolYN`, …; `Stories`,

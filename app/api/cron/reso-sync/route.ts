@@ -1,8 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { syncResoListings, type ResoSyncControl } from "@/lib/integrations/reso-sync";
-import { isResoConfigured, type ResoScopeOpts } from "@/lib/integrations/reso";
+import { syncResoListings } from "@/lib/integrations/reso-sync";
+import { isResoConfigured } from "@/lib/integrations/reso";
+import { PLAN_STATUSES, resolveSyncPlan } from "@/lib/integrations/reso-sync-plan";
 
 // Live MLS feed: called every ~10 minutes by .github/workflows/reso-sync.yml
 // (Vercel cron on the Hobby plan only runs daily). Pulls just what changed
@@ -10,15 +11,10 @@ import { isResoConfigured, type ResoScopeOpts } from "@/lib/integrations/reso";
 export const maxDuration = 300;
 
 const SOURCE = "reso-incremental";
-// Re-fetch a little before the last run's start so a listing modified while
-// that run was mid-flight isn't missed; writes are idempotent.
-const OVERLAP_MS = 5 * 60_000;
 // A run still marked "running" this recently is treated as in progress.
 const OVERLAP_GUARD_MS = 6 * 60_000;
 // Stop starting new pages after this, leaving headroom under maxDuration.
 const TIME_BUDGET_MS = 200_000;
-// First run ever (no watermark): pull the live statuses in full.
-const BOOTSTRAP_STATUSES = ["Active", "Active Under Contract", "Pending"];
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -41,28 +37,14 @@ async function handle(req: NextRequest) {
   // The feed can be too big for one 300s invocation (first pull especially),
   // so a run stops at a time budget, saves a "partial" resume point, and the
   // next run picks up from it. `watermark` is when the logical sync began —
-  // carried through continuations — and only a fully clean run makes it the
-  // next incremental start, so records that errored are retried, not skipped.
+  // carried through continuations. A run that reached the end of the feed
+  // (completed or completed_with_errors) advances it; see resolveSyncPlan.
   const latest = await prisma.importRun.findFirst({
-    where: { source: SOURCE, status: { in: ["completed", "partial"] } },
+    where: { source: SOURCE, status: { in: PLAN_STATUSES } },
     orderBy: { startedAt: "desc" },
-    select: { status: true, startedAt: true, rawMeta: true },
+    select: { status: true, rawMeta: true },
   });
-  const meta = (latest?.rawMeta ?? {}) as { watermark?: string; resumeUrl?: string; scope?: ResoScopeOpts };
-  const startedNow = new Date().toISOString();
-
-  let scope: ResoScopeOpts;
-  let control: ResoSyncControl;
-  if (latest?.status === "partial" && meta.resumeUrl && meta.scope && meta.watermark) {
-    scope = meta.scope;
-    control = { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark, scope } };
-  } else if (latest?.status === "completed" && meta.watermark) {
-    scope = { modifiedSince: new Date(new Date(meta.watermark).getTime() - OVERLAP_MS).toISOString() };
-    control = { meta: { watermark: startedNow, scope } };
-  } else {
-    scope = { statuses: BOOTSTRAP_STATUSES };
-    control = { meta: { watermark: startedNow, scope } };
-  }
+  const { scope, control } = resolveSyncPlan(latest);
   control.deadline = Date.now() + TIME_BUDGET_MS;
 
   try {

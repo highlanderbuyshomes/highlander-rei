@@ -1,46 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { hasDistressLanguage } from "@/lib/distress";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { buildFilters, type CriteriaKey } from "@/lib/search/build-filters";
+import { normalizeStatus } from "@/lib/search/score-deals";
+import type { DealCandidate, DrawnShape, ListingRecord, SearchFilters, SearchResponse } from "@/lib/search/types";
 import { targetProperty } from "./actions";
 import GoogleMapStage from "./GoogleMapStage";
 import styles from "./search.module.css";
 
-export type ListingRecord = {
-  id: string;
-  mlsNumber: string;
-  status: string;
-  closedDate?: string | null;
-  listPrice: number | null;
-  dom: number | null;
-  listDate: string | null;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  subdivision: string | null;
-  dwellingType: string;
-  beds: number | null;
-  baths: number | null;
-  sqft: number | null;
-  lotSqft: number | null;
-  pool: boolean | null;
-  interiorLevels: number | null;
-  yearBuilt: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  ownerName: string | null;
-  estimatedEquityPct: number | null;
-  ownerOccupied?: boolean | null;
-  estimatedArv?: number | null;
-  originalListPrice?: number | null;
-  remarks?: string | null;
-  /** Precomputed server-side from remarks so the long text needn't ship to the browser. */
-  distressSignal?: boolean;
-  source: string;
-};
-
-type CriteriaKey = "status" | "price" | "dwelling" | "beds" | "baths" | "sqft" | "lot" | "pool" | "levels" | "zip";
 type WorkspaceView = "map" | "list" | "detail";
 
 const criteria: { key: CriteriaKey; label: string }[] = [
@@ -54,17 +21,6 @@ const criteria: { key: CriteriaKey; label: string }[] = [
   { key: "pool", label: "Private Pool Y/N" },
   { key: "levels", label: "# of Interior Levels" },
   { key: "zip", label: "Zip Code" },
-];
-
-const previewListings: ListingRecord[] = [
-  { id: "p1", mlsNumber: "6884217", status: "Active", listPrice: 649000, dom: 12, listDate: "2026-07-26", address: "4812 E Clarendon Ave", city: "Phoenix", state: "AZ", zip: "85018", subdivision: "Hidden Village", dwellingType: "Single Family", beds: 3, baths: 2, sqft: 1842, lotSqft: 8724, pool: true, interiorLevels: 1, yearBuilt: 1956, latitude: 33.491, longitude: -111.982, ownerName: "Daniel & Maria Ortega", estimatedEquityPct: 43, source: "MLS Preview" },
-  { id: "p2", mlsNumber: "6883904", status: "Active", listPrice: 425000, dom: 34, listDate: "2026-07-04", address: "1229 W Orchid Ln", city: "Phoenix", state: "AZ", zip: "85021", subdivision: "Westwood Heights", dwellingType: "Single Family", beds: 4, baths: 2, sqft: 2016, lotSqft: 7548, pool: false, interiorLevels: 1, yearBuilt: 1972, latitude: 33.562, longitude: -112.089, ownerName: "Carlton P. Hayes", estimatedEquityPct: 54, ownerOccupied: false, estimatedArv: 625000, originalListPrice: 469000, remarks: "Investor opportunity sold as-is. Needs updating throughout.", source: "MLS Preview" },
-  { id: "p3", mlsNumber: "6879441", status: "Pending", listPrice: 515000, dom: 19, listDate: "2026-07-15", address: "7319 E Montebello Ave", city: "Scottsdale", state: "AZ", zip: "85250", subdivision: "Park Scottsdale", dwellingType: "Townhouse", beds: 3, baths: 2, sqft: 1654, lotSqft: 6982, pool: true, interiorLevels: 2, yearBuilt: 1962, latitude: 33.519, longitude: -111.923, ownerName: "Pinnacle Home Trust", estimatedEquityPct: 34, source: "MLS Preview" },
-  { id: "p4", mlsNumber: "6876108", status: "Expired", listPrice: 789000, dom: 126, listDate: "2026-03-18", address: "2636 E Turney Ave", city: "Phoenix", state: "AZ", zip: "85016", subdivision: "Biltmore Greens", dwellingType: "Single Family", beds: 4, baths: 3, sqft: 2460, lotSqft: 9130, pool: true, interiorLevels: 2, yearBuilt: 1979, latitude: 33.501, longitude: -112.026, ownerName: "Patricia W. Lang", estimatedEquityPct: 61, source: "MLS Preview" },
-  { id: "p5", mlsNumber: "6873122", status: "Canceled", listPrice: 379900, dom: 48, listDate: "2026-05-29", address: "1908 N 39th Dr", city: "Phoenix", state: "AZ", zip: "85009", subdivision: "Del Monte Village", dwellingType: "Single Family", beds: 3, baths: 2, sqft: 1511, lotSqft: 8160, pool: false, interiorLevels: 1, yearBuilt: 1965, latitude: 33.469, longitude: -112.145, ownerName: "Warren Family Holdings LLC", estimatedEquityPct: 74, ownerOccupied: false, estimatedArv: 590000, originalListPrice: 429900, remarks: "Fixer. Cash only. Property needs substantial repairs and is being sold as-is.", source: "MLS Preview" },
-  { id: "p6", mlsNumber: "6869983", status: "Coming Soon", listPrice: 565000, dom: 0, listDate: "2026-08-09", address: "5442 S College Ave", city: "Tempe", state: "AZ", zip: "85283", subdivision: "Tempe Gardens", dwellingType: "Single Family", beds: 4, baths: 2.5, sqft: 2288, lotSqft: 8400, pool: true, interiorLevels: 2, yearBuilt: 1974, latitude: 33.374, longitude: -111.934, ownerName: "Elliot Mason", estimatedEquityPct: 25, source: "MLS Preview" },
-  { id: "p7", mlsNumber: "6868202", status: "Active", listPrice: 329000, dom: 8, listDate: "2026-07-30", address: "10318 W Coggins Dr", city: "Sun City", state: "AZ", zip: "85351", subdivision: "Sun City Unit 6", dwellingType: "Patio Home", beds: 2, baths: 2, sqft: 1380, lotSqft: 6200, pool: false, interiorLevels: 1, yearBuilt: 1967, latitude: 33.604, longitude: -112.282, ownerName: "Harold Grant", estimatedEquityPct: 68, ownerOccupied: true, estimatedArv: 485000, remarks: "Original condition. Estate sale with limited repairs completed.", source: "MLS Preview" },
-  { id: "p8", mlsNumber: "6867519", status: "Active", listPrice: 474500, dom: 21, listDate: "2026-07-17", address: "821 S Pomeroy", city: "Mesa", state: "AZ", zip: "85210", subdivision: "Fiesta Park Village", dwellingType: "Townhouse", beds: 3, baths: 2.5, sqft: 1795, lotSqft: 4100, pool: true, interiorLevels: 2, yearBuilt: 1986, latitude: 33.398, longitude: -111.855, ownerName: "Mesa Living LLC", estimatedEquityPct: 47, source: "MLS Preview" },
 ];
 
 const statusOptions = ["Active", "Coming Soon", "Pending", "Closed", "Expired", "Canceled"];
@@ -81,38 +37,6 @@ function shortDate(value?: string | null) {
   return value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 }
 
-function normalizeStatus(value: string) {
-  const status = value.toLowerCase();
-  if (status.includes("coming")) return "Coming Soon";
-  if (status.includes("active")) return "Active";
-  if (status.includes("pending") || status.includes("contract")) return "Pending";
-  if (status.includes("expire")) return "Expired";
-  if (status.includes("cancel") || status.includes("withdraw")) return "Canceled";
-  if (status.includes("closed") || status.includes("sold")) return "Closed";
-  return value || "Off Market";
-}
-
-type DealCandidate = ListingRecord & {
-  arv: number | null;
-  arvSource: "Property estimate" | "Pocket $/sqft model" | "Insufficient data";
-  listToArvPct: number | null;
-  rule70Price: number | null;
-  rule70Spread: number | null;
-  pricePerSqft: number | null;
-  pocketPricePerSqft: number | null;
-  ppsfDiscountPct: number | null;
-  dealScore: number;
-  priority: "Target now" | "High" | "Watch" | "Low";
-  reasons: string[];
-};
-
-function median(values: number[]) {
-  if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
 const ARV_THRESHOLD_OPTIONS = [70, 75, 80] as const;
 const ARV_THRESHOLD_MIN = 1;
 const ARV_THRESHOLD_MAX = 99;
@@ -121,53 +45,7 @@ function clampThreshold(value: number): number {
   return Math.min(ARV_THRESHOLD_MAX, Math.max(ARV_THRESHOLD_MIN, Math.round(value)));
 }
 
-function scoreDeals(listings: ListingRecord[], threshold: number): DealCandidate[] {
-  const ppsfRows = listings.filter((item) => item.listPrice && item.sqft).map((item) => ({
-    zip: item.zip,
-    type: item.dwellingType,
-    value: item.listPrice! / item.sqft!,
-  }));
-
-  return listings.map((listing) => {
-    const pricePerSqft = listing.listPrice && listing.sqft ? listing.listPrice / listing.sqft : null;
-    const pocketRows = ppsfRows.filter((row) => row.zip === listing.zip && row.type === listing.dwellingType);
-    const comparableRows = pocketRows.length >= 2 ? pocketRows : ppsfRows.filter((row) => row.type === listing.dwellingType);
-    const pocketPricePerSqft = median(comparableRows.map((row) => row.value)) ?? median(ppsfRows.map((row) => row.value));
-    const modeledArv = listing.sqft && pocketPricePerSqft ? listing.sqft * pocketPricePerSqft : null;
-    const arv = listing.estimatedArv ?? modeledArv;
-    const arvSource: DealCandidate["arvSource"] = listing.estimatedArv ? "Property estimate" : modeledArv ? "Pocket $/sqft model" : "Insufficient data";
-    const listToArvPct = listing.listPrice && arv ? (listing.listPrice / arv) * 100 : null;
-    const rule70Price = arv ? arv * (threshold / 100) : null;
-    const rule70Spread = rule70Price != null && listing.listPrice != null ? rule70Price - listing.listPrice : null;
-    const ppsfDiscountPct = pricePerSqft && pocketPricePerSqft ? ((pocketPricePerSqft - pricePerSqft) / pocketPricePerSqft) * 100 : null;
-    const conditionSignal = listing.distressSignal ?? hasDistressLanguage(listing.remarks);
-    const status = normalizeStatus(listing.status);
-    const priceReductionPct = listing.originalListPrice && listing.listPrice && listing.originalListPrice > listing.listPrice ? ((listing.originalListPrice - listing.listPrice) / listing.originalListPrice) * 100 : 0;
-    const reasons: string[] = [];
-    let score = 0;
-
-    if (listToArvPct != null) {
-      if (listToArvPct <= threshold) { score += 50 + Math.min(15, threshold - listToArvPct); reasons.push(`${Math.round(listToArvPct)}% of projected ARV`); }
-      else if (listToArvPct <= threshold + 10) { score += 32; reasons.push(`${Math.round(listToArvPct)}% of projected ARV`); }
-      else if (listToArvPct <= threshold + 20) score += 15;
-    }
-    if (ppsfDiscountPct != null && ppsfDiscountPct >= 15) { score += Math.min(16, Math.round(ppsfDiscountPct / 2)); reasons.push(`${Math.round(ppsfDiscountPct)}% below pocket $/sqft`); }
-    if (["Expired", "Canceled"].includes(status)) { score += 14; reasons.push(`${status} listing`); }
-    if ((listing.dom ?? 0) >= 60) { score += 8; reasons.push(`${listing.dom} days on market`); }
-    if ((listing.estimatedEquityPct ?? 0) >= 40) { score += 7; reasons.push(`${Math.round(listing.estimatedEquityPct!)}% estimated equity`); }
-    if (listing.ownerOccupied === false) { score += 4; reasons.push("Absentee owner"); }
-    if (conditionSignal) { score += 12; reasons.push("Fixer / condition language"); }
-    if (priceReductionPct >= 5) { score += 6; reasons.push(`${Math.round(priceReductionPct)}% price reduction`); }
-
-    score = Math.min(99, score);
-    const priority: DealCandidate["priority"] = listToArvPct != null && listToArvPct <= threshold ? "Target now" : score >= 65 ? "High" : score >= 38 ? "Watch" : "Low";
-    return { ...listing, arv, arvSource, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore: score, priority, reasons: reasons.slice(0, 4) };
-  }).sort((a, b) => b.dealScore - a.dealScore);
-}
-
-export default function MlsSearchWorkspace({ listings }: { listings: ListingRecord[] }) {
-  const sourceListings = listings.length ? listings : previewListings;
-  const isPreview = listings.length === 0;
+export default function MlsSearchWorkspace({ initial }: { initial: SearchResponse }) {
   const [view, setView] = useState<WorkspaceView>("map");
   const [activeCriteria, setActiveCriteria] = useState<Set<CriteriaKey>>(new Set(["status"]));
   const [statuses, setStatuses] = useState<string[]>(["Active", "Coming Soon"]);
@@ -186,42 +64,104 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
   const [zips, setZips] = useState("");
   const [keyword, setKeyword] = useState("");
   const [selectedId, setSelectedId] = useState("");
-  const [pocketIds, setPocketIds] = useState<string[] | null>(null);
   const [arvThreshold, setArvThreshold] = useState<number>(70);
 
-  const filtered = useMemo(() => {
-    const zipValues = zips.split(/[,\s]+/).map((zip) => zip.trim()).filter(Boolean);
-    const query = keyword.trim().toLowerCase();
-    return sourceListings.filter((item) => {
-      if (query && ![item.mlsNumber, item.address, item.city, item.zip].some((value) => value.toLowerCase().includes(query))) return false;
-      if (activeCriteria.has("status") && statuses.length && !statuses.includes(normalizeStatus(item.status))) return false;
-      if (activeCriteria.has("status") && closedWithinMonths !== "Any" && normalizeStatus(item.status) === "Closed") {
-        if (!item.closedDate) return false;
-        const cutoff = new Date();
-        cutoff.setMonth(cutoff.getMonth() - Number(closedWithinMonths));
-        if (new Date(item.closedDate) < cutoff) return false;
+  const [result, setResult] = useState<SearchResponse>(initial);
+  const [rows, setRows] = useState<DealCandidate[]>(initial.rows);
+  const [shape, setShape] = useState<DrawnShape | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const [page, setPage] = useState(0);
+  const [selectedExtra, setSelectedExtra] = useState<ListingRecord | null>(null);
+
+  const filters = buildFilters({
+    activeCriteria, statuses, closedWithinMonths, priceMin, priceMax, dwellingTypes,
+    bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword,
+  });
+  const requestKey = JSON.stringify({ filters, arvThreshold, shape });
+  const firstRun = useRef(true);
+  const currentKey = useRef(requestKey);
+  useEffect(() => { currentKey.current = requestKey; }, [requestKey]);
+
+  useEffect(() => {
+    // The server already rendered the initial request; only changes refetch.
+    if (firstRun.current) { firstRun.current = false; return; }
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("/api/admin/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filters, arvThreshold, shape, page: 0 }),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Search failed (${res.status})`);
+        const data: SearchResponse = await res.json();
+        setResult(data);
+        setRows(data.rows);
+        setPage(0);
+      } catch (caught) {
+        if ((caught as Error).name !== "AbortError") setError("Couldn't refresh results — change a filter to retry.");
+      } finally {
+        if (!ctrl.signal.aborted) setLoading(false);
       }
-      if (activeCriteria.has("price") && priceMin && (item.listPrice ?? 0) < Number(priceMin)) return false;
-      if (activeCriteria.has("price") && priceMax && (item.listPrice ?? Number.POSITIVE_INFINITY) > Number(priceMax)) return false;
-      if (activeCriteria.has("dwelling") && dwellingTypes.length && !dwellingTypes.includes(item.dwellingType)) return false;
-      if (activeCriteria.has("beds") && bedsMin && (item.beds ?? 0) < Number(bedsMin)) return false;
-      if (activeCriteria.has("baths") && bathsMin && (item.baths ?? 0) < Number(bathsMin)) return false;
-      if (activeCriteria.has("sqft") && sqftMin && (item.sqft ?? 0) < Number(sqftMin)) return false;
-      if (activeCriteria.has("sqft") && sqftMax && (item.sqft ?? Number.POSITIVE_INFINITY) > Number(sqftMax)) return false;
-      if (activeCriteria.has("lot") && lotMin && (item.lotSqft ?? 0) < Number(lotMin)) return false;
-      if (activeCriteria.has("lot") && lotMax && (item.lotSqft ?? Number.POSITIVE_INFINITY) > Number(lotMax)) return false;
-      if (activeCriteria.has("pool") && pool !== "Any" && item.pool !== (pool === "Yes")) return false;
-      if (activeCriteria.has("levels") && levels !== "Any" && (levels === "3+" ? (item.interiorLevels ?? 0) < 3 : item.interiorLevels !== Number(levels))) return false;
-      if (activeCriteria.has("zip") && zipValues.length && !zipValues.includes(item.zip)) return false;
-      return true;
-    });
-  }, [sourceListings, activeCriteria, statuses, closedWithinMonths, priceMin, priceMax, dwellingTypes, bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword]);
+    }, 300);
+    return () => { clearTimeout(timer); ctrl.abort(); };
+    // requestKey is the serialised form of filters/arvThreshold/shape, so it is
+    // the complete (and value-stable) dependency for this request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestKey]);
 
-  const qualified = useMemo(() => pocketIds ? filtered.filter((listing) => pocketIds.includes(listing.id)) : filtered, [filtered, pocketIds]);
-  const dealCandidates = useMemo(() => scoreDeals(qualified, arvThreshold), [qualified, arvThreshold]);
-  const targetIds = useMemo(() => new Set(dealCandidates.filter((item) => item.priority === "Target now").map((item) => item.id)), [dealCandidates]);
+  async function loadMore() {
+    const next = page + 1;
+    const key = requestKey;
+    setLoadingMore(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filters, arvThreshold, shape, page: next }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Search failed (${res.status})`);
+      const data: SearchResponse = await res.json();
+      // The filters may have changed while this page was in flight; those rows
+      // belong to a search that is no longer on screen, so drop them.
+      if (currentKey.current !== key) return;
+      setRows((current) => [...current, ...data.rows]);
+      setPage(next);
+    } catch {
+      setError("Couldn't load more results — try again.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
-  const selected = selectedId ? sourceListings.find((item) => item.id === selectedId) ?? null : null;
+  const inPage = rows.find((row) => row.id === selectedId) ?? null;
+  const selected: ListingRecord | null = !selectedId ? null : inPage ?? (selectedExtra?.id === selectedId ? selectedExtra : null);
+
+  // Pins cover every match, so a pin (or a stale selection) can point at a
+  // listing outside the loaded page; fetch that one record on demand.
+  useEffect(() => {
+    if (!selectedId || rows.some((row) => row.id === selectedId)) return;
+    const ctrl = new AbortController();
+    fetch(`/api/admin/search/listing?id=${encodeURIComponent(selectedId)}`, { signal: ctrl.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ListingRecord | null) => { if (data) setSelectedExtra(data); })
+      .catch(() => { /* aborted or offline; the card simply stays empty */ });
+    return () => ctrl.abort();
+  }, [selectedId, rows]);
+
+  const shapeKey = useRef("null");
+  const handleShapeChange = useCallback((next: DrawnShape | null) => {
+    const key = JSON.stringify(next ?? null);
+    if (key === shapeKey.current) return;
+    shapeKey.current = key;
+    setShape(next);
+  }, []);
 
   function toggleCriterion(key: CriteriaKey) {
     setActiveCriteria((current) => {
@@ -233,14 +173,6 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
 
   function toggleValue(value: string, values: string[], update: (next: string[]) => void) {
     update(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
-  }
-
-  function updatePocket(next: string[] | null) {
-    setPocketIds((current) => {
-      if (current === next) return current;
-      if (current && next && current.length === next.length && current.every((id) => next.includes(id))) return current;
-      return next;
-    });
   }
 
   function reset() {
@@ -260,10 +192,11 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
           </nav>
         </div>
       </header>
+      {error && <p className={styles.previewNote} role="alert">{error}</p>}
 
       <div className={styles.searchWorkspace}>
         <aside className={styles.criteriaPanel}>
-          <div className={styles.resultHeading}>Matching properties <strong>{qualified.length.toLocaleString()}</strong>{pocketIds && <span>in pocket</span>}</div>
+          <div className={styles.resultHeading}>Matching properties <strong style={{ opacity: loading ? 0.45 : 1 }}>{result.total.toLocaleString()}</strong>{shape && <span>in pocket</span>}</div>
           <label className={styles.mlsLookup}><span>⌕</span><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="MLS #, address, city or ZIP" /></label>
           <div className={styles.criteriaList}>
             {criteria.map(({ key, label }) => {
@@ -276,17 +209,16 @@ export default function MlsSearchWorkspace({ listings }: { listings: ListingReco
               );
             })}
           </div>
-          <div className={styles.criteriaFooter}><button type="button" onClick={reset}>Reset filters</button><button type="button" className={styles.applyButton} onClick={() => setView("list")}>View {qualified.length.toLocaleString()}</button></div>
-          {isPreview && <p className={styles.previewNote}>Preview inventory is shown until the licensed MLS feed is connected.</p>}
+          <div className={styles.criteriaFooter}><button type="button" onClick={reset}>Reset filters</button><button type="button" className={styles.applyButton} onClick={() => setView("list")}>View {result.total.toLocaleString()}</button></div>
         </aside>
 
         <section className={styles.mainStage}>
-          {view === "map" && <GoogleMapStage listings={filtered} selected={selected} targetIds={targetIds} onSelect={setSelectedId} onPocketChange={updatePocket} />}
-          {view === "list" && <ResultsList listings={qualified} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
+          {view === "map" && <GoogleMapStage pins={result.pins} selected={selected} total={result.total} onSelect={setSelectedId} onShapeChange={handleShapeChange} />}
+          {view === "list" && <ResultsList listings={rows} total={result.total} loading={loading} loadingMore={loadingMore} onLoadMore={loadMore} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
           {view === "detail" && <ListingDetail listing={selected} />}
         </section>
       </div>
-      <DealIntelligence candidates={dealCandidates} isPreview={isPreview} threshold={arvThreshold} onThresholdChange={setArvThreshold} />
+      <DealIntelligence candidates={rows} threshold={arvThreshold} onThresholdChange={setArvThreshold} />
     </main>
   );
 }
@@ -326,8 +258,10 @@ function MinSelect({ value, update, options, exact = false }: { value: string; u
   return <select className={styles.singleInput} value={value} onChange={(event) => update(event.target.value)}>{!exact && <option value="">No minimum</option>}{options.map((option) => <option key={option} value={option}>{exact ? option : `${option}+`}</option>)}</select>;
 }
 
-function ResultsList({ listings, onSelect }: { listings: ListingRecord[]; onSelect: (id: string) => void }) {
-  return <div className={styles.resultsTable}><table><thead><tr><th>Status</th><th>Closed date</th><th>MLS #</th><th>Address</th><th>Price</th><th>Type</th><th>Bed/Bath</th><th>Sq Ft</th><th>Lot</th><th>Pool</th><th>Levels</th><th>ZIP</th></tr></thead><tbody>{listings.map((listing) => <tr key={listing.id} onClick={() => onSelect(listing.id)}><td>{normalizeStatus(listing.status)}</td><td>{shortDate(listing.closedDate)}</td><td>{listing.mlsNumber}</td><td><strong>{listing.address}</strong><small>{listing.city}</small></td><td>{money(listing.listPrice)}</td><td>{listing.dwellingType}</td><td>{listing.beds ?? "—"} / {listing.baths ?? "—"}</td><td>{listing.sqft?.toLocaleString() ?? "—"}</td><td>{listing.lotSqft?.toLocaleString() ?? "—"}</td><td>{listing.pool == null ? "—" : listing.pool ? "Yes" : "No"}</td><td>{listing.interiorLevels ?? "—"}</td><td>{listing.zip}</td></tr>)}</tbody></table>{listings.length === 0 && <PlaceholderView title="No results" detail="Change or reset the selected criteria." />}</div>;
+function ResultsList({ listings, total, loading, loadingMore, onLoadMore, onSelect }: { listings: ListingRecord[]; total: number; loading: boolean; loadingMore: boolean; onLoadMore: () => void; onSelect: (id: string) => void }) {
+  return <div className={styles.resultsTable}><table><thead><tr><th>Status</th><th>Closed date</th><th>MLS #</th><th>Address</th><th>Price</th><th>Type</th><th>Bed/Bath</th><th>Sq Ft</th><th>Lot</th><th>Pool</th><th>Levels</th><th>ZIP</th></tr></thead><tbody>{listings.map((listing) => <tr key={listing.id} onClick={() => onSelect(listing.id)}><td>{normalizeStatus(listing.status)}</td><td>{shortDate(listing.closedDate)}</td><td>{listing.mlsNumber}</td><td><strong>{listing.address}</strong><small>{listing.city}</small></td><td>{money(listing.listPrice)}</td><td>{listing.dwellingType}</td><td>{listing.beds ?? "—"} / {listing.baths ?? "—"}</td><td>{listing.sqft?.toLocaleString() ?? "—"}</td><td>{listing.lotSqft?.toLocaleString() ?? "—"}</td><td>{listing.pool == null ? "—" : listing.pool ? "Yes" : "No"}</td><td>{listing.interiorLevels ?? "—"}</td><td>{listing.zip}</td></tr>)}</tbody></table>
+    {listings.length < total && <div className={styles.criteriaFooter}><button type="button" className={styles.applyButton} onClick={onLoadMore} disabled={loadingMore || loading}>{loadingMore ? "Loading…" : `Load more — ${listings.length.toLocaleString()} of ${total.toLocaleString()}`}</button></div>}
+    {listings.length === 0 && <PlaceholderView title="No results" detail="Change or reset the selected criteria." />}</div>;
 }
 
 function ListingDetail({ listing }: { listing: ListingRecord | null }) {
@@ -337,10 +271,17 @@ function ListingDetail({ listing }: { listing: ListingRecord | null }) {
 
 function PlaceholderView({ title, detail }: { title: string; detail: string }) { return <div className={styles.placeholder}><strong>{title}</strong><span>{detail}</span></div>; }
 
-function DealIntelligence({ candidates, isPreview, threshold, onThresholdChange }: { candidates: DealCandidate[]; isPreview: boolean; threshold: number; onThresholdChange: (value: number) => void }) {
+function DealIntelligence({ candidates, threshold, onThresholdChange }: { candidates: DealCandidate[]; threshold: number; onThresholdChange: (value: number) => void }) {
   const [mode, setMode] = useState<"ranked" | "rule70" | "ppsf" | "motivated">("ranked");
   const [customInput, setCustomInput] = useState(String(threshold));
-  useEffect(() => setCustomInput(String(threshold)), [threshold]);
+  // Re-sync the free-text box when the threshold changes elsewhere (the preset
+  // buttons). Adjusting state during render rather than in an effect avoids the
+  // extra commit; see https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [shownThreshold, setShownThreshold] = useState(threshold);
+  if (shownThreshold !== threshold) {
+    setShownThreshold(threshold);
+    setCustomInput(String(threshold));
+  }
 
   function commitCustomThreshold() {
     const parsed = Number(customInput);
@@ -372,7 +313,7 @@ function DealIntelligence({ candidates, isPreview, threshold, onThresholdChange 
       <div className={styles.dealMetrics}>
         <div><span>{threshold}% rule matches</span><strong>{rule70Count}</strong><small>List price ≤ {threshold}% projected ARV</small></div>
         <div><span>Acquisition priority</span><strong>{highPriorityCount}</strong><small>Target now or high priority</small></div>
-        <div><span>Average list / ARV</span><strong>{averageRatio == null ? "—" : `${Math.round(averageRatio)}%`}</strong><small>Across current map results</small></div>
+        <div><span>Average list / ARV</span><strong>{averageRatio == null ? "—" : `${Math.round(averageRatio)}%`}</strong><small>Across loaded results</small></div>
         <div><span>Potential {threshold}% spread</span><strong>{money(totalSpread, true)}</strong><small>Before rehab and closing costs</small></div>
       </div>
 
@@ -402,7 +343,6 @@ function DealIntelligence({ candidates, isPreview, threshold, onThresholdChange 
           <thead><tr><th>Priority</th><th>Property</th><th>Deal score</th><th>% of ARV · {threshold}% threshold</th><th>Why it surfaced</th><th>Action</th></tr></thead>
           <tbody>{visible.slice(0, 25).map((candidate) => {
             const fullAddress = `${candidate.address}, ${candidate.city}, ${candidate.state} ${candidate.zip}`;
-            const canTarget = !isPreview && !candidate.id.startsWith("p");
             const targetAction = targetProperty.bind(null, candidate.id, candidate.dealScore, candidate.reasons.join("; "));
             return <tr key={candidate.id}>
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
@@ -410,7 +350,7 @@ function DealIntelligence({ candidates, isPreview, threshold, onThresholdChange 
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
               <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{candidate.listToArvPct == null ? "—" : `${Math.round(candidate.listToArvPct)}%`}</strong><small>{candidate.listToArvPct != null && candidate.listToArvPct <= threshold ? "Meets rule" : "Review"}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
-              <td><div className={styles.dealActions}><a href={`/admin/underwriting?address=${encodeURIComponent(fullAddress)}`}>AI verify ARV</a>{canTarget ? <form action={targetAction}><button type="submit">Target property</button></form> : <button type="button" disabled>Preview only</button>}</div></td>
+              <td><div className={styles.dealActions}><a href={`/admin/underwriting?address=${encodeURIComponent(fullAddress)}`}>AI verify ARV</a><form action={targetAction}><button type="submit">Target property</button></form></div></td>
             </tr>;
           })}</tbody>
         </table>

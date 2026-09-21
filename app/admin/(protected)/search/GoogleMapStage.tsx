@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { loadGoogleMaps } from "./load-google-maps";
-import type { ListingRecord } from "./MlsSearchWorkspace";
+import type { DrawnShape, ListingRecord, Pin } from "@/lib/search/types";
 import styles from "./search.module.css";
 
 type DrawingMode = "pan" | "rectangle" | "circle" | "polygon";
 type MapShape = google.maps.Polygon | google.maps.Rectangle | google.maps.Circle;
+
+/** The map only ever draws the highest-scoring slice; the rest stay on the server. */
+const MAX_MARKERS = 250;
 
 function money(value: number | null, compact = false) {
   if (value == null) return "—";
@@ -26,8 +29,25 @@ function normalizeStatus(value: string) {
   return value || "Off Market";
 }
 
-function validCoordinates(listing: ListingRecord) {
-  return listing.latitude != null && listing.longitude != null;
+/** Google shape -> the plain geometry the server re-applies to every match. */
+function toDrawnShape(shape: MapShape): DrawnShape {
+  if (shape instanceof google.maps.Rectangle) {
+    const bounds = shape.getBounds()!;
+    return {
+      type: "rectangle",
+      bounds: {
+        north: bounds.getNorthEast().lat(),
+        east: bounds.getNorthEast().lng(),
+        south: bounds.getSouthWest().lat(),
+        west: bounds.getSouthWest().lng(),
+      },
+    };
+  }
+  if (shape instanceof google.maps.Circle) {
+    const center = shape.getCenter()!;
+    return { type: "circle", center: { lat: center.lat(), lng: center.lng() }, radiusMeters: shape.getRadius() };
+  }
+  return { type: "polygon", path: shape.getPath().getArray().map((point) => ({ lat: point.lat(), lng: point.lng() })) };
 }
 
 const shapeStyle = {
@@ -39,17 +59,17 @@ const shapeStyle = {
 };
 
 export default function GoogleMapStage({
-  listings,
+  pins,
   selected,
-  targetIds,
+  total,
   onSelect,
-  onPocketChange,
+  onShapeChange,
 }: {
-  listings: ListingRecord[];
+  pins: Pin[];
   selected: ListingRecord | null;
-  targetIds: Set<string>;
+  total: number;
   onSelect: (id: string) => void;
-  onPocketChange: (ids: string[] | null) => void;
+  onShapeChange: (shape: DrawnShape | null) => void;
 }) {
   const mapNode = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
@@ -58,9 +78,8 @@ export default function GoogleMapStage({
   const drawingListeners = useRef<google.maps.MapsEventListener[]>([]);
   const shapeListeners = useRef<google.maps.MapsEventListener[]>([]);
   const dragStart = useRef<google.maps.LatLng | null>(null);
-  const listingsRef = useRef(listings);
   const onSelectRef = useRef(onSelect);
-  const onPocketChangeRef = useRef(onPocketChange);
+  const onShapeChangeRef = useRef(onShapeChange);
   const [mapReady, setMapReady] = useState(false);
   const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("pan");
@@ -69,30 +88,19 @@ export default function GoogleMapStage({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    listingsRef.current = listings;
     onSelectRef.current = onSelect;
-    onPocketChangeRef.current = onPocketChange;
-  }, [listings, onSelect, onPocketChange]);
+    onShapeChangeRef.current = onShapeChange;
+  }, [onSelect, onShapeChange]);
 
   function removeListeners(listeners: MutableRefObject<google.maps.MapsEventListener[]>) {
     listeners.current.forEach((listener) => listener.remove());
     listeners.current = [];
   }
 
-  function listingsInside(shape: MapShape) {
-    return listingsRef.current.filter((listing) => {
-      if (!validCoordinates(listing)) return false;
-      const point = new google.maps.LatLng(listing.latitude!, listing.longitude!);
-      if (shape instanceof google.maps.Rectangle) return shape.getBounds()?.contains(point) ?? false;
-      if (shape instanceof google.maps.Circle) return google.maps.geometry.spherical.computeDistanceBetween(point, shape.getCenter()!) <= shape.getRadius();
-      return google.maps.geometry.poly.containsLocation(point, shape);
-    }).map((listing) => listing.id);
-  }
-
   function refreshShape() {
     if (!activeShape.current) return;
     setShapeActive(true);
-    onPocketChangeRef.current(listingsInside(activeShape.current));
+    onShapeChangeRef.current(toDrawnShape(activeShape.current));
   }
 
   function clearShape(notify = true) {
@@ -105,7 +113,7 @@ export default function GoogleMapStage({
     setDrawingMode("pan");
     setDrawPoints(0);
     setShapeActive(false);
-    if (notify) onPocketChangeRef.current(null);
+    if (notify) onShapeChangeRef.current(null);
   }
 
   function makeEditable(shape: MapShape) {
@@ -215,26 +223,38 @@ export default function GoogleMapStage({
     if (!map.current || !mapReady) return;
     markers.current.forEach((marker) => marker.setMap(null));
     markers.current = [];
+
+    // Pins arrive score-ordered, so the top slice is the most interesting one.
+    const visible = pins.slice(0, MAX_MARKERS);
+    // A pin can be selected from a later page (or the detail view) and fall
+    // outside that slice — keep it on the map so its card has an anchor.
+    if (selected && !visible.some((pin) => pin.id === selected.id)) {
+      const known = pins.find((pin) => pin.id === selected.id);
+      if (known) visible.push(known);
+      else if (selected.latitude != null && selected.longitude != null) {
+        visible.push({ id: selected.id, lat: selected.latitude, lng: selected.longitude, price: selected.listPrice, status: selected.status, target: false });
+      }
+    }
+
     const bounds = new google.maps.LatLngBounds();
-    listings.filter(validCoordinates).slice(0, 250).forEach((listing) => {
-      const isSelected = listing.id === selected?.id;
-      const isTarget = targetIds.has(listing.id);
+    visible.forEach((pin) => {
+      const isSelected = pin.id === selected?.id;
       const marker = new google.maps.Marker({
-        map: map.current, position: { lat: listing.latitude!, lng: listing.longitude! }, title: `${listing.address} · ${money(listing.listPrice)}`,
-        zIndex: isSelected ? 30 : isTarget ? 20 : 10,
-        label: { text: money(listing.listPrice, true), color: "#ffffff", fontSize: "10px", fontWeight: "700" },
-        icon: { path: google.maps.SymbolPath.CIRCLE, scale: isSelected ? 22 : 19, fillColor: isSelected ? "#a83a27" : isTarget ? "#d06a2f" : "#167fbd", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 2 },
+        map: map.current, position: { lat: pin.lat, lng: pin.lng }, title: money(pin.price),
+        zIndex: isSelected ? 30 : pin.target ? 20 : 10,
+        label: { text: money(pin.price, true), color: "#ffffff", fontSize: "10px", fontWeight: "700" },
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: isSelected ? 22 : 19, fillColor: isSelected ? "#a83a27" : pin.target ? "#d06a2f" : "#167fbd", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 2 },
       });
-      marker.addListener("click", () => onSelectRef.current(listing.id));
+      marker.addListener("click", () => onSelectRef.current(pin.id));
       markers.current.push(marker);
       bounds.extend(marker.getPosition()!);
     });
+
     if (!activeShape.current && !bounds.isEmpty()) {
       map.current.fitBounds(bounds, 54);
       google.maps.event.addListenerOnce(map.current, "idle", () => { if ((map.current?.getZoom() ?? 0) > 13) map.current?.setZoom(13); });
     }
-    if (activeShape.current) onPocketChangeRef.current(listingsInside(activeShape.current));
-  }, [listings, mapReady, selected?.id, targetIds]);
+  }, [pins, mapReady, selected]);
 
   const drawingText = drawingMode === "polygon" ? `Click boundary points (${drawPoints}); double-click or Finish to close.` : drawingMode === "rectangle" ? "Click and drag corner-to-corner." : drawingMode === "circle" ? "Click the center and drag to set the radius." : shapeActive ? "Area filter active. Drag the shape or its handles to refine it." : "Choose a shape tool to isolate a search pocket.";
 
@@ -250,7 +270,7 @@ export default function GoogleMapStage({
       <button type="button" onClick={() => clearShape()} title="Clear drawn area"><span className={styles.clearIcon}>×</span><small>Clear</small></button>
     </div>
     <div className={styles.manualZoomControls} aria-label="Map zoom controls"><button type="button" onClick={() => map.current?.setZoom(Math.min(21, (map.current.getZoom() ?? 10) + 1))} aria-label="Zoom in">+</button><button type="button" onClick={() => map.current?.setZoom(Math.max(3, (map.current.getZoom() ?? 10) - 1))} aria-label="Zoom out">−</button></div>
-    <div className={styles.pocketPrompt}><strong>{shapeActive ? `${listingsInside(activeShape.current!).length} properties in area` : drawingMode === "pan" ? "Draw a search area" : "Drawing area"}</strong><span>{drawingText}</span><div>{drawingMode === "polygon" && <button type="button" onClick={finishPolygon} disabled={drawPoints < 3}>Finish shape</button>}</div></div>
+    <div className={styles.pocketPrompt}><strong>{shapeActive ? `${total.toLocaleString()} properties in area` : drawingMode === "pan" ? "Draw a search area" : "Drawing area"}</strong><span>{drawingText}</span><div>{drawingMode === "polygon" && <button type="button" onClick={finishPolygon} disabled={drawPoints < 3}>Finish shape</button>}</div></div>
     <div className={styles.mapLegend}><span><i className={styles.standardDot} />Listing</span><span><i className={styles.targetDot} />≤70% ARV target</span></div>
     {selected && <article className={styles.mapCard}><button type="button" onClick={() => onSelect("")} aria-label="Close listing card">×</button><span>{normalizeStatus(selected.status)} · MLS #{selected.mlsNumber}</span><h2>{selected.address}</h2><p>{selected.city}, AZ {selected.zip}</p><div><strong>{money(selected.listPrice)}</strong><span>{selected.beds ?? "—"} bd · {selected.baths ?? "—"} ba · {selected.sqft?.toLocaleString() ?? "—"} sq ft</span></div><small>{selected.dwellingType} · {selected.pool === true ? "Private pool" : selected.pool === false ? "No private pool" : "Pool unknown"} · {selected.interiorLevels ?? "—"} level{selected.interiorLevels === 1 ? "" : "s"}</small></article>}
   </div>;
