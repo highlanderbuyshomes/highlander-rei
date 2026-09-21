@@ -85,6 +85,7 @@ async function resoFetch(url: string): Promise<{ value: ResoListing[]; nextLink:
 export const DEFAULT_STATUSES = ["Active", "Active Under Contract", "Pending", "Closed"];
 
 export type ResoScopeOpts = {
+  counties?: string[];
   zips?: string[];
   cities?: string[];
   statuses?: string[];
@@ -106,8 +107,9 @@ function buildFilter(opts: ResoScopeOpts): string {
 
   // zips/cities are optional restrictions; with neither set there is no area
   // clause and the scope is all of ARMLS.
-  const zips = opts.zips, cities = opts.cities;
+  const zips = opts.zips, cities = opts.cities, counties = opts.counties;
   const areaParts: string[] = [];
+  if (counties?.length) areaParts.push(`CountyOrParish in (${counties.map((c) => `'${c.replace(/'/g, "''")}'`).join(",")})`);
   if (zips?.length) areaParts.push(`PostalCode in (${zips.map((z) => `'${z.replace(/'/g, "''")}'`).join(",")})`);
   if (cities?.length) areaParts.push(`City in (${cities.map((c) => `'${c.replace(/'/g, "''")}'`).join(",")})`);
   const areaFilter = areaParts.length ? `(${areaParts.join(" or ")})` : null;
