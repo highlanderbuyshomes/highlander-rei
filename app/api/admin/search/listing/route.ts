@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/session";
-import { loadRowsByIds } from "@/lib/search/load";
+import { loadListingDetail } from "@/lib/search/run-search";
 
 export async function GET(req: NextRequest) {
   if (!(await requireAdminApi())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "id query parameter is required" }, { status: 400 });
 
   try {
-    const rows = await loadRowsByIds([id]);
-    const row = rows[0];
+    const threshold = Number(req.nextUrl.searchParams.get("threshold") ?? 70);
+    const row = await loadListingDetail(id, Number.isFinite(threshold) ? threshold : 70);
 
     if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { DISTRESS_WORDS } from "@/lib/distress";
 import { buildWhere } from "./build-query";
+import { dwellingSql, normalizeDwelling, normalizeStatus, statusSql } from "./classify";
 import type { ListingRecord, SearchFilters } from "./types";
 
 function rawValue(raw: unknown, keys: string[]) {
@@ -93,7 +94,9 @@ const levelsText = (lv: string) =>
 
 // Per-key fallback from the listing/property `src` blob to Property.rawJson,
 // mirroring rawString/rawBoolean/rawLevels(source) ?? rawX(propLite) in loadRowsByIds.
-export const DWELLING_SQL = Prisma.raw(`COALESCE(p."propertyType", ${coalesceKeys(DWELLING_KEYS)}, ${coalescePropKeys(DWELLING_KEYS)}, 'Single Family')`);
+// Raw ARMLS text ("Single Family Residence", "Condominium"...) is bucketed into the
+// Dwelling Type checkbox labels so the IN (...) filter matches.
+export const DWELLING_SQL = dwellingSql(`COALESCE(NULLIF(p."propertyType", ''), ${coalesceKeys(DWELLING_KEYS)}, ${coalescePropKeys(DWELLING_KEYS)})`);
 export const POOL_SQL = Prisma.raw(`COALESCE(${poolCase(`COALESCE(${coalesceKeys(POOL_KEYS)})`)}, ${poolCase(`COALESCE(${coalescePropKeys(POOL_KEYS)})`)})`);
 export const LEVELS_SQL = Prisma.raw(`COALESCE(
   ${numPrefix(`COALESCE(${coalesceKeys(STORY_KEYS)})`).sql},
@@ -117,8 +120,12 @@ type CandidateRow = {
   id: string;
   status: string;
   price: number | null;
+  closePrice: number | null;
   sqft: number | null;
+  beds: number | null;
+  yearBuilt: number | null;
   zip: string;
+  subdivision: string | null;
   dwelling: string;
   dom: number | null;
   estimatedEquityPct: number | null;
@@ -145,20 +152,15 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
   const regex = distressRegex();
 
   const rows = await prisma.$queryRaw<CandidateRow[]>`
-    WITH c AS (
+    WITH b AS (
       SELECT p.id,
-        CASE WHEN lower(COALESCE(l."mlsStatus",'')) LIKE '%coming%' THEN 'Coming Soon'
-             WHEN lower(COALESCE(l."mlsStatus",'')) LIKE '%active%' THEN 'Active'
-             WHEN lower(COALESCE(l."mlsStatus",'')) LIKE '%pending%' OR lower(COALESCE(l."mlsStatus",'')) LIKE '%contract%' THEN 'Pending'
-             WHEN lower(COALESCE(l."mlsStatus",'')) LIKE '%expire%' THEN 'Expired'
-             WHEN lower(COALESCE(l."mlsStatus",'')) LIKE '%cancel%' OR lower(COALESCE(l."mlsStatus",'')) LIKE '%withdraw%' THEN 'Canceled'
-             WHEN lower(COALESCE(l."mlsStatus",'')) LIKE '%closed%' OR lower(COALESCE(l."mlsStatus",'')) LIKE '%sold%' THEN 'Closed'
-             ELSE COALESCE(NULLIF(l."mlsStatus",''), 'Off Market') END AS status,
-        COALESCE(l."listPrice", p."estimatedValue") AS price,
-        p.beds, p.baths,
+        ${statusSql(`l."mlsStatus"`)} AS status,
+        COALESCE(l."listPrice", p."estimatedValue") AS "listPrice",
+        l."soldPrice" AS "closePrice",
+        p.beds, p.baths, p."yearBuilt",
         ${sqftSql("p.sqft", ["LivingArea", "LivingAreaSqFt", "ApproxSQFT"])} AS sqft,
         ${sqftSql('p."lotSqft"', ["LotSizeSquareFeet", "LotSqFt", "LotSize"])} AS lot,
-        p.zip,
+        p.zip, p.subdivision,
         ${DWELLING_SQL} AS dwelling,
         ${POOL_SQL} AS pool,
         ${LEVELS_SQL} AS levels,
@@ -177,30 +179,34 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
       LEFT JOIN LATERAL (SELECT * FROM "MlsListing" WHERE "propertyId" = p.id ORDER BY "updatedAt" DESC LIMIT 1) l ON true
       LEFT JOIN LATERAL (SELECT * FROM "PropertyOwner" WHERE "propertyId" = p.id ORDER BY "updatedAt" DESC LIMIT 1) o ON true
       CROSS JOIN LATERAL (SELECT COALESCE(l."rawJson", p."rawJson") AS src) s
+    ), c AS (
+      -- Closed rows are priced (and price-filtered) at what they sold for.
+      SELECT b.*, CASE WHEN b.status = 'Closed' THEN COALESCE(b."closePrice", b."listPrice") ELSE b."listPrice" END AS price FROM b
     )
-    SELECT id, status, price, sqft, zip, dwelling, dom, "estimatedEquityPct", "ownerOccupied", "estimatedArv", "originalListPrice", distress, latitude, longitude, address
-    FROM c WHERE c.lease IS NOT TRUE AND ${buildWhere(filters)} ORDER BY c.id`;
+    SELECT id, status, price, "closePrice", sqft, beds, "yearBuilt", zip, subdivision, dwelling, dom, "estimatedEquityPct", "ownerOccupied", "estimatedArv", "originalListPrice", distress, latitude, longitude, address
+    FROM c WHERE c.lease IS NOT TRUE AND c.status <> 'Deleted' AND ${buildWhere(filters)} ORDER BY c.id`;
 
   return rows.map((r) => ({
     id: r.id,
     mlsNumber: "",
     status: r.status,
     listPrice: num(r.price),
+    closePrice: r.status === "Closed" ? num(r.closePrice) : null,
     dom: num(r.dom),
     listDate: null,
     address: r.address,
     city: "",
     state: "",
     zip: r.zip,
-    subdivision: null,
+    subdivision: r.subdivision,
     dwellingType: r.dwelling,
-    beds: null,
+    beds: num(r.beds),
     baths: null,
     sqft: num(r.sqft),
     lotSqft: null,
     pool: null,
     interiorLevels: null,
-    yearBuilt: null,
+    yearBuilt: num(r.yearBuilt),
     latitude: num(r.latitude),
     longitude: num(r.longitude),
     ownerName: null,
@@ -220,7 +226,7 @@ type FullRow = {
   sqft: number | null; lotSqft: number | null; yearBuilt: number | null; latitude: number | null; longitude: number | null;
   estimatedValue: number | null; lastSaleDate: Date | string | null; source: string; propLite: unknown; distress: boolean;
   mlsNumber: string | null; mlsStatus: string | null; listPrice: number | null; dom: number | null;
-  listDate: Date | string | null; soldDate: Date | string | null; listSource: string | null; listLite: unknown;
+  listDate: Date | string | null; soldDate: Date | string | null; soldPrice: number | null; listSource: string | null; listLite: unknown;
   ownerFullName: string | null; ownerFirstName: string | null; ownerLastName: string | null;
   estimatedEquityPct: number | null; ownerOccupied: boolean | null;
 };
@@ -242,7 +248,7 @@ export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
            p."estimatedValue", p."lastSaleDate", p.source,
            ${liteOf('p."rawJson"')} AS "propLite",
            COALESCE(COALESCE(${remarksOf('l."rawJson"')}, ${remarksOf('p."rawJson"')}) ~* ${regex}, false) AS distress,
-           l."mlsNumber", l."mlsStatus", l."listPrice", l.dom, l."listDate", l."soldDate", l.source AS "listSource",
+           l."mlsNumber", l."mlsStatus", l."listPrice", l.dom, l."listDate", l."soldDate", l."soldPrice", l.source AS "listSource",
            ${liteOf('COALESCE(l."rawJson", p."rawJson")')} AS "listLite",
            o."fullName" AS "ownerFullName", o."firstName" AS "ownerFirstName", o."lastName" AS "ownerLastName",
            o."estimatedEquityPct", o."ownerOccupied"
@@ -262,6 +268,7 @@ export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
       id: r.id,
       mlsNumber: r.mlsNumber ?? `PR-${r.apn?.slice(-7) ?? r.id.slice(-7).toUpperCase()}`,
       status: r.mlsStatus ?? "Off Market",
+      closePrice: normalizeStatus(r.mlsStatus) === "Closed" ? num(r.soldPrice) : null,
       closedDate: closedDate?.toISOString() ?? null,
       listPrice: num(r.listPrice) ?? num(r.estimatedValue),
       dom: num(r.dom),
@@ -271,7 +278,7 @@ export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
       state: r.state,
       zip: r.zip,
       subdivision: r.subdivision,
-      dwellingType: r.propertyType ?? rawString(source, ["PropertySubType", "PropertyType", "DwellingType"]) ?? rawString(r.propLite, ["PropertySubType", "PropertyType", "DwellingType"]) ?? "Single Family",
+      dwellingType: normalizeDwelling(r.propertyType || rawString(source, ["PropertySubType", "PropertyType", "DwellingType"]) || rawString(r.propLite, ["PropertySubType", "PropertyType", "DwellingType"])),
       beds: num(r.beds),
       baths: num(r.baths),
       sqft: num(r.sqft) ?? rawNumber(source, ["LivingArea", "LivingAreaSqFt", "ApproxSQFT"]),

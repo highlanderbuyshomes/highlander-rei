@@ -296,3 +296,6 @@
 .shell input:focus-visible,
 .shell select:focus-visible,
 .shell a:focus-visible { outline: 2px solid #12161c; outline-offset: 2px; }
+
+.linkButton { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.linkButton:hover strong { text-decoration: underline; }
