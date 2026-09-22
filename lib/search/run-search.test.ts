@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./load", () => ({ loadCandidates: vi.fn(), loadRowsByIds: vi.fn() }));
+vi.mock("./load-comps", async () => {
+  const { buildCompIndex } = await import("./comps");
+  return { loadCompIndex: vi.fn(async () => buildCompIndex([])) };
+});
 
 import { applyShape, capPins, runSearch } from "./run-search";
 import { loadCandidates, loadRowsByIds } from "./load";
@@ -47,5 +51,6 @@ describe("pin capping", () => {
     expect(res.total).toBe(n);
     expect(res.targetCount).toBe(n); // 300k/400k = 75% <= 80 for every row
     expect(res.rows.length).toBe(100);
+    expect(res.compCount).toBe(0);
   });
 });
