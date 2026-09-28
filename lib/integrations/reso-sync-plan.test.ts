@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOOTSTRAP_STATUSES, OVERLAP_MS, resolveSyncPlan, SCOPE_VERSION, VALLEY_COUNTIES } from "./reso-sync-plan";
+import { CLOSED_STATUSES, LIVE_STATUSES, OVERLAP_MS, resolveSyncPlan, SCOPE_VERSION, VALLEY_COUNTIES } from "./reso-sync-plan";
 
 const now = new Date("2026-09-20T12:00:00.000Z");
 const wm = "2026-09-20T10:00:00.000Z";
@@ -8,8 +8,8 @@ describe("resolveSyncPlan", () => {
   it("bootstraps when there are no runs", () => {
     const p = resolveSyncPlan(null, now);
     expect(p.kind).toBe("bootstrap");
-    expect(p.scope).toEqual({ statuses: BOOTSTRAP_STATUSES, counties: VALLEY_COUNTIES });
-    expect(p.control.meta).toEqual({ watermark: now.toISOString(), scope: p.scope, scopeVersion: SCOPE_VERSION });
+    expect(p.scope).toEqual({ statuses: LIVE_STATUSES, counties: VALLEY_COUNTIES });
+    expect(p.control.meta).toEqual({ watermark: now.toISOString(), scope: p.scope, scopeVersion: SCOPE_VERSION, phase: "live" });
     expect(p.control.resumeUrl).toBeUndefined();
   });
 
@@ -50,5 +50,25 @@ describe("resolveSyncPlan", () => {
 
   it("bootstraps a partial run missing its resumeUrl", () => {
     expect(resolveSyncPlan({ status: "partial", rawMeta: { watermark: wm, scope: {}, scopeVersion: SCOPE_VERSION } }, now).kind).toBe("bootstrap");
+  });
+
+  it("starts the closed phase after the live phase completes, keeping its watermark", () => {
+    const p = resolveSyncPlan({ status: "completed", rawMeta: { watermark: wm, scopeVersion: SCOPE_VERSION, phase: "live" } }, now);
+    expect(p.kind).toBe("bootstrap");
+    expect(p.scope).toEqual({ statuses: CLOSED_STATUSES, counties: VALLEY_COUNTIES });
+    expect(p.control.meta).toEqual({ watermark: wm, scope: p.scope, scopeVersion: SCOPE_VERSION, phase: "closed" });
+  });
+
+  it("carries the phase through a partial resume", () => {
+    const scope = { statuses: CLOSED_STATUSES, counties: VALLEY_COUNTIES };
+    const p = resolveSyncPlan({ status: "partial", rawMeta: { watermark: wm, resumeUrl: "https://x/next", scope, scopeVersion: SCOPE_VERSION, phase: "closed" } }, now);
+    expect(p.kind).toBe("resume-partial");
+    expect(p.control.meta?.phase).toBe("closed");
+  });
+
+  it("goes incremental from the live phase's watermark after the closed phase completes", () => {
+    const p = resolveSyncPlan({ status: "completed", rawMeta: { watermark: wm, scopeVersion: SCOPE_VERSION, phase: "closed" } }, now);
+    expect(p.kind).toBe("incremental");
+    expect(p.scope.modifiedSince).toBe(new Date(new Date(wm).getTime() - OVERLAP_MS).toISOString());
   });
 });
