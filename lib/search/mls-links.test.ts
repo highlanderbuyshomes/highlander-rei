@@ -14,4 +14,8 @@ describe("mls links", () => {
     expect(mlsLinks(listing).curbview.href).toBe("https://curbview.com/mls/1/listings/6912345");
     expect(mlsLinks(listing).flexmls.copy).toBe("6912345");
   });
+
+  it("links RPR through its deep-link endpoint by MLS #", () => {
+    expect(mlsLinks(listing).rpr.href).toBe("https://www.narrpr.com/deep-link?cbcode=armls&listingid=6912345");
+  });
 });

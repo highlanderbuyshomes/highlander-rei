@@ -400,7 +400,7 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
           <tbody>{visible.slice(0, 25).map((candidate) => {
             return <tr key={candidate.id}>
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
-              <td><a className={styles.linkButton} href={mlsLinks(candidate).curbview.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${candidate.mlsNumber} in CurbView`}><strong>{candidate.address}</strong></a><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
+              <td><a className={styles.linkButton} href={mlsLinks(candidate).rpr.href} target="_blank" rel="noopener noreferrer" title={`Underwrite MLS # ${candidate.mlsNumber} in RPR`}><strong>{candidate.address}</strong></a><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
               <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{pct(candidate.listToArvPct)}</strong><small>ARV {money(candidate.arv, true)} · {arvBasis(candidate)}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
