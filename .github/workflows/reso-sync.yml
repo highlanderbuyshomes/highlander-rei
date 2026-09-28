@@ -4,9 +4,11 @@ name: RESO live sync
 # Hobby plan is daily-only, and GitHub delays `schedule` triggers by hours
 # under load (a */10 cron fired every ~2-6 h in practice). So each run stays
 # up and calls the secured endpoint every INTERVAL itself for most of the
-# 6-hour job limit; the schedule only has to start a run a few times a day.
-# The repo is public, so Actions minutes are free. The concurrency group
-# queues the next scheduled run behind the current one instead of stacking.
+# 6-hour job limit, then starts the next run itself (workflow_dispatch is the
+# one event GITHUB_TOKEN may trigger). The hourly schedule is only a backup:
+# on 2026-09-28 it didn't fire once in 5.5 h. The repo is public, so Actions
+# minutes are free. The concurrency group queues the next run behind the
+# current one instead of stacking. Cancelling a run by hand breaks the chain.
 on:
   schedule:
     - cron: "7 * * * *" # hourly, off the top-of-hour rush
@@ -15,6 +17,9 @@ on:
 concurrency:
   group: reso-sync
   cancel-in-progress: false
+
+permissions:
+  actions: write
 
 jobs:
   sync:
@@ -41,3 +46,10 @@ jobs:
           echo "calls ok=$ok failed=$failed"
           # Fail the run (and surface it) only if nothing succeeded.
           [ "$ok" -gt 0 ]
+
+      - name: Start the next run
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run reso-sync.yml --ref main
