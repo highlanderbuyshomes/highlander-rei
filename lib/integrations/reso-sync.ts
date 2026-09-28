@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { trimResoRaw } from "./reso-raw";
 import { fetchResoListingPages, type ResoListing, type ResoScopeOpts } from "./reso";
 
 export type ResoSyncResult = {
@@ -72,7 +73,7 @@ function buildPropertyData(listing: ResoListing, fingerprint: string | null) {
     longitude: listing.Longitude ?? null,
     source: "reso",
     sourceId: listing.ListingKey,
-    rawJson: listing as object,
+    rawJson: trimResoRaw(listing) as object,
     lastRefreshedAt: new Date(),
   };
 }
@@ -90,7 +91,7 @@ function buildListingData(listing: ResoListing, propertyId: string, agentId: str
     agentId,
     source: "reso",
     sourceId: listing.ListingKey,
-    rawJson: listing as object,
+    rawJson: trimResoRaw(listing) as object,
   };
 }
 
