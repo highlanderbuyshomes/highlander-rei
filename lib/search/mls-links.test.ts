@@ -10,9 +10,8 @@ describe("mls links", () => {
     );
   });
 
-  it("copies the MLS # for Flexmls and the address for Monsoon", () => {
-    const links = mlsLinks(listing);
-    expect(links.flexmls.copy).toBe("6912345");
-    expect(links.monsoon.copy).toBe("123 E Main St, Mesa, AZ 85201");
+  it("links CurbView straight to the ARMLS listing by MLS #", () => {
+    expect(mlsLinks(listing).curbview.href).toBe("https://curbview.com/mls/1/listings/6912345");
+    expect(mlsLinks(listing).flexmls.copy).toBe("6912345");
   });
 });

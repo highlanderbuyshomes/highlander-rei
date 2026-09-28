@@ -294,14 +294,14 @@ function ListingDetail({ listing, comps, threshold }: { listing: DealCandidate |
   </div>;
 }
 
-// Opens the listing in Flexmls / Monsoon in a new tab, copying the MLS # or
-// address on the way so it can be pasted if the site lands on its search page.
+// CurbView opens the listing directly; Flexmls has no public listing URL, so it
+// opens MLS search with the MLS # copied for pasting.
 function MlsSiteLinks({ listing, className }: { listing: ListingRecord; className?: string }) {
   const links = mlsLinks(listing);
   const copy = (text: string) => { navigator.clipboard?.writeText(text).catch(() => {}); };
   const anchors = <>
     <a href={links.flexmls.href} target="_blank" rel="noopener noreferrer" title={`Open in Flexmls (copies MLS # ${links.flexmls.copy})`} onClick={() => copy(links.flexmls.copy)}>Flexmls ↗</a>
-    <a href={links.monsoon.href} target="_blank" rel="noopener noreferrer" title={`Open in Monsoon (copies ${links.monsoon.copy})`} onClick={() => copy(links.monsoon.copy)}>Monsoon ↗</a>
+    <a href={links.curbview.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${links.curbview.copy} in CurbView`}>CurbView ↗</a>
   </>;
   return className ? <div className={className}>{anchors}</div> : anchors;
 }
