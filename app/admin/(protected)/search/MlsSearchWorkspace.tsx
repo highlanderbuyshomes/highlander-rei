@@ -101,6 +101,16 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
     bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword, cities,
   });
   const requestKey = JSON.stringify({ filters, arvThreshold, shape });
+  const hasArea = Boolean(shape || filters.cities?.length || filters.zips?.length || filters.keyword);
+  const [resultKey, setResultKey] = useState(requestKey);
+  const resultsPending = loading || requestKey !== resultKey;
+  const [matchSummary, setMatchSummary] = useState<number | null>(null);
+  const summaryShape = useRef<string | null>(null);
+  const summaryDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (matchSummary !== null) summaryDialog.current?.showModal();
+    else summaryDialog.current?.close();
+  }, [matchSummary]);
   const firstRun = useRef(true);
   const currentKey = useRef(requestKey);
   useEffect(() => { currentKey.current = requestKey; }, [requestKey]);
@@ -121,6 +131,12 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
         });
         if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Search failed (${res.status})`);
         const data: SearchResponse = await res.json();
+        if (ctrl.signal.aborted) return;
+        setResultKey(requestKey);
+        if (summaryShape.current === JSON.stringify(shape)) {
+          summaryShape.current = null;
+          setMatchSummary(data.total);
+        }
         setResult(data);
         setRows(data.rows);
         setPage(0);
@@ -178,12 +194,15 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
   }, [selectedId, arvThreshold]);
 
   const shapeKey = useRef("null");
-  const handleShapeChange = useCallback((next: DrawnShape | null) => {
+  const handleShapeChange = useCallback((next: DrawnShape | null, showMatches = false) => {
     const key = JSON.stringify(next ?? null);
     if (key === shapeKey.current) return;
     shapeKey.current = key;
+    summaryShape.current = showMatches && next ? key : null;
+    setMatchSummary(null);
+    setSelectedId("");
     setShape(next);
-  }, []);
+  }, [setMatchSummary, setSelectedId]);
 
   function toggleCriterion(key: CriteriaKey) {
     setActiveCriteria((current) => {
@@ -251,11 +270,19 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
         </aside>
 
         <section className={styles.mainStage}>
-          {view === "map" && <GoogleMapStage pins={result.pins} selected={selected} total={result.total} onSelect={setSelectedId} onShapeChange={handleShapeChange} />}
+          <div hidden={view !== "map"} className={styles.mapViewContainer}><GoogleMapStage pins={result.pins} selected={selected} total={result.total} hasArea={hasArea} loading={resultsPending} onSelect={setSelectedId} onShapeChange={handleShapeChange} /></div>
           {view === "list" && <ResultsList listings={rows} total={result.total} loading={loading} loadingMore={loadingMore} onLoadMore={loadMore} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
           {view === "detail" && <ListingDetail listing={selected} comps={loadedDetail?.comps ?? null} threshold={arvThreshold} />}
         </section>
       </div>
+      <dialog ref={summaryDialog} className={styles.matchesDialog} aria-labelledby="matches-title" onCancel={() => setMatchSummary(null)} onClose={() => setMatchSummary(null)}>
+        <div className={styles.matchesBody}><strong>{matchSummary?.toLocaleString()}</strong><h2 id="matches-title">Listing matches found</h2></div>
+        <div className={styles.matchesActions}>
+          <button type="button" onClick={() => setMatchSummary(null)}>Close</button>
+          <button type="button" onClick={() => { setView("list"); setMatchSummary(null); }}>View List</button>
+          <button type="button" className={styles.matchesPrimary} onClick={() => { setView("map"); setMatchSummary(null); }}>View Map</button>
+        </div>
+      </dialog>
       <DealIntelligence candidates={rows} threshold={arvThreshold} onThresholdChange={setArvThreshold} />
     </main>
   );

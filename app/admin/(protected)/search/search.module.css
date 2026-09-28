@@ -362,3 +362,42 @@
   .cityFilter > input { font-size: 16px; }
   .cityChoices button { min-height: 44px; }
 }
+
+/* MLS map: small listing dots, persistent search boundary, compact tools. */
+.mapViewContainer { height: 100%; }
+.mapViewContainer[hidden] { display: none; }
+.polygonPreview { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.drawingSurface:focus { outline: none; }
+.shapeToolbar { top: 72px; right: 14px; padding: 4px; border-radius: 9px; border-color: #d4d9df; background: #fff; box-shadow: 0 2px 9px #0002; }
+.shapeToolbar button { width: 40px; min-height: 44px; color: #1587cc; border-bottom-color: #e5e7eb; border-radius: 4px; }
+.shapeToolbar small { font: 600 9px/1.2 Arial, sans-serif; text-transform: none; }
+.shapeToolbar .shapeToolActive { color: #0877ca; background: #e6f2ff; box-shadow: inset 0 0 0 1px #a4cff5; }
+.rectangleIcon, .circleIcon { background: #a6dcff; border-color: #78c5f6; }
+.mapModeControl { top: 14px; right: 14px; gap: 4px; padding: 4px; border-radius: 8px; }
+.mapModeControl button { height: 34px; padding: 0 16px; font: 600 13px Arial, sans-serif; color: #0674c5; }
+.mapModeControl .mapModeActive { background: #111110; color: white; }
+.mapModeControl button:disabled, .manualZoomControls button:disabled { opacity: .5; cursor: not-allowed; }
+.manualZoomControls { right: 14px; bottom: 44px; }
+.manualZoomControls button { width: 44px; height: 40px; }
+.pocketPrompt { top: 14px; left: 14px; right: auto; max-width: min(270px, calc(100% - 210px)); padding: 12px; gap: 5px; background: #fffffff5; border-color: #d4d9df; }
+.pocketPrompt strong { font-size: 13px; color: #26333e; }
+.pocketPrompt span { font-size: 11px; line-height: 1.45; }
+.pocketPrompt button { min-height: 34px; padding: 6px 10px; font: 600 11px Arial, sans-serif; }
+.mapLegend { left: 14px; right: auto; bottom: 28px; }
+.mapLegend span { font-size: 11px; }
+.standardDot { background: #28852d; }
+.matchesDialog { width: min(460px, calc(100vw - 32px)); max-height: calc(100svh - 32px); margin: auto; padding: 0; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; color: #30343a; box-shadow: 0 16px 60px #0003; }
+.matchesDialog::backdrop { background: #0007; }
+.matchesBody { padding: 30px; }
+.matchesBody strong { display: block; font: 700 38px/1.2 Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.matchesBody h2 { margin: 20px 0 0; font: 400 19px/1.4 Arial, sans-serif; }
+.matchesActions { display: flex; justify-content: flex-end; gap: 10px; padding: 18px; border-top: 1px solid #e5e7eb; }
+.matchesActions button { min-height: 44px; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #0877ca; font: 600 14px Arial, sans-serif; cursor: pointer; }
+.matchesActions button:first-child { border-color: transparent; }
+.matchesActions .matchesPrimary { border-color: #0877ca; background: #0877ca; color: #fff; }
+@media (max-width: 780px) {
+  .pocketPrompt { top: 60px; max-width: calc(100% - 88px); }
+  .mapLegend { display: flex; max-width: calc(100% - 90px); }
+  .matchesActions { gap: 6px; padding: 12px; }
+  .matchesActions button { flex: 1; padding: 10px 8px; }
+}
