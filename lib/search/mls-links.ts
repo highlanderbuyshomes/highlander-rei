@@ -2,7 +2,9 @@
 // and `{zip}` are filled in per listing. A template with no placeholder just
 // opens that site; the button also copies the MLS # so it can be pasted into
 // the site's search box.
-export const FLEXMLS_URL = "https://my.flexmls.com/armls/search/new";
+// Flexmls opens listings as an overlay with no per-listing URL, so this is the
+// ARMLS Flexmls home; the MLS # is copied for its quick search.
+export const FLEXMLS_URL = "https://armls.flexmls.com/";
 // CurbView's listing route is /mls/:sourceMlsId/listings/:listingId; ARMLS is
 // source 1 and listingId is the MLS # (curbview.com app bundle, 2026-09).
 export const CURBVIEW_URL = "https://curbview.com/mls/1/listings/{mls}";
