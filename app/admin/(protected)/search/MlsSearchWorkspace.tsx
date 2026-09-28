@@ -5,7 +5,6 @@ import { buildFilters, type CriteriaKey } from "@/lib/search/build-filters";
 import { mlsLinks } from "@/lib/search/mls-links";
 import { normalizeStatus } from "@/lib/search/score-deals";
 import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, ListingRecord, SearchResponse } from "@/lib/search/types";
-import { targetProperty } from "./actions";
 import GoogleMapStage from "./GoogleMapStage";
 import styles from "./search.module.css";
 
@@ -379,15 +378,13 @@ function DealIntelligence({ candidates, threshold, compCount, onThresholdChange 
         <table className={styles.dealTable}>
           <thead><tr><th>Priority</th><th>Property</th><th>Deal score</th><th>% of ARV · {threshold}% threshold</th><th>Why it surfaced</th><th>Action</th></tr></thead>
           <tbody>{visible.slice(0, 25).map((candidate) => {
-            const fullAddress = `${candidate.address}, ${candidate.city}, ${candidate.state} ${candidate.zip}`;
-            const targetAction = targetProperty.bind(null, candidate.id, candidate.dealScore, candidate.reasons.join("; "));
             return <tr key={candidate.id}>
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
               <td><a className={styles.linkButton} href={mlsLinks(candidate).curbview.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${candidate.mlsNumber} in CurbView`}><strong>{candidate.address}</strong></a><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
               <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{pct(candidate.listToArvPct)}</strong><small>ARV {money(candidate.arv, true)} · {arvBasis(candidate)}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
-              <td><div className={styles.dealActions}><MlsSiteLinks listing={candidate} /><a href={`/admin/underwriting?address=${encodeURIComponent(fullAddress)}`}>Verify ARV (ChatARV)</a><form action={targetAction}><button type="submit">Target property</button></form></div></td>
+              <td><div className={styles.dealActions}><MlsSiteLinks listing={candidate} /><a className={styles.offerButton} href={`/admin/offers?mls=${encodeURIComponent(candidate.mlsNumber)}`}>Submit an Offer</a></div></td>
             </tr>;
           })}</tbody>
         </table>
