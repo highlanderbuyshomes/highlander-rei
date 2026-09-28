@@ -52,6 +52,16 @@ function buildAgentData(listing: ResoListing) {
   };
 }
 
+const INT4_MAX = 2_147_483_647;
+/** Integer columns from MLS input. ARMLS has listings with garbage values
+ *  (e.g. an 871,200,871,924 sq ft lot); one of those overflowing Postgres
+ *  `integer` used to fail the whole 200-listing page, so they become null. */
+export function safeInt(v: number | null | undefined): number | null {
+  if (v == null || !Number.isFinite(v)) return null;
+  const n = Math.round(v);
+  return Math.abs(n) > INT4_MAX ? null : n;
+}
+
 function buildPropertyData(listing: ResoListing, fingerprint: string | null) {
   const streetAddress = formatStreetAddress(listing);
   return {
@@ -63,11 +73,11 @@ function buildPropertyData(listing: ResoListing, fingerprint: string | null) {
     county: listing.CountyOrParish ?? null,
     subdivision: listing.SubdivisionName ?? null,
     propertyType: listing.PropertySubType ?? listing.PropertyType ?? null,
-    beds: listing.BedroomsTotal ?? null,
+    beds: safeInt(listing.BedroomsTotal),
     baths: toBaths(listing) ?? null,
-    sqft: listing.LivingArea ?? null,
-    lotSqft: listing.LotSizeSquareFeet ?? null,
-    yearBuilt: listing.YearBuilt ?? null,
+    sqft: safeInt(listing.LivingArea),
+    lotSqft: safeInt(listing.LotSizeSquareFeet),
+    yearBuilt: safeInt(listing.YearBuilt),
     estimatedValue: listing.ListPrice ?? null,
     latitude: listing.Latitude ?? null,
     longitude: listing.Longitude ?? null,
@@ -87,7 +97,7 @@ function buildListingData(listing: ResoListing, propertyId: string, agentId: str
     pendingDate: listing.PendingTimestamp ? new Date(listing.PendingTimestamp) : null,
     soldDate: listing.CloseDate ? new Date(listing.CloseDate) : null,
     soldPrice: listing.ClosePrice ?? null,
-    dom: listing.DaysOnMarket ?? null,
+    dom: safeInt(listing.DaysOnMarket),
     agentId,
     source: "reso",
     sourceId: listing.ListingKey,

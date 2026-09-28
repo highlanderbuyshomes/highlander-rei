@@ -3,7 +3,7 @@ import type { ResoSyncControl } from "./reso-sync";
 
 // Bump SCOPE_VERSION when the sync scope widens: older completed runs are then
 // treated as having no watermark, forcing one fresh bootstrap.
-export const SCOPE_VERSION = 5;
+export const SCOPE_VERSION = 6;
 // The valley: Maricopa County plus Pinal (San Tan Valley, Queen Creek, Apache Junction).
 export const VALLEY_COUNTIES = ["Maricopa", "Pinal"];
 // Closed is bounded to the last 12 months by buildFilter (CLOSED_LOOKBACK_MONTHS)
