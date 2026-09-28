@@ -1,3 +1,4 @@
+import { normalizeCities } from "./cities";
 import { Prisma } from "@prisma/client";
 import type { SearchFilters } from "./types";
 
@@ -10,6 +11,8 @@ export function buildWhere(f: SearchFilters): Prisma.Sql {
     const k = like(f.keyword.trim());
     parts.push(Prisma.sql`(c.mls ILIKE ${k} OR c.address ILIKE ${k} OR c.city ILIKE ${k} OR c.zip ILIKE ${k})`);
   }
+  const cities = normalizeCities(f.cities ?? []);
+  if (cities.length) parts.push(Prisma.sql`LOWER(BTRIM(c.city)) IN (${Prisma.join(cities)})`);
   if (f.statuses?.length) parts.push(Prisma.sql`c.status IN (${Prisma.join(f.statuses)})`);
   if (f.closedWithinMonths) {
     const cutoff = new Date();

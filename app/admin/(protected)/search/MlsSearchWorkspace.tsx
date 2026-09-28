@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildFilters, type CriteriaKey } from "@/lib/search/build-filters";
+import { parseCities } from "@/lib/search/cities";
 import { mlsLinks } from "@/lib/search/mls-links";
 import { normalizeStatus } from "@/lib/search/score-deals";
 import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, ListingRecord, SearchResponse } from "@/lib/search/types";
@@ -12,16 +13,18 @@ type WorkspaceView = "map" | "list" | "detail";
 
 const criteria: { key: CriteriaKey; label: string }[] = [
   { key: "status", label: "Status" },
-  { key: "price", label: "Price (list / sold)" },
-  { key: "dwelling", label: "Dwelling Type" },
-  { key: "beds", label: "# Bedrooms" },
-  { key: "baths", label: "Total Bathrooms" },
-  { key: "sqft", label: "Approx SQFT" },
-  { key: "lot", label: "Lot Size" },
-  { key: "pool", label: "Private Pool Y/N" },
-  { key: "levels", label: "# of Interior Levels" },
-  { key: "zip", label: "Zip Code" },
+  { key: "price", label: "Price" },
+  { key: "dwelling", label: "Property type" },
+  { key: "beds", label: "Bedrooms" },
+  { key: "baths", label: "Bathrooms" },
+  { key: "sqft", label: "Square feet" },
+  { key: "lot", label: "Lot size" },
+  { key: "pool", label: "Private pool" },
+  { key: "levels", label: "Stories" },
+  { key: "zip", label: "ZIP code" },
 ];
+
+const cityOptions = ["Gilbert", "Tempe", "Scottsdale", "Phoenix", "Mesa", "Chandler"];
 
 const statusOptions = ["Active", "Coming Soon", "Under Contract", "Pending", "Closed", "Expired", "Canceled"];
 const dwellingOptions = ["Single Family", "Townhouse", "Condo", "Patio Home", "Manufactured", "Multi-Family", "Land", "Commercial"];
@@ -79,6 +82,8 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
   const [levels, setLevels] = useState("Any");
   const [zips, setZips] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [cities, setCities] = useState("");
+  const selectedCities = parseCities(cities);
   const [selectedId, setSelectedId] = useState("");
   const [arvThreshold, setArvThreshold] = useState<number>(70);
 
@@ -93,7 +98,7 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
 
   const filters = buildFilters({
     activeCriteria, statuses, closedWithinMonths, priceMin, priceMax, dwellingTypes,
-    bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword,
+    bedsMin, bathsMin, sqftMin, sqftMax, lotMin, lotMax, pool, levels, zips, keyword, cities,
   });
   const requestKey = JSON.stringify({ filters, arvThreshold, shape });
   const firstRun = useRef(true);
@@ -196,7 +201,7 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
     setActiveCriteria(new Set(["status"]));
     setStatuses(["Active", "Coming Soon"]); setClosedWithinMonths("Any"); setPriceMin(""); setPriceMax(""); setDwellingTypes([]);
     setBedsMin(""); setBathsMin(""); setSqftMin(""); setSqftMax(""); setLotMin(""); setLotMax("");
-    setPool("Any"); setLevels("Any"); setZips(""); setKeyword("");
+    setPool("Any"); setLevels("Any"); setZips(""); setKeyword(""); setCities("");
   }
 
   return (
@@ -212,21 +217,37 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
       {error && <p className={styles.previewNote} role="alert">{error}</p>}
 
       <div className={styles.searchWorkspace}>
-        <aside className={styles.criteriaPanel}>
+        <aside className={styles.criteriaPanel} aria-label="Property filters">
           <div className={styles.resultHeading}>Matching properties <strong style={{ opacity: loading ? 0.45 : 1 }}>{result.total.toLocaleString()}</strong>{shape && <span>in pocket</span>}</div>
-          <label className={styles.mlsLookup}><span>⌕</span><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="MLS #, address, city or ZIP" /></label>
+          <label className={styles.mlsLookup}><span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg></span><input aria-label="Search MLS number, address, city or ZIP" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="MLS #, address, city or ZIP" /></label>
           <div className={styles.criteriaList}>
+            <div className={styles.cityFilter}>
+              <div className={styles.cityFilterHeading}>
+                <label htmlFor="search-cities">City / area</label>
+                {selectedCities.length > 0 && <button type="button" onClick={() => setCities("")}>Clear cities</button>}
+              </div>
+              <input id="search-cities" value={cities} onChange={(event) => setCities(event.target.value)} placeholder="Gilbert, Tempe, or other cities" />
+              <div className={styles.cityChoices} role="group" aria-label="Popular cities">
+                {cityOptions.map((city) => {
+                  const selected = selectedCities.includes(city.toLowerCase());
+                  return <button key={city} type="button" aria-pressed={selected} onClick={() => {
+                    const next = selected ? selectedCities.filter((value) => value !== city.toLowerCase()) : [...selectedCities, city.toLowerCase()];
+                    setCities(next.map((value) => value.replace(/\b\w/g, (letter) => letter.toUpperCase())).join(", "));
+                  }}>{city}</button>;
+                })}
+              </div>
+            </div>
             {criteria.map(({ key, label }) => {
               const active = activeCriteria.has(key);
               return (
                 <div key={key} className={`${styles.criterion} ${active ? styles.criterionActive : ""}`}>
-                  <label className={styles.criterionLabel}><input type="checkbox" checked={active} onChange={() => toggleCriterion(key)} /><strong>{label}</strong>{key === "status" && active && <span>of {statuses.join(", ") || "Any"}</span>}</label>
+                  <label className={styles.criterionLabel}><input type="checkbox" checked={active} onChange={() => toggleCriterion(key)} /><strong>{label}</strong></label>
                   {active && <CriterionInputs criterion={key} statuses={statuses} setStatuses={setStatuses} closedWithinMonths={closedWithinMonths} setClosedWithinMonths={setClosedWithinMonths} priceMin={priceMin} setPriceMin={setPriceMin} priceMax={priceMax} setPriceMax={setPriceMax} dwellingTypes={dwellingTypes} setDwellingTypes={setDwellingTypes} bedsMin={bedsMin} setBedsMin={setBedsMin} bathsMin={bathsMin} setBathsMin={setBathsMin} sqftMin={sqftMin} setSqftMin={setSqftMin} sqftMax={sqftMax} setSqftMax={setSqftMax} lotMin={lotMin} setLotMin={setLotMin} lotMax={lotMax} setLotMax={setLotMax} pool={pool} setPool={setPool} levels={levels} setLevels={setLevels} zips={zips} setZips={setZips} toggleValue={toggleValue} />}
                 </div>
               );
             })}
           </div>
-          <div className={styles.criteriaFooter}><button type="button" onClick={reset}>Reset filters</button><button type="button" className={styles.applyButton} onClick={() => setView("list")}>View {result.total.toLocaleString()}</button></div>
+          <div className={styles.criteriaFooter}><button type="button" onClick={reset}>Reset filters</button><button type="button" className={styles.applyButton} onClick={() => setView("list")}>{loading ? "Updating…" : `View ${result.total.toLocaleString()}`}</button></div>
         </aside>
 
         <section className={styles.mainStage}>
@@ -235,7 +256,7 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
           {view === "detail" && <ListingDetail listing={selected} comps={loadedDetail?.comps ?? null} threshold={arvThreshold} />}
         </section>
       </div>
-      <DealIntelligence candidates={rows} threshold={arvThreshold} compCount={result.compCount} onThresholdChange={setArvThreshold} />
+      <DealIntelligence candidates={rows} threshold={arvThreshold} onThresholdChange={setArvThreshold} />
     </main>
   );
 }
@@ -268,7 +289,7 @@ function CriterionInputs(props: CriterionProps) {
 }
 
 function RangeInputs({ min, max, setMin, setMax, prefix = "", onInput }: { min: string; max: string; setMin: (value: string) => void; setMax: (value: string) => void; prefix?: string; onInput: (value: string, update: (next: string) => void) => void }) {
-  return <div className={styles.rangeInputs}><label>{prefix}<input value={min} onChange={(event) => onInput(event.target.value, setMin)} placeholder="Minimum" inputMode="numeric" /></label><span>to</span><label>{prefix}<input value={max} onChange={(event) => onInput(event.target.value, setMax)} placeholder="Maximum" inputMode="numeric" /></label></div>;
+  return <div className={styles.rangeInputs}><label>{prefix}<input aria-label="Minimum" value={min} onChange={(event) => onInput(event.target.value, setMin)} placeholder="Minimum" inputMode="numeric" /></label><span>to</span><label>{prefix}<input aria-label="Maximum" value={max} onChange={(event) => onInput(event.target.value, setMax)} placeholder="Maximum" inputMode="numeric" /></label></div>;
 }
 
 function MinSelect({ value, update, options, exact = false }: { value: string; update: (value: string) => void; options: string[]; exact?: boolean }) {
@@ -287,7 +308,7 @@ function ListingDetail({ listing, comps, threshold }: { listing: DealCandidate |
   return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2>{listing.address}</h2><p>{listing.city}, {listing.state} {listing.zip}</p>
     <MlsSiteLinks listing={listing} className={styles.detailLinks} />
     <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", money(listing.arv)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore} · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
-    <div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Approx SQFT", listing.sqft?.toLocaleString() ?? "—"], ["Year built", listing.yearBuilt ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
+    <div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Square feet", listing.sqft?.toLocaleString() ?? "—"], ["Year built", listing.yearBuilt ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     {comps == null ? <p className={styles.previewNote}>Loading sold comps…</p> : comps.length === 0 ? <p className={styles.previewNote}>No nearby sold comps — ARV is {listing.arvSource === "Insufficient data" ? "unavailable" : `from ${listing.arvSource}`}; verify before offering.</p> :
       <div className={styles.resultsTable}><table><thead><tr><th>Sold comp</th><th>Sold</th><th>Price</th><th>Sq Ft</th><th>$/sqft</th><th>Beds</th><th>Built</th><th>Distance</th></tr></thead><tbody>{comps.map((c) => <tr key={c.id}><td><strong>{c.address}</strong><small>{c.city}</small></td><td>{shortDate(c.closedDate)}</td><td>{money(c.price)}</td><td>{c.sqft.toLocaleString()}</td><td>{money(c.pricePerSqft)}</td><td>{c.beds ?? "—"}</td><td>{c.yearBuilt ?? "—"}</td><td>{c.distanceMiles == null ? "—" : `${c.distanceMiles} mi`}</td></tr>)}</tbody></table></div>}
   </div>;
@@ -307,7 +328,7 @@ function MlsSiteLinks({ listing, className }: { listing: ListingRecord; classNam
 
 function PlaceholderView({ title, detail }: { title: string; detail: string }) { return <div className={styles.placeholder}><strong>{title}</strong><span>{detail}</span></div>; }
 
-function DealIntelligence({ candidates, threshold, compCount, onThresholdChange }: { candidates: DealCandidate[]; threshold: number; compCount: number; onThresholdChange: (value: number) => void }) {
+function DealIntelligence({ candidates, threshold, onThresholdChange }: { candidates: DealCandidate[]; threshold: number; onThresholdChange: (value: number) => void }) {
   const [mode, setMode] = useState<"ranked" | "rule70" | "ppsf" | "motivated">("ranked");
   const [customInput, setCustomInput] = useState(String(threshold));
   // Re-sync the free-text box when the threshold changes elsewhere (the preset
@@ -342,8 +363,7 @@ function DealIntelligence({ candidates, threshold, compCount, onThresholdChange 
   return (
     <section className={styles.dealSection}>
       <header className={styles.dealHeader}>
-        <div><span>Deal Intelligence</span><h2>Rank the properties most likely to become discounted deals</h2><p>ARV comes from nearby Closed MLS sales of the same type and size ({compCount.toLocaleString()} sales in the last 12 months), priced at the upper-quartile sold $/sqft. The score adds the {threshold}% rule, pocket $/sqft, listing motivation, condition language, and seller equity. Only High/Medium-confidence ARVs can be &ldquo;Target now&rdquo;.</p></div>
-        <div className={styles.dealLegend}><i /> Orange map pins meet the {threshold}% rule</div>
+        <h2>Deal Intelligence</h2>
       </header>
 
       <div className={styles.dealMetrics}>

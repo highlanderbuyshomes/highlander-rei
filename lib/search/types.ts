@@ -60,6 +60,7 @@ export type DealCandidate = ListingRecord & {
 
 export type SearchFilters = {
   keyword?: string;
+  cities?: string[];
   statuses?: string[];
   closedWithinMonths?: number;
   priceMin?: number; priceMax?: number;

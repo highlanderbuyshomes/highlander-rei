@@ -6,6 +6,20 @@ const text = (f: Parameters<typeof buildWhere>[0]) => buildWhere(f).sql.replace(
 describe("buildWhere", () => {
   it("is TRUE with no filters", () => expect(text({})).toBe("TRUE"));
 
+  it("matches any selected city exactly, case-insensitively", () => {
+    const q = buildWhere({ cities: [" Gilbert ", "TEMPE", "gilbert", "Fountain Hills"] });
+    expect(q.sql).toBe("LOWER(BTRIM(c.city)) IN (?,?,?)");
+    expect(q.values).toEqual(["gilbert", "tempe", "fountain hills"]);
+  });
+
+  it("combines cities with other filters and binds names as data", () => {
+    const q = buildWhere({ cities: ["Phoenix' OR 1=1 --", "Tempe"], bedsMin: 3 });
+    expect(q.sql).toContain(" AND COALESCE(c.beds, 0) >=");
+    expect(q.sql).not.toContain("OR 1=1");
+    expect(q.values).toEqual(["phoenix' or 1=1 --", "tempe", 3]);
+    expect(text({ cities: [" ", ""] })).toBe("TRUE");
+  });
+
   it("filters status by normalised name", () => {
     const q = buildWhere({ statuses: ["Active", "Coming Soon"] });
     expect(q.sql).toContain("c.status IN");

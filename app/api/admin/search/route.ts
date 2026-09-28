@@ -16,6 +16,9 @@ function validateBody(body: SearchRequest): string | null {
     const v = f[key];
     if (v !== undefined && (!Array.isArray(v) || v.length > MAX_LIST)) return `filters.${key} must be an array of at most ${MAX_LIST} entries`;
   }
+  if (f.cities !== undefined && (!Array.isArray(f.cities) || f.cities.length > MAX_LIST || f.cities.some((city) => typeof city !== "string" || city.length > 100))) {
+    return "filters.cities must be an array of at most 200 city names, each at most 100 characters";
+  }
   for (const key of NUMERIC_FILTERS) {
     if (f[key] != null && (typeof f[key] !== "number" || !Number.isFinite(f[key]))) return `filters.${key} must be a finite number`;
   }

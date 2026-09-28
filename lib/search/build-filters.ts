@@ -1,3 +1,4 @@
+import { parseCities } from "./cities";
 import type { SearchFilters } from "./types";
 
 export type CriteriaKey = "status" | "price" | "dwelling" | "beds" | "baths" | "sqft" | "lot" | "pool" | "levels" | "zip";
@@ -11,7 +12,7 @@ export type FilterState = {
   bedsMin: string; bathsMin: string;
   sqftMin: string; sqftMax: string;
   lotMin: string; lotMax: string;
-  pool: string; levels: string; zips: string; keyword: string;
+  pool: string; levels: string; zips: string; keyword: string; cities: string;
 };
 
 /**
@@ -36,9 +37,11 @@ export function buildFilters(state: FilterState): SearchFilters {
   const on = (key: CriteriaKey) => state.activeCriteria.has(key);
   const zipValues = state.zips.split(/[,\s]+/).map((zip) => zip.trim()).filter(Boolean);
   const keyword = state.keyword.trim();
+  const cities = parseCities(state.cities);
 
   return {
     keyword: keyword || undefined,
+    cities: cities.length ? cities : undefined,
     statuses: on("status") && state.statuses.length ? state.statuses : undefined,
     closedWithinMonths: on("status") && state.closedWithinMonths !== "Any" ? num(state.closedWithinMonths) : undefined,
     priceMin: on("price") ? num(state.priceMin) : undefined,

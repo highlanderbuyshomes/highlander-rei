@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { bindDrawingGesture, rectangleBounds } from "@/lib/search/drawing-gesture";
 import { loadGoogleMaps } from "./load-google-maps";
 import type { DrawnShape, ListingRecord, Pin } from "@/lib/search/types";
 import styles from "./search.module.css";
@@ -78,6 +79,9 @@ export default function GoogleMapStage({
   const drawingListeners = useRef<google.maps.MapsEventListener[]>([]);
   const shapeListeners = useRef<google.maps.MapsEventListener[]>([]);
   const dragStart = useRef<google.maps.LatLng | null>(null);
+  const projection = useRef<google.maps.OverlayView | null>(null);
+  const cleanupGesture = useRef<(() => void) | null>(null);
+  const isDrawing = useRef(false);
   const onSelectRef = useRef(onSelect);
   const onShapeChangeRef = useRef(onShapeChange);
   const [mapReady, setMapReady] = useState(false);
@@ -104,6 +108,10 @@ export default function GoogleMapStage({
   }
 
   function clearShape(notify = true) {
+    cleanupGesture.current?.();
+    cleanupGesture.current = null;
+    isDrawing.current = false;
+    markers.current.forEach((marker) => marker.setClickable(true));
     removeListeners(drawingListeners);
     removeListeners(shapeListeners);
     activeShape.current?.setMap(null);
@@ -118,6 +126,7 @@ export default function GoogleMapStage({
 
   function makeEditable(shape: MapShape) {
     removeListeners(shapeListeners);
+    shape.setOptions({ clickable: true });
     shape.setEditable(true);
     shape.setDraggable(true);
     shapeListeners.current.push(shape.addListener("dragend", refreshShape));
@@ -134,6 +143,10 @@ export default function GoogleMapStage({
   }
 
   function stopDrawing() {
+    cleanupGesture.current?.();
+    cleanupGesture.current = null;
+    isDrawing.current = false;
+    markers.current.forEach((marker) => marker.setClickable(true));
     removeListeners(drawingListeners);
     dragStart.current = null;
     map.current?.setOptions({ draggable: true, draggableCursor: null, disableDoubleClickZoom: false });
@@ -150,7 +163,9 @@ export default function GoogleMapStage({
   function beginPolygon() {
     if (!map.current) return;
     clearShape();
-    const polygon = new google.maps.Polygon({ map: map.current, paths: [], ...shapeStyle });
+    isDrawing.current = true;
+    markers.current.forEach((marker) => marker.setClickable(false));
+    const polygon = new google.maps.Polygon({ map: map.current, paths: [], clickable: false, ...shapeStyle });
     activeShape.current = polygon;
     setDrawingMode("polygon");
     map.current.setOptions({ draggableCursor: "crosshair", disableDoubleClickZoom: true });
@@ -167,31 +182,51 @@ export default function GoogleMapStage({
   }
 
   function beginDragShape(mode: "rectangle" | "circle") {
-    if (!map.current) return;
+    if (!map.current || !mapNode.current || !projection.current?.getProjection()) return;
     clearShape();
+    isDrawing.current = true;
     setDrawingMode(mode);
-    map.current.setOptions({ draggable: false, draggableCursor: "crosshair" });
-    drawingListeners.current.push(
-      map.current.addListener("mousedown", (event: google.maps.MapMouseEvent) => {
-        if (!event.latLng || !map.current) return;
-        dragStart.current = event.latLng;
-        const start = event.latLng;
+    map.current.setOptions({ draggable: false, draggableCursor: "crosshair", disableDoubleClickZoom: true });
+
+    // A separate surface prevents markers and the draft shape from swallowing
+    // events. Pointer capture also handles touch and releases outside the map.
+    const surface = document.createElement("div");
+    surface.className = styles.drawingSurface;
+    mapNode.current.parentElement!.appendChild(surface);
+    const latLng = (point: { x: number; y: number }) =>
+      projection.current?.getProjection().fromContainerPixelToLatLng(new google.maps.Point(point.x, point.y));
+    const update = (point: { x: number; y: number }) => {
+      const end = latLng(point);
+      if (!end || !dragStart.current || !activeShape.current) return;
+      if (activeShape.current instanceof google.maps.Rectangle) {
+        activeShape.current.setBounds(rectangleBounds(dragStart.current.toJSON(), end.toJSON()));
+      } else if (activeShape.current instanceof google.maps.Circle) {
+        activeShape.current.setRadius(google.maps.geometry.spherical.computeDistanceBetween(dragStart.current, end));
+      }
+    };
+    const cleanup = bindDrawingGesture(surface, {
+      start: (point) => {
+        const start = latLng(point);
+        if (!start || !map.current) return;
+        dragStart.current = start;
         activeShape.current = mode === "rectangle"
-          ? new google.maps.Rectangle({ map: map.current, bounds: new google.maps.LatLngBounds(start, start), ...shapeStyle })
-          : new google.maps.Circle({ map: map.current, center: start, radius: 1, ...shapeStyle });
-      }),
-      map.current.addListener("mousemove", (event: google.maps.MapMouseEvent) => {
-        if (!event.latLng || !dragStart.current || !activeShape.current) return;
-        if (activeShape.current instanceof google.maps.Rectangle) activeShape.current.setBounds(new google.maps.LatLngBounds(dragStart.current, event.latLng));
-        if (activeShape.current instanceof google.maps.Circle) activeShape.current.setRadius(google.maps.geometry.spherical.computeDistanceBetween(dragStart.current, event.latLng));
-      }),
-      map.current.addListener("mouseup", () => {
-        if (!activeShape.current || !dragStart.current) return;
+          ? new google.maps.Rectangle({ map: map.current, bounds: rectangleBounds(start.toJSON(), start.toJSON()), clickable: false, ...shapeStyle })
+          : new google.maps.Circle({ map: map.current, center: start, radius: 0, clickable: false, ...shapeStyle });
+      },
+      move: update,
+      finish: (point) => {
+        update(point);
         const shape = activeShape.current;
+        if (!shape || (shape instanceof google.maps.Rectangle && (shape.getBounds()!.getNorthEast().lat() === shape.getBounds()!.getSouthWest().lat() || shape.getBounds()!.getNorthEast().lng() === shape.getBounds()!.getSouthWest().lng()))) {
+          clearShape();
+          return;
+        }
         stopDrawing();
         makeEditable(shape);
-      }),
-    );
+      },
+      cancel: () => clearShape(),
+    });
+    cleanupGesture.current = () => { cleanup(); surface.remove(); };
   }
 
   useEffect(() => {
@@ -203,10 +238,17 @@ export default function GoogleMapStage({
         streetViewControl: false, gestureHandling: "greedy", clickableIcons: false,
         styles: [{ featureType: "poi.business", stylers: [{ visibility: "off" }] }, { featureType: "poi.park", elementType: "labels", stylers: [{ visibility: "off" }] }, { featureType: "transit", stylers: [{ visibility: "off" }] }],
       });
-      setMapReady(true);
+      const overlay = new google.maps.OverlayView();
+      overlay.onAdd = () => {};
+      overlay.onRemove = () => {};
+      overlay.draw = () => { if (!cancelled) setMapReady(true); };
+      projection.current = overlay;
+      overlay.setMap(map.current);
     }).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : "Google Maps could not be loaded."));
     return () => {
       cancelled = true;
+      cleanupGesture.current?.();
+      projection.current?.setMap(null);
       drawingListeners.current.forEach((listener) => listener.remove());
       shapeListeners.current.forEach((listener) => listener.remove());
       markers.current.forEach((marker) => marker.setMap(null));
@@ -241,6 +283,7 @@ export default function GoogleMapStage({
       const isSelected = pin.id === selected?.id;
       const marker = new google.maps.Marker({
         map: map.current, position: { lat: pin.lat, lng: pin.lng }, title: money(pin.price),
+        clickable: !isDrawing.current,
         zIndex: isSelected ? 30 : pin.target ? 20 : 10,
         label: { text: money(pin.price, true), color: "#ffffff", fontSize: "10px", fontWeight: "700" },
         icon: { path: google.maps.SymbolPath.CIRCLE, scale: isSelected ? 22 : 19, fillColor: isSelected ? "#a83a27" : pin.target ? "#d06a2f" : "#167fbd", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 2 },
@@ -250,7 +293,7 @@ export default function GoogleMapStage({
       bounds.extend(marker.getPosition()!);
     });
 
-    if (!activeShape.current && !bounds.isEmpty()) {
+    if (!isDrawing.current && !activeShape.current && !bounds.isEmpty()) {
       map.current.fitBounds(bounds, 54);
       google.maps.event.addListenerOnce(map.current, "idle", () => { if ((map.current?.getZoom() ?? 0) > 13) map.current?.setZoom(13); });
     }
@@ -263,11 +306,11 @@ export default function GoogleMapStage({
     {error && <div className={styles.mapError}><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5c0 1.9-.7 3.7-1.7 5.3" /><circle cx="12" cy="9.5" r="2.5" /><line x1="3" y1="3" x2="21" y2="21" /></svg><strong>Map unavailable</strong><span>{error}</span></div>}
     <div className={styles.mapModeControl}><button type="button" className={mapType === "roadmap" ? styles.mapModeActive : ""} onClick={() => setMapType("roadmap")}>Map</button><button type="button" className={mapType === "satellite" ? styles.mapModeActive : ""} onClick={() => setMapType("satellite")}>Satellite</button></div>
     <div className={styles.shapeToolbar} aria-label="Map area drawing tools">
-      <button type="button" className={drawingMode === "pan" ? styles.shapeToolActive : ""} onClick={() => stopDrawing()} title="Pan map"><span className={styles.handIcon}>✋</span><small>Pan</small></button>
-      <button type="button" className={drawingMode === "rectangle" ? styles.shapeToolActive : ""} onClick={() => beginDragShape("rectangle")} title="Draw rectangle"><span className={styles.rectangleIcon} /><small>Box</small></button>
-      <button type="button" className={drawingMode === "circle" ? styles.shapeToolActive : ""} onClick={() => beginDragShape("circle")} title="Draw radius"><span className={styles.circleIcon} /><small>Radius</small></button>
-      <button type="button" className={drawingMode === "polygon" ? styles.shapeToolActive : ""} onClick={beginPolygon} title="Draw polygon"><span className={styles.polygonIcon} /><small>Shape</small></button>
-      <button type="button" onClick={() => clearShape()} title="Clear drawn area"><span className={styles.clearIcon}>×</span><small>Clear</small></button>
+      <button type="button" className={drawingMode === "pan" ? styles.shapeToolActive : ""} onClick={() => { if (isDrawing.current) clearShape(); else stopDrawing(); }} disabled={!mapReady} title="Pan map"><span className={styles.handIcon}>✋</span><small>Pan</small></button>
+      <button type="button" className={drawingMode === "rectangle" ? styles.shapeToolActive : ""} onClick={() => beginDragShape("rectangle")} disabled={!mapReady} title="Draw rectangle"><span className={styles.rectangleIcon} /><small>Box</small></button>
+      <button type="button" className={drawingMode === "circle" ? styles.shapeToolActive : ""} onClick={() => beginDragShape("circle")} disabled={!mapReady} title="Draw radius"><span className={styles.circleIcon} /><small>Radius</small></button>
+      <button type="button" className={drawingMode === "polygon" ? styles.shapeToolActive : ""} onClick={beginPolygon} disabled={!mapReady} title="Draw polygon"><span className={styles.polygonIcon} /><small>Shape</small></button>
+      <button type="button" onClick={() => clearShape()} disabled={!mapReady} title="Clear drawn area"><span className={styles.clearIcon}>×</span><small>Clear</small></button>
     </div>
     <div className={styles.manualZoomControls} aria-label="Map zoom controls"><button type="button" onClick={() => map.current?.setZoom(Math.min(21, (map.current.getZoom() ?? 10) + 1))} aria-label="Zoom in">+</button><button type="button" onClick={() => map.current?.setZoom(Math.max(3, (map.current.getZoom() ?? 10) - 1))} aria-label="Zoom out">−</button></div>
     <div className={styles.pocketPrompt}><strong>{shapeActive ? `${total.toLocaleString()} properties in area` : drawingMode === "pan" ? "Draw a search area" : "Drawing area"}</strong><span>{drawingText}</span><div>{drawingMode === "polygon" && <button type="button" onClick={finishPolygon} disabled={drawPoints < 3}>Finish shape</button>}</div></div>

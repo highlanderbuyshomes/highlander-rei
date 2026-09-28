@@ -7,13 +7,16 @@ const state = (over: Partial<FilterState> & { on?: CriteriaKey[] } = {}): Filter
     activeCriteria: new Set(on),
     statuses: [], closedWithinMonths: "Any",
     priceMin: "", priceMax: "", dwellingTypes: [], bedsMin: "", bathsMin: "",
-    sqftMin: "", sqftMax: "", lotMin: "", lotMax: "", pool: "Any", levels: "Any", zips: "", keyword: "",
+    sqftMin: "", sqftMax: "", lotMin: "", lotMax: "", pool: "Any", levels: "Any", zips: "", keyword: "", cities: "",
     ...rest,
   };
 };
 
 describe("buildFilters", () => {
   it.each<[string, FilterState, Record<string, unknown>]>([
+    ["cities support multiple locations and ignore case/duplicates", state({ cities: " Gilbert, TEMPE, gilbert, Fountain Hills, " }), { cities: ["gilbert", "tempe", "fountain hills"] }],
+    ["clearing cities removes the area restriction", state({ cities: " , " }), {}],
+    ["city and keyword filters combine", state({ cities: "Phoenix", keyword: "pool" }), { cities: ["phoenix"], keyword: "pool" }],
     ["empty box contributes nothing", state({ on: ["price"], priceMin: "" }), {}],
     ["'0' is a real bound", state({ on: ["price"], priceMin: "0" }), { priceMin: 0 }],
     ["bare '.' is dropped", state({ on: ["sqft"], sqftMin: "." }), {}],
