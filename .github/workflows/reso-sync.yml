@@ -1,10 +1,15 @@
 name: RESO live sync
 
 # Keeps the admin Search data current from the ARMLS feed. Vercel cron on the
-# Hobby plan is daily-only, so a GitHub schedule calls the secured endpoint.
+# Hobby plan is daily-only, and GitHub delays `schedule` triggers by hours
+# under load (a */10 cron fired every ~2-6 h in practice). So each run stays
+# up and calls the secured endpoint every INTERVAL itself for most of the
+# 6-hour job limit; the schedule only has to start a run a few times a day.
+# The repo is public, so Actions minutes are free. The concurrency group
+# queues the next scheduled run behind the current one instead of stacking.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "7 * * * *" # hourly, off the top-of-hour rush
   workflow_dispatch:
 
 concurrency:
@@ -14,12 +19,25 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 355
     steps:
-      - name: Call incremental sync
+      - name: Call incremental sync every 10 minutes
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          INTERVAL: 600
+          RUN_FOR: 20400 # 5 h 40 min, under the job timeout
         run: |
-          curl -fsS --max-time 330 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "https://highlanderrei.com/api/cron/reso-sync"
+          start=$(date +%s); ok=0; failed=0
+          while :; do
+            if out=$(curl -fsS --max-time 330 -H "Authorization: Bearer $CRON_SECRET" \
+                "https://highlanderrei.com/api/cron/reso-sync" 2>&1); then
+              ok=$((ok + 1)); echo "$(date -u +%H:%M:%SZ) $out"
+            else
+              failed=$((failed + 1)); echo "::warning::$(date -u +%H:%M:%SZ) sync call failed: $out"
+            fi
+            [ $(( $(date +%s) - start + INTERVAL )) -ge "$RUN_FOR" ] && break
+            sleep "$INTERVAL"
+          done
+          echo "calls ok=$ok failed=$failed"
+          # Fail the run (and surface it) only if nothing succeeded.
+          [ "$ok" -gt 0 ]

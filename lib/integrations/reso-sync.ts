@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { trimResoRaw } from "./reso-raw";
+import { trimPropertyRaw, trimResoRaw } from "./reso-raw";
 import { fetchResoListingPages, type ResoListing, type ResoScopeOpts } from "./reso";
 
 export type ResoSyncResult = {
@@ -73,7 +73,7 @@ function buildPropertyData(listing: ResoListing, fingerprint: string | null) {
     longitude: listing.Longitude ?? null,
     source: "reso",
     sourceId: listing.ListingKey,
-    rawJson: trimResoRaw(listing) as object,
+    rawJson: trimPropertyRaw(listing) as object,
     lastRefreshedAt: new Date(),
   };
 }
@@ -282,7 +282,7 @@ async function processPage(page: ResoListing[], importRunId: string, result: Res
     const prev = existingByMls.get(mlsNumber)!;
     const newStatus = l.StandardStatus ?? null;
     if (newStatus == null || prev.mlsStatus === newStatus) return [];
-    return [{ listingId: prev.id, fromStatus: prev.mlsStatus, toStatus: newStatus, source: "reso", changedAt: new Date(), rawJson: l as object }];
+    return [{ listingId: prev.id, fromStatus: prev.mlsStatus, toStatus: newStatus, source: "reso", changedAt: new Date(), rawJson: trimResoRaw(l) as object }];
   });
   if (events.length) {
     await prisma.listingStatusEvent.createMany({ data: events });

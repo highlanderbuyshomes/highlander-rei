@@ -15,6 +15,16 @@ const SOURCE = "reso-incremental";
 const OVERLAP_GUARD_MS = 6 * 60_000;
 // Stop starting new pages after this, leaving headroom under maxDuration.
 const TIME_BUDGET_MS = 200_000;
+// Neon's plan storage cap. At the cap every write in the app fails (not just
+// MLS), so bootstrap pages stop at BOOTSTRAP_MAX_SHARE of it; the small
+// incremental pulls keep running.
+const DB_CAP_BYTES = Number(process.env.DB_SIZE_CAP_MB || 512) * 1024 * 1024;
+const BOOTSTRAP_MAX_SHARE = 0.85;
+
+async function databaseBytes(): Promise<number> {
+  const [row] = await prisma.$queryRaw<{ bytes: bigint }[]>`SELECT pg_database_size(current_database()) AS bytes`;
+  return Number(row.bytes);
+}
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -44,7 +54,15 @@ async function handle(req: NextRequest) {
     orderBy: { startedAt: "desc" },
     select: { status: true, rawMeta: true },
   });
-  const { scope, control } = resolveSyncPlan(latest);
+  const { kind, scope, control } = resolveSyncPlan(latest);
+  if (kind !== "incremental") {
+    const bytes = await databaseBytes();
+    if (bytes > DB_CAP_BYTES * BOOTSTRAP_MAX_SHARE) {
+      const mb = (n: number) => Math.round(n / 1024 / 1024);
+      console.warn(`[reso/cron] bootstrap paused: database ${mb(bytes)} MB of ${mb(DB_CAP_BYTES)} MB cap`);
+      return NextResponse.json({ skipped: "bootstrap paused near database size cap", databaseMb: mb(bytes), capMb: mb(DB_CAP_BYTES) });
+    }
+  }
   control.deadline = Date.now() + TIME_BUDGET_MS;
 
   try {
