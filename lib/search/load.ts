@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { DISTRESS_WORDS } from "@/lib/distress";
+import { RAW_KEYS } from "@/lib/integrations/reso-raw";
 import { buildWhere } from "./build-query";
 import { dwellingSql, normalizeDwelling, normalizeStatus, statusSql } from "./classify";
 import type { ListingRecord, SearchFilters } from "./types";
@@ -59,12 +60,6 @@ function rawLevels(raw: unknown) {
 // Postgres extracts only the keys the mapping below reads (plus the
 // distress-language flag from remarks), and rows are reshaped to what the
 // mapping expects.
-const RAW_KEYS = [
-  "PropertySubType", "PropertyType", "DwellingType", "LivingArea", "LivingAreaSqFt", "ApproxSQFT",
-  "LotSizeSquareFeet", "LotSqFt", "LotSize", "PoolPrivateYN", "PrivatePoolYN", "PrivatePool", "HasPool", "pool",
-  "Stories", "StoriesTotal", "NumberOfStories", "InteriorLevels", "Levels",
-  "OriginalListPrice", "OriginalPrice", "PreviousListPrice",
-];
 const liteOf = (col: string) => Prisma.raw(`jsonb_strip_nulls(jsonb_build_object(${RAW_KEYS.map((k) => `'${k}', ${col}->'${k}'`).join(", ")}))`);
 const remarksOf = (col: string) => Prisma.raw(`${col}->>'PublicRemarks', ${col}->>'Remarks', ${col}->>'MarketingRemarks', ${col}->>'description'`);
 
