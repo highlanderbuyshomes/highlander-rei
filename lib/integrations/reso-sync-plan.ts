@@ -3,13 +3,16 @@ import type { ResoSyncControl } from "./reso-sync";
 
 // Bump SCOPE_VERSION when the sync scope widens: older completed runs are then
 // treated as having no watermark, forcing one fresh bootstrap.
-export const SCOPE_VERSION = 4;
+export const SCOPE_VERSION = 5;
 // The valley: Maricopa County plus Pinal (San Tan Valley, Queen Creek, Apache Junction).
 export const VALLEY_COUNTIES = ["Maricopa", "Pinal"];
 // Closed is bounded to the last 12 months by buildFilter (CLOSED_LOOKBACK_MONTHS)
 // and is what the sold-comps ARV prices against; later closings arrive through
 // the incremental ModificationTimestamp pull.
-export const BOOTSTRAP_STATUSES = ["Active", "Coming Soon", "Active Under Contract", "Pending", "Closed"];
+// The bootstrap runs in two phases so the on-market listings are complete after
+// a handful of runs instead of trickling in alongside ~100k closed sales.
+export const LIVE_STATUSES = ["Active", "Coming Soon", "Active Under Contract", "Pending"];
+export const CLOSED_STATUSES = ["Closed"];
 // Re-fetch a little before the last run's start so a listing modified while
 // that run was mid-flight isn't missed; writes are idempotent.
 export const OVERLAP_MS = 5 * 60_000;
@@ -24,7 +27,8 @@ export type SyncPlan = {
   control: ResoSyncControl;
 };
 
-type Meta = { watermark?: string; resumeUrl?: string; scope?: ResoScopeOpts; scopeVersion?: number };
+type Phase = "live" | "closed";
+type Meta = { watermark?: string; resumeUrl?: string; scope?: ResoScopeOpts; scopeVersion?: number; phase?: Phase };
 
 /**
  * Picks which sync to run from the latest usable ImportRun. A run that
@@ -36,15 +40,23 @@ export function resolveSyncPlan(latest: LatestRun, now: Date = new Date()): Sync
   const meta = ((latest?.rawMeta ?? {}) as Meta) || {};
   const startedNow = now.toISOString();
   const current = meta.scopeVersion === SCOPE_VERSION;
+  const phaseMeta = meta.phase ? { phase: meta.phase } : {};
 
   if (latest?.status === "partial" && current && meta.resumeUrl && meta.scope && meta.watermark) {
     const scope = meta.scope;
-    return { kind: "resume-partial", scope, control: { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark, scope, scopeVersion: SCOPE_VERSION } } };
+    return { kind: "resume-partial", scope, control: { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark, scope, scopeVersion: SCOPE_VERSION, ...phaseMeta } } };
   }
-  if ((latest?.status === "completed" || latest?.status === "completed_with_errors") && current && meta.watermark) {
+  const finished = latest?.status === "completed" || latest?.status === "completed_with_errors";
+  // Live phase done: pull the closed sales next, keeping the live phase's
+  // watermark so incremental later re-checks everything modified since then.
+  if (finished && current && meta.watermark && meta.phase === "live") {
+    const scope: ResoScopeOpts = { statuses: CLOSED_STATUSES, counties: VALLEY_COUNTIES };
+    return { kind: "bootstrap", scope, control: { meta: { watermark: meta.watermark, scope, scopeVersion: SCOPE_VERSION, phase: "closed" } } };
+  }
+  if (finished && current && meta.watermark) {
     const scope: ResoScopeOpts = { modifiedSince: new Date(new Date(meta.watermark).getTime() - OVERLAP_MS).toISOString(), counties: VALLEY_COUNTIES };
     return { kind: "incremental", scope, control: { meta: { watermark: startedNow, scope, scopeVersion: SCOPE_VERSION } } };
   }
-  const scope: ResoScopeOpts = { statuses: BOOTSTRAP_STATUSES, counties: VALLEY_COUNTIES };
-  return { kind: "bootstrap", scope, control: { meta: { watermark: startedNow, scope, scopeVersion: SCOPE_VERSION } } };
+  const scope: ResoScopeOpts = { statuses: LIVE_STATUSES, counties: VALLEY_COUNTIES };
+  return { kind: "bootstrap", scope, control: { meta: { watermark: startedNow, scope, scopeVersion: SCOPE_VERSION, phase: "live" } } };
 }
