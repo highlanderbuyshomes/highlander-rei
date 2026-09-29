@@ -127,4 +127,9 @@ describe("scoreDeals", () => {
     expect(a.reasons[0]).toBe("80% of rough ARV (verify)");
     expect(out[0].id).toBe("a"); // sorted by score desc
   });
+
+  it("scores are whole numbers", () => {
+    const [d] = scoreDeals([L({ listPrice: 263000, sqft: 1000 })], 70, () => est(400000, "High"));
+    expect(Number.isInteger(d.dealScore)).toBe(true);
+  });
 });
