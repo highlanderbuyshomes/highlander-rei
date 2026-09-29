@@ -44,6 +44,10 @@ function fmtPrice(n: number | null | undefined): string {
   return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
+function yearsSince(date: Date | string | null | undefined): number | null {
+  return date ? Math.round((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24 * 365)) : null;
+}
+
 export default async function OffersPage({
   searchParams,
 }: {
@@ -143,7 +147,7 @@ export default async function OffersPage({
             {importedProperties.map((p, i) => {
               const o = p.owners[0];
               const eqPct = o?.estimatedEquityPct;
-              const ownedYears = p.lastSaleDate ? Math.round((Date.now() - new Date(p.lastSaleDate).getTime()) / (1000 * 60 * 60 * 24 * 365)) : null;
+              const ownedYears = yearsSince(p.lastSaleDate);
               return (
                 <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.8fr 0.8fr 0.5fr 0.6fr 0.8fr 0.7fr 0.6fr 1fr", padding: "13px 20px", borderBottom: i < importedProperties.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
                   <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{p.streetAddress}</div>

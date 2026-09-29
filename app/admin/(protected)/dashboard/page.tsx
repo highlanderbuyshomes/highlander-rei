@@ -7,10 +7,12 @@ import styles from "./dashboard.module.css";
 
 export const metadata: Metadata = { title: "Dashboard | Highlander REI" };
 
+const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
 export default async function DashboardPage() {
   await requireAdmin();
 
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const weekAgo = daysAgo(7);
 
   const [agreements, newLeadsThisWeek, recentLeads] = await Promise.all([
     prisma.agreement.findMany({

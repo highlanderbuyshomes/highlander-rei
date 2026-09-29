@@ -13,6 +13,8 @@ export const maxDuration = 300;
 const SOURCE = "reso-incremental";
 // A run still marked "running" this recently is treated as in progress.
 const OVERLAP_GUARD_MS = 6 * 60_000;
+// Well past maxDuration: a "running" run this old was killed mid-flight.
+const STALE_RUN_MS = 15 * 60_000;
 // Stop starting new pages after this, leaving headroom under maxDuration.
 const TIME_BUDGET_MS = 200_000;
 // Neon's plan storage cap. At the cap every write in the app fails (not just
@@ -37,6 +39,13 @@ function authorized(req: NextRequest): boolean {
 async function handle(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isResoConfigured()) return NextResponse.json({ error: "RESO_ACCESS_TOKEN must be set" }, { status: 400 });
+
+  // A run killed by the function timeout never records its end; close those
+  // out so they don't sit as "running" forever.
+  await prisma.importRun.updateMany({
+    where: { source: { startsWith: "reso" }, status: "running", startedAt: { lt: new Date(Date.now() - STALE_RUN_MS) } },
+    data: { status: "failed", completedAt: new Date(), errorMessage: "Timed out (no completion recorded)" },
+  });
 
   const inFlight = await prisma.importRun.findFirst({
     where: { source: SOURCE, status: "running", startedAt: { gt: new Date(Date.now() - OVERLAP_GUARD_MS) } },
