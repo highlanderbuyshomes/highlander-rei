@@ -106,10 +106,10 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
   const resultsPending = loading || requestKey !== resultKey;
   const [matchSummary, setMatchSummary] = useState<number | null>(null);
   const summaryShape = useRef<string | null>(null);
-  const summaryDialog = useRef<HTMLDialogElement>(null);
+  const summaryClose = useRef<HTMLButtonElement>(null);
+  const mainStage = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (matchSummary !== null) summaryDialog.current?.showModal();
-    else summaryDialog.current?.close();
+    if (matchSummary !== null) summaryClose.current?.focus({ preventScroll: true });
   }, [matchSummary]);
   const firstRun = useRef(true);
   const currentKey = useRef(requestKey);
@@ -266,20 +266,21 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
           <div className={styles.criteriaFooter}><button type="button" onClick={reset}>Reset filters</button><button type="button" className={styles.applyButton} onClick={() => setView("list")}>{loading ? "Updating…" : `View ${result.total.toLocaleString()}`}</button></div>
         </aside>
 
-        <section className={styles.mainStage}>
-          <div hidden={view !== "map"} className={styles.mapViewContainer}><GoogleMapStage pins={result.pins} selected={selected} total={result.total} hasArea={hasArea} loading={resultsPending} onSelect={setSelectedId} onShapeChange={handleShapeChange} /></div>
+        <section ref={mainStage} tabIndex={-1} className={styles.mainStage}>
+          <div hidden={view !== "map"} className={styles.mapViewContainer}><GoogleMapStage pins={result.pins} selected={selected} total={result.total} hasArea={hasArea} loading={resultsPending} onSelect={setSelectedId} onShapeChange={handleShapeChange} />
+{matchSummary !== null && (<div className={styles.matchesOverlay}><div role="dialog" className={styles.matchesDialog} aria-labelledby="matches-title" onKeyDown={(event) => { if (event.key === "Escape") { setMatchSummary(null); mainStage.current?.focus({ preventScroll: true }); } }}>
+        <div className={styles.matchesBody}><strong>{matchSummary?.toLocaleString()}</strong><h2 id="matches-title">Listing matches found</h2></div>
+        <div className={styles.matchesActions}>
+          <button ref={summaryClose} type="button" onClick={() => { setMatchSummary(null); mainStage.current?.focus({ preventScroll: true }); }}>Close</button>
+          <button type="button" onClick={() => { setView("list"); setMatchSummary(null); mainStage.current?.focus({ preventScroll: true }); }}>View List</button>
+          <button type="button" className={styles.matchesPrimary} onClick={() => { setView("map"); setMatchSummary(null); mainStage.current?.focus({ preventScroll: true }); }}>View Map</button>
+        </div>
+      </div></div>)}
+</div>
           {view === "list" && <ResultsList listings={rows} total={result.total} loading={loading} loadingMore={loadingMore} onLoadMore={loadMore} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
           {view === "detail" && <ListingDetail listing={selected} comps={loadedDetail?.comps ?? null} threshold={arvThreshold} />}
         </section>
       </div>
-      <dialog ref={summaryDialog} className={styles.matchesDialog} aria-labelledby="matches-title" onCancel={() => setMatchSummary(null)} onClose={() => setMatchSummary(null)}>
-        <div className={styles.matchesBody}><strong>{matchSummary?.toLocaleString()}</strong><h2 id="matches-title">Listing matches found</h2></div>
-        <div className={styles.matchesActions}>
-          <button type="button" onClick={() => setMatchSummary(null)}>Close</button>
-          <button type="button" onClick={() => { setView("list"); setMatchSummary(null); }}>View List</button>
-          <button type="button" className={styles.matchesPrimary} onClick={() => { setView("map"); setMatchSummary(null); }}>View Map</button>
-        </div>
-      </dialog>
       <DealIntelligence candidates={rows} threshold={arvThreshold} onThresholdChange={setArvThreshold} />
     </main>
   );

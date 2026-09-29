@@ -88,7 +88,7 @@ function SignLayout({
   const label = TYPE_LABELS[type] ?? type;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "system-ui, -apple-system, sans-serif", color: "#111110" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "var(--font-body)", color: "#111110" }}>
       <div style={{ height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 10, background: "rgba(255,255,255,0.96)", borderBottom: "1px solid #eeeeef" }}>
         <span style={{ fontSize: "14px", fontWeight: 750, color: "#111110", letterSpacing: "1.7px" }}>HIGHLANDER REI</span>
         <span style={{ fontSize: "10px", color: "#777781", background: "#f2f2f4", padding: "5px 10px", borderRadius: "20px", fontWeight: 700 }}>

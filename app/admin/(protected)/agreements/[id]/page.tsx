@@ -221,7 +221,7 @@ export default async function AgreementDetailPage({
             </div>
           ) : (
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <input readOnly value={signingUrl} style={{ flex: 1, padding: "9px 12px", fontSize: "12px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#eef2f6", color: "#475569", fontFamily: "monospace", outline: "none" }} />
+              <input readOnly value={signingUrl} style={{ flex: 1, padding: "9px 12px", fontSize: "12px", border: "1px solid #c7d0d8", borderRadius: "6px", background: "#eef2f6", color: "#475569", fontFamily: "var(--font-body)", outline: "none" }} />
               <CopyButton text={signingUrl} />
             </div>
           )}

@@ -1,6 +1,6 @@
 .shell { min-height: calc(100vh - 56px); background: #f8f7f4; color: #111110; padding-bottom: 28px; }
 .header { min-height: 78px; padding: 18px 28px 14px; display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #fff; border-bottom: 1px solid #e8e7e2; }
-.header h1 { margin: 0; font-family: var(--font-display), serif; font-size: 31px; letter-spacing: 1.2px; color: #111110; }
+.header h1 { margin: 0; font-family: var(--font-body); font-size: 31px; letter-spacing: 1.2px; color: #111110; }
 .header p { margin: 4px 0 0; color: #8a8a84; font-size: 12px; }
 .newOffer { display: inline-flex; align-items: center; gap: 8px; background: #111110; color: #fff; border-radius: 6px; padding: 10px 16px; text-decoration: none; font-size: 12px; font-weight: 700; transition: background .15s; }
 .newOffer:hover { background: #2e2e2c; }

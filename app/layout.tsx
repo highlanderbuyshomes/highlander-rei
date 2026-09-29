@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Bebas_Neue, Inter } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 
-const bebasNeue = Bebas_Neue({
-  weight: "400",
-  variable: "--font-display",
+const roboto = Roboto({
+  variable: "--font-ui",
   subsets: ["latin"],
-});
-
-const inter = Inter({
-  variable: "--font-body",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${inter.variable}`}>
+    <html lang="en" className={roboto.variable}>
       <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         {children}
         <Script

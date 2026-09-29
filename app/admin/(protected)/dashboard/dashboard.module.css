@@ -1,6 +1,6 @@
 .shell { min-height: calc(100vh - 56px); background: #f8f7f4; color: #111110; padding-bottom: 28px; }
 .header { min-height: 78px; padding: 18px 28px 14px; background: #fff; border-bottom: 1px solid #e8e7e2; }
-.header h1 { margin: 0; font-family: var(--font-display), serif; font-size: 31px; letter-spacing: 1.2px; color: #111110; }
+.header h1 { margin: 0; font-family: var(--font-body); font-size: 31px; letter-spacing: 1.2px; color: #111110; }
 .header p { margin: 4px 0 0; color: #8a8a84; font-size: 12px; }
 
 .content { padding: 24px 28px; }

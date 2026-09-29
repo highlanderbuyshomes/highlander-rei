@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --font-body: var(--font-ui), Arial, sans-serif;
+  --font-display: var(--font-body);
   --black: #111110;
   --near-black: #1c1c1b;
   --charcoal: #2e2e2c;
@@ -34,7 +36,7 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: var(--font-body), "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   background: var(--white);
   color: var(--near-black);
   line-height: 1.6;
@@ -403,7 +405,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   border: 1px solid var(--border-light);
   border-radius: 14px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
-  font-family: var(--font-body), "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   padding: 6px;
   margin-top: 6px;
   background: #fff;
@@ -954,3 +956,5 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     text-decoration: none;
   }
 }
+
+button, input, select, textarea { font-family: inherit; }
