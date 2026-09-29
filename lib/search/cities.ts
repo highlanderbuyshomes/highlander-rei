@@ -6,9 +6,6 @@ export const VALLEY_CITIES = [
   "Tolleson", "Wickenburg", "Youngtown",
 ];
 
-/** Shown as quick picks; the rest sit behind "More cities". */
-export const FEATURED_CITIES = ["Gilbert", "Tempe", "Scottsdale", "Phoenix", "Mesa", "Chandler"];
-
 /** Keep multi-word cities intact and deduplicate case-insensitively. */
 export function normalizeCities(values: string[]): string[] {
   return [...new Set(values.map((city) => city.trim().replace(/\s+/g, " ").toLowerCase()).filter(Boolean))];

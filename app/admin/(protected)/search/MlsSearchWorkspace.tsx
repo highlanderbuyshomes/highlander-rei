@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildFilters, type CriteriaKey } from "@/lib/search/build-filters";
-import { FEATURED_CITIES, parseCities, VALLEY_CITIES } from "@/lib/search/cities";
+import { parseCities, VALLEY_CITIES } from "@/lib/search/cities";
 import { mlsLinks } from "@/lib/search/mls-links";
 import { normalizeStatus } from "@/lib/search/score-deals";
 import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, ListingRecord, SearchResponse } from "@/lib/search/types";
@@ -24,7 +24,6 @@ const criteria: { key: CriteriaKey; label: string }[] = [
   { key: "zip", label: "ZIP code" },
 ];
 
-const moreCities = VALLEY_CITIES.filter((city) => !FEATURED_CITIES.includes(city));
 
 const statusOptions = ["Active", "Coming Soon", "Under Contract", "Pending", "Closed", "Expired", "Canceled"];
 const dwellingOptions = ["Single Family", "Townhouse", "Condo", "Patio Home", "Manufactured", "Multi-Family", "Land", "Commercial"];
@@ -247,13 +246,10 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
                 {selectedCities.length > 0 && <button type="button" onClick={() => setCities("")}>Clear cities</button>}
               </div>
               <input id="search-cities" value={cities} onChange={(event) => setCities(event.target.value)} placeholder="Gilbert, Tempe, or other cities" />
-              <div className={styles.cityChoices} role="group" aria-label="Popular cities">
-                {FEATURED_CITIES.map((city) => <CityChip key={city} city={city} selected={selectedCities} onChange={setCities} />)}
-              </div>
-              <details className={styles.moreCities} open={moreCities.some((city) => selectedCities.includes(city.toLowerCase())) || undefined}>
-                <summary>More cities</summary>
-                <div className={styles.cityChoices} role="group" aria-label="More cities">
-                  {moreCities.map((city) => <CityChip key={city} city={city} selected={selectedCities} onChange={setCities} />)}
+              <details className={styles.moreCities} open={selectedCities.length > 0 || undefined}>
+                <summary>All cities</summary>
+                <div className={styles.cityChoices} role="group" aria-label="Cities">
+                  {VALLEY_CITIES.map((city) => <CityChip key={city} city={city} selected={selectedCities} onChange={setCities} />)}
                 </div>
               </details>
             </div>
