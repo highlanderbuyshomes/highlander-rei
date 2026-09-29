@@ -965,7 +965,7 @@ button, input, select, textarea { font-family: inherit; }
 .admin-wordmark > svg { flex-shrink: 0; }
 .admin-wordmark-period { margin-left: 1px; font-weight: 600; }
 @media (max-width: 900px) {
-  .admin-mobile-drawer { background: #246da2; }
+  .admin-mobile-drawer { background: #2478c5; }
   .admin-mobile-drawer a { color: #fff; }
   .admin-mobile-drawer a.active { background: #fff; color: #111; }
   .admin-mobile-drawer .admin-brand { color: #fff; padding: 0; }
@@ -973,5 +973,5 @@ button, input, select, textarea { font-family: inherit; }
   .admin-mobile-drawer .admin-wordmark > svg { width: 23px; }
   .admin-mobile-drawer-signout { color: #fff; }
   .admin-mobile-drawer-divider { background: #ffffff30; }
-  .admin-mobile-drawer-trigger { background: #246da2; }
+  .admin-mobile-drawer-trigger { background: #2478c5; }
 }
