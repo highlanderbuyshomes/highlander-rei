@@ -332,7 +332,7 @@ function ListingDetail({ listing, comps, threshold }: { listing: DealCandidate |
   const closed = normalizeStatus(listing.status) === "Closed";
   return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2>{listing.address}</h2><p>{listing.city}, {listing.state} {listing.zip}</p>
     <MlsSiteLinks listing={listing} className={styles.detailLinks} />
-    <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", money(listing.arv)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore} · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
+    <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", money(listing.arv)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore}/99 · Higher is better · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     <div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Square feet", listing.sqft?.toLocaleString() ?? "—"], ["Year built", listing.yearBuilt ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     {comps == null ? <p className={styles.previewNote}>Loading sold comps…</p> : comps.length === 0 ? <p className={styles.previewNote}>No nearby sold comps — ARV is {listing.arvSource === "Insufficient data" ? "unavailable" : `from ${listing.arvSource}`}; verify before offering.</p> :
       <div className={styles.resultsTable}><table><thead><tr><th>Sold comp</th><th>Sold</th><th>Price</th><th>Sq Ft</th><th>$/sqft</th><th>Beds</th><th>Built</th><th>Distance</th></tr></thead><tbody>{comps.map((c) => <tr key={c.id}><td><strong>{c.address}</strong><small>{c.city}</small></td><td>{shortDate(c.closedDate)}</td><td>{money(c.price)}</td><td>{c.sqft.toLocaleString()}</td><td>{money(c.pricePerSqft)}</td><td>{c.beds ?? "—"}</td><td>{c.yearBuilt ?? "—"}</td><td>{c.distanceMiles == null ? "—" : `${c.distanceMiles} mi`}</td></tr>)}</tbody></table></div>}
@@ -345,10 +345,25 @@ function MlsSiteLinks({ listing, className }: { listing: ListingRecord; classNam
   const links = mlsLinks(listing);
   const copy = (text: string) => { navigator.clipboard?.writeText(text).catch(() => {}); };
   const anchors = <>
+    <a href={links.rpr.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${listing.mlsNumber} in RPR`}>RPR ↗</a>
     <a href={links.flexmls.href} target="_blank" rel="noopener noreferrer" title={`Open in Flexmls (copies MLS # ${links.flexmls.copy})`} onClick={() => copy(links.flexmls.copy)}>Flexmls ↗</a>
     <a href={links.curbview.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${links.curbview.copy} in CurbView`}>CurbView ↗</a>
   </>;
   return className ? <div className={className}>{anchors}</div> : anchors;
+}
+
+function CopyAddress({ listing }: { listing: ListingRecord }) {
+  const [message, setMessage] = useState("");
+  return <span className={styles.copyAddressWrap}>
+    <button type="button" className={styles.copyAddress} aria-label={`Copy address: ${listing.address}`} title={message || "Copy full address"} onClick={async (event) => {
+      event.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(`${listing.address}, ${listing.city}, ${listing.state || "AZ"} ${listing.zip}`);
+        setMessage("Address copied");
+      } catch { setMessage("Could not copy. Select the address to copy it."); }
+    }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg></button>
+    <span role="status" className={styles.copyStatus}>{message}</span>
+  </span>;
 }
 
 function CityChip({ city, selected, onChange }: { city: string; selected: string[]; onChange: (value: string) => void }) {
@@ -429,11 +444,11 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
 
       <div className={styles.dealTableWrap}>
         <table className={styles.dealTable}>
-          <thead><tr><th>Priority</th><th>Property</th><th>Deal score</th><th>% of ARV · {threshold}% threshold</th><th>Why it surfaced</th><th>Action</th></tr></thead>
+          <thead><tr><th>Priority</th><th>Property</th><th>Deal score <span className={styles.scoreHint}>Higher is better · 0–99</span></th><th>% of ARV · {threshold}% threshold<span className={styles.scoreHint}>Lower means a bigger discount</span></th><th>Why it surfaced</th><th>Action</th></tr></thead>
           <tbody>{visible.slice(0, 25).map((candidate) => {
             return <tr key={candidate.id}>
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
-              <td><a className={styles.linkButton} href={mlsLinks(candidate).rpr.href} target="_blank" rel="noopener noreferrer" title={`Underwrite MLS # ${candidate.mlsNumber} in RPR`}><strong>{candidate.address}</strong></a><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
+              <td><div className={styles.propertyAddress}><a className={styles.linkButton} href={mlsLinks(candidate).rpr.href} target="_blank" rel="noopener noreferrer" title={`Underwrite MLS # ${candidate.mlsNumber} in RPR`}><strong>{candidate.address}</strong></a><CopyAddress listing={candidate} /></div><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
               <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{pct(candidate.listToArvPct)}</strong><small>ARV {money(candidate.arv, true)} · {arvBasis(candidate)}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>

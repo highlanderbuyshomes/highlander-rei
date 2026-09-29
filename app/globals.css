@@ -975,3 +975,8 @@ button, input, select, textarea { font-family: inherit; }
   .admin-mobile-drawer-divider { background: #ffffff30; }
   .admin-mobile-drawer-trigger { background: #2478c5; }
 }
+
+@media (min-width: 901px) {
+  .admin-header .admin-wordmark { gap: 0; }
+  .admin-header .admin-wordmark > svg { width: 64px; padding: 0 18.5px; box-sizing: border-box; }
+}

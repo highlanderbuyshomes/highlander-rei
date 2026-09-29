@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
       <header className="admin-header" style={{
         background: "#2478c5",
-        padding: "0 28px",
+        padding: "0 28px 0 0",
         height: "56px",
         display: "flex",
         alignItems: "center",
