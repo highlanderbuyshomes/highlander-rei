@@ -958,3 +958,20 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
 }
 
 button, input, select, textarea { font-family: inherit; }
+
+/* Highlander admin chrome: blue rails, white wordmark and navigation icons. */
+.admin-brand { color: #fff; text-decoration: none; }
+.admin-wordmark { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; font-family: var(--font-body); font-size: 25px; font-weight: 400; line-height: 1; letter-spacing: -.7px; }
+.admin-wordmark > svg { flex-shrink: 0; }
+.admin-wordmark-period { margin-left: 1px; font-weight: 600; }
+@media (max-width: 900px) {
+  .admin-mobile-drawer { background: #246da2; }
+  .admin-mobile-drawer a { color: #fff; }
+  .admin-mobile-drawer a.active { background: #fff; color: #111; }
+  .admin-mobile-drawer .admin-brand { color: #fff; padding: 0; }
+  .admin-mobile-drawer .admin-wordmark { font-size: 20px; gap: 7px; }
+  .admin-mobile-drawer .admin-wordmark > svg { width: 23px; }
+  .admin-mobile-drawer-signout { color: #fff; }
+  .admin-mobile-drawer-divider { background: #ffffff30; }
+  .admin-mobile-drawer-trigger { background: #246da2; }
+}

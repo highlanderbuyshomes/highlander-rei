@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import AdminProfileMenu from "./AdminProfileMenu";
 import AdminMobileNav from "./AdminMobileNav";
 import AdminSidebar from "./AdminSidebar";
+import AdminBrand from "./AdminBrand";
 
 export const metadata: Metadata = { title: "Highlander REI — Admin" };
 
@@ -23,8 +24,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
       <header className="admin-header" style={{
-        background: "#ffffff",
-        borderBottom: "1px solid #e4e9ed",
+        background: "#246da2",
+        borderBottom: "1px solid rgba(255,255,255,.14)",
         boxShadow: "0 1px 2px rgba(15,23,32,.03)",
         padding: "0 28px",
         height: "56px",
@@ -35,8 +36,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         top: 0,
         zIndex: 50,
       }}>
-        <Link href={role === "caller" ? "/admin/dialer" : "/admin/dashboard"} className="admin-brand" style={{ fontFamily: "var(--font-display), serif", fontSize: "17px", letterSpacing: "3px", color: "#12161c", textDecoration: "none" }}>
-          HIGHLANDER REI
+        <Link href={role === "caller" ? "/admin/dialer" : "/admin/dashboard"} className="admin-brand" aria-label="Highlander REI home">
+          <AdminBrand />
         </Link>
         <AdminProfileMenu logoutAction={logout} />
       </header>

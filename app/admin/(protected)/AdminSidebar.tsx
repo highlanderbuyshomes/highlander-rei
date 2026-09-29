@@ -14,12 +14,12 @@ export default function AdminSidebar({ role }: { role?: string }) {
       style={{
         width: "88px",
         flexShrink: 0,
-        background: "#ffffff",
+        background: "#246da2",
         minHeight: "calc(100vh - 56px)",
         position: "sticky",
         top: "56px",
         alignSelf: "flex-start",
-        borderRight: "1px solid #e2e8f0",
+        borderRight: "1px solid rgba(255,255,255,.14)",
       }}
     >
       <nav className="flex flex-col items-center gap-2 py-4">
@@ -30,8 +30,8 @@ export default function AdminSidebar({ role }: { role?: string }) {
               <span
                 className={`flex h-11 w-11 items-center justify-center rounded-md transition-all duration-150 ${
                   active
-                    ? "bg-blue-50 text-blue-600 ring-1 ring-blue-100"
-                    : "text-blue-500 group-hover:bg-blue-50 group-hover:text-blue-700"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-white group-hover:bg-white/15 group-hover:text-white"
                 }`}
               >
                 {icon(18)}
