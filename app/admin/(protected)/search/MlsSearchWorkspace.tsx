@@ -399,10 +399,10 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
       </header>
 
       <div className={styles.dealMetrics}>
-        <div><span>{threshold}% rule matches</span><strong>{rule70Count}</strong><small>List price ≤ {threshold}% projected ARV</small></div>
-        <div><span>Acquisition priority</span><strong>{highPriorityCount}</strong><small>Target now or high priority</small></div>
-        <div><span>Average list / ARV</span><strong>{averageRatio == null ? "—" : `${Math.round(averageRatio)}%`}</strong><small>Across loaded results</small></div>
-        <div><span>Potential {threshold}% spread</span><strong>{money(totalSpread, true)}</strong><small>Before rehab and closing costs</small></div>
+        <div><span>{threshold}% rule matches</span><strong>{rule70Count}</strong></div>
+        <div><span>Acquisition priority</span><strong>{highPriorityCount}</strong></div>
+        <div><span>Average list / ARV</span><strong>{averageRatio == null ? "—" : `${Math.round(averageRatio)}%`}</strong></div>
+        <div><span>Potential {threshold}% spread</span><strong>{money(totalSpread, true)}</strong></div>
       </div>
 
       <div className={styles.dealToolbar}>
@@ -442,7 +442,6 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
         </table>
         {visible.length === 0 && <div className={styles.noDeals}><strong>No properties match this deal lens</strong><span>Expand the map filters or switch back to Best opportunities.</span></div>}
       </div>
-      <footer className={styles.dealDisclaimer}>Projected ARV and deal scores are screening estimates, not final underwriting. Rehab, closing, holding, and resale costs still need to be deducted before an offer is approved.</footer>
     </section>
   );
 }
