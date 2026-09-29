@@ -134,7 +134,7 @@ function buildFilter(opts: ResoScopeOpts): string {
   }
   if (includesClosed) {
     let after = opts.closedAfter;
-    let before = opts.closedBefore;
+    const before = opts.closedBefore;
     if (!after) {
       const cutoff = new Date();
       cutoff.setMonth(cutoff.getMonth() - CLOSED_LOOKBACK_MONTHS);

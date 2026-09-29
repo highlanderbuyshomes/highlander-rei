@@ -334,8 +334,16 @@ export async function syncResoListings(opts: ResoScopeOpts = {}, importSource = 
       const writeStarted = Date.now();
       try {
         await processPage(page, importRun.id, result);
-      } catch (err) {
-        result.errors.push({ listingNumber: `page-${pageNumber}`, message: err instanceof Error ? err.message : String(err) });
+      } catch {
+        // One bad listing fails the page's bulk writes. Retry the page one
+        // listing at a time (writes are idempotent) so only that listing is lost.
+        for (const listing of page) {
+          try {
+            await processPage([listing], importRun.id, result);
+          } catch (err) {
+            result.errors.push({ listingNumber: listing.ListingId ?? listing.ListingKey, message: err instanceof Error ? err.message : String(err) });
+          }
+        }
       }
       console.log(`[reso/sync ${importSource}] page ${pageNumber}: ${page.length} listings, fetch ${fetchMs}ms, write ${Date.now() - writeStarted}ms`);
       pageNumber++;

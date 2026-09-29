@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { moveOfferStage, scheduleOfferFollowUp } from "./actions";
 import { STAGE_LABELS, type PipelineStage } from "./pipeline";
@@ -56,7 +56,13 @@ export default function OfferPipelineBoard({ offers }: { offers: PipelineOffer[]
   const [dropStage, setDropStage] = useState<PipelineStage | null>(null);
   const [, startTransition] = useTransition();
 
-  useEffect(() => setCards(offers), [offers]);
+  // New server data replaces local (optimistic) state. Adjusting during render
+  // rather than in an effect avoids an extra commit.
+  const [shownOffers, setShownOffers] = useState(offers);
+  if (shownOffers !== offers) {
+    setShownOffers(offers);
+    setCards(offers);
+  }
 
   const grouped = useMemo(() => Object.fromEntries(STAGES.map((stage) => [stage.key, cards.filter((card) => card.stage === stage.key)])) as Record<PipelineStage, PipelineOffer[]>, [cards]);
 
