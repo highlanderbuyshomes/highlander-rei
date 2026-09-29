@@ -27,7 +27,7 @@ describe("normalizeStatus", () => {
   });
 });
 
-const est = (arv: number, confidence: "High" | "Medium" | "Low"): ArvEstimate => ({ arv, pricePerSqft: arv / 1000, method: "Sold comps", confidence, compCount: 6, radiusMiles: 0.5, sameSubdivision: false, monthsBack: 6, comps: [] });
+const est = (arv: number, confidence: "High" | "Medium" | "Low"): ArvEstimate => ({ arv, pricePerSqft: arv / 1000, method: "Sold comps", basis: "All sales", confidence, compCount: 6, radiusMiles: 0.5, sameSubdivision: false, monthsBack: 6, comps: [] });
 
 describe("scoreDeals with sold-comps ARV", () => {
   it("prefers the sold-comps ARV over a property estimate", () => {
@@ -99,9 +99,15 @@ describe("scoreDeals", () => {
     expect(d.priority).toBe("Low");
   });
 
-  it("adds 12 for distress language", () => {
-    const [d] = scoreDeals([L({ distressSignal: true })], 70);
+  it("adds 12 for motivated-seller language", () => {
+    const [d] = scoreDeals([L({ motivatedSignal: true })], 70);
     expect(d.dealScore).toBe(12);
+    expect(d.reasons).toContain("Motivated seller language");
+  });
+
+  it("adds 10 for fixer/condition language", () => {
+    const [d] = scoreDeals([L({ distressSignal: true })], 70);
+    expect(d.dealScore).toBe(10);
     expect(d.reasons).toContain("Fixer / condition language");
   });
 

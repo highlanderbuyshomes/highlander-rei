@@ -30,8 +30,8 @@ const arvFrom = (index: CompIndex) => (listing: ListingRecord) => estimateArv(li
 
 /** Score fields computed by scoreDeals, copied onto the full display rows. */
 function scoreFieldsOf(d: DealCandidate) {
-  const { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons } = d;
-  return { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons };
+  const { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, arvCompBasis, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons } = d;
+  return { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, arvCompBasis, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons };
 }
 
 export async function runSearch(req: SearchRequest): Promise<SearchResponse> {

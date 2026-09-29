@@ -1,4 +1,4 @@
-import { hasDistressLanguage } from "@/lib/distress";
+import { hasConditionLanguage, hasMotivatedLanguage } from "@/lib/distress";
 import { normalizeStatus } from "./classify";
 import type { ArvEstimate } from "./comps";
 import type { DealCandidate, ListingRecord } from "./types";
@@ -7,6 +7,9 @@ export { normalizeStatus };
 
 /** Below this % of ARV the listing is almost always bad sqft data, land value or a teardown. */
 export const SUSPECT_ARV_PCT = 35;
+
+/** "Target now" needs at least this many sold comps behind its ARV. */
+export const MIN_TARGET_COMPS = 5;
 
 /** Can't be bought today (sold or already under contract), so never "Target now". */
 const UNAVAILABLE = ["Closed", "Pending", "Under Contract"];
@@ -64,16 +67,18 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     const price = listing.closePrice ?? listing.listPrice;
     const listToArvPct = price && arv ? (price / arv) * 100 : null;
     const suspect = listToArvPct != null && listToArvPct < SUSPECT_ARV_PCT;
-    const actionableArv = (arvConfidence === "High" || arvConfidence === "Medium") && !suspect;
+    // Only a sold-comps ARV backed by enough sales can drive "Target now".
+    const actionableArv = (arvConfidence === "High" || arvConfidence === "Medium") && !suspect && (comps == null || comps.compCount >= MIN_TARGET_COMPS);
     const rule70Price = arv ? arv * (threshold / 100) : null;
     const rule70Spread = rule70Price != null && listing.listPrice != null ? rule70Price - listing.listPrice : null;
     const ppsfDiscountPct = pricePerSqft && pocketPricePerSqft ? ((pocketPricePerSqft - pricePerSqft) / pocketPricePerSqft) * 100 : null;
-    const conditionSignal = listing.distressSignal ?? hasDistressLanguage(listing.remarks);
+    const conditionSignal = listing.distressSignal ?? hasConditionLanguage(listing.remarks);
+    const motivatedSignal = listing.motivatedSignal ?? hasMotivatedLanguage(listing.remarks);
     const status = normalizeStatus(listing.status);
     const priceReductionPct = listing.originalListPrice && listing.listPrice && listing.originalListPrice > listing.listPrice ? ((listing.originalListPrice - listing.listPrice) / listing.originalListPrice) * 100 : 0;
     const reasons: string[] = [];
     let score = 0;
-    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: comps?.compCount ?? null, arvRadiusMiles: comps?.radiusMiles ?? null, arvSameSubdivision: comps?.sameSubdivision ?? false, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
+    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: comps?.compCount ?? null, arvRadiusMiles: comps?.radiusMiles ?? null, arvSameSubdivision: comps?.sameSubdivision ?? false, arvCompBasis: comps?.basis ?? null, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
 
     if (status === "Closed") {
       // Sold listings are comps, not opportunities; say what it sold at.
@@ -92,7 +97,8 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     if ((listing.dom ?? 0) >= 60) { score += 8; reasons.push(`${listing.dom} days on market`); }
     if ((listing.estimatedEquityPct ?? 0) >= 40) { score += 7; reasons.push(`${Math.round(listing.estimatedEquityPct!)}% estimated equity`); }
     if (listing.ownerOccupied === false) { score += 4; reasons.push("Absentee owner"); }
-    if (conditionSignal) { score += 12; reasons.push("Fixer / condition language"); }
+    if (motivatedSignal) { score += 12; reasons.push("Motivated seller language"); }
+    if (conditionSignal) { score += 10; reasons.push("Fixer / condition language"); }
     if (priceReductionPct >= 5) { score += 6; reasons.push(`${Math.round(priceReductionPct)}% price reduction`); }
 
     if (UNAVAILABLE.includes(status)) reasons.push(`${status} — backup offer only`);

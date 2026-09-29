@@ -17,12 +17,12 @@ describe("trimResoRaw", () => {
     expect(Object.keys(trimResoRaw(listing))).toEqual(RAW_KEYS);
   });
 
-  it("drops remarks from closed sales but keeps them on live listings", () => {
-    expect(trimResoRaw({ StandardStatus: "Closed", PublicRemarks: "Needs TLC", ClosePrice: 1 } as never)).toEqual({ StandardStatus: "Closed", ClosePrice: 1 });
-    expect(trimResoRaw({ StandardStatus: "Active", PublicRemarks: "Needs TLC" } as never)).toEqual({ StandardStatus: "Active", PublicRemarks: "Needs TLC" });
+  it("keeps remarks, buyer financing and land-lease fields on closed sales", () => {
+    expect(trimResoRaw({ StandardStatus: "Closed", PublicRemarks: "Remodeled", BuyerFinancing: "Cash", LandLeaseYN: false, Appliances: ["x"] } as never))
+      .toEqual({ StandardStatus: "Closed", PublicRemarks: "Remodeled", BuyerFinancing: "Cash", LandLeaseYN: false });
   });
 
   it("keeps only search-mapping keys on the property copy", () => {
-    expect(trimPropertyRaw({ LivingArea: 1800, PublicRemarks: "x", ListingKey: "k", PoolPrivateYN: false } as never)).toEqual({ LivingArea: 1800, PoolPrivateYN: false });
+    expect(trimPropertyRaw({ LivingArea: 1800, PublicRemarks: "x", ListingKey: "k", PoolPrivateYN: false, Ownership: "Leasehold" } as never)).toEqual({ LivingArea: 1800, PoolPrivateYN: false, Ownership: "Leasehold" });
   });
 });
