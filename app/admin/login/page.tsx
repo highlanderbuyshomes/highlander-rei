@@ -1,6 +1,6 @@
 import { createSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
 
 async function login(formData: FormData) {
@@ -16,9 +16,12 @@ async function login(formData: FormData) {
     console.error("[login] database error:", err);
     redirect("/admin/login?error=server");
   }
-  const valid = Boolean(user && hashPassword(password) === user.passwordHash);
+  const check = user ? verifyPassword(password, user.passwordHash) : { ok: false, needsRehash: false };
 
-  if (valid && user) {
+  if (check.ok && user) {
+    if (check.needsRehash) {
+      await prisma.adminUser.update({ where: { id: user.id }, data: { passwordHash: hashPassword(password) } }).catch(() => {});
+    }
     await createSession(user.id, user.role);
     redirect(user.role === "admin" ? "/admin/search" : "/admin/dialer");
   }
