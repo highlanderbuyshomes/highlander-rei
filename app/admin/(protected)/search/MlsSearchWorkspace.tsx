@@ -330,7 +330,7 @@ function ResultsList({ listings, total, loading, loadingMore, onLoadMore, onSele
 function ListingDetail({ listing, comps, threshold }: { listing: DealCandidate | null; comps: CompSale[] | null; threshold: number }) {
   if (!listing) return <PlaceholderView title="No listing selected" detail="Choose a listing from the List or Map view." />;
   const closed = normalizeStatus(listing.status) === "Closed";
-  return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2>{listing.address}</h2><p>{listing.city}, {listing.state} {listing.zip}</p>
+  return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2><a className={styles.linkButton} href={mlsLinks(listing).rpr.href} target="_blank" rel="noopener noreferrer" title={`Underwrite MLS # ${listing.mlsNumber} in RPR`}>{listing.address}</a></h2><p>{listing.city}, {listing.state} {listing.zip}</p>
     <MlsSiteLinks listing={listing} className={styles.detailLinks} />
     <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", money(listing.arv)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore}/99 · Higher is better · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     <div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Square feet", listing.sqft?.toLocaleString() ?? "—"], ["Year built", listing.yearBuilt ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
@@ -345,7 +345,6 @@ function MlsSiteLinks({ listing, className }: { listing: ListingRecord; classNam
   const links = mlsLinks(listing);
   const copy = (text: string) => { navigator.clipboard?.writeText(text).catch(() => {}); };
   const anchors = <>
-    <a href={links.rpr.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${listing.mlsNumber} in RPR`}>RPR ↗</a>
     <a href={links.flexmls.href} target="_blank" rel="noopener noreferrer" title={`Open in Flexmls (copies MLS # ${links.flexmls.copy})`} onClick={() => copy(links.flexmls.copy)}>Flexmls ↗</a>
     <a href={links.curbview.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${links.curbview.copy} in CurbView`}>CurbView ↗</a>
   </>;
