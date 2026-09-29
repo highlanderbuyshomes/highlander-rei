@@ -5,8 +5,10 @@ import type { DealCandidate, ListingRecord } from "./types";
 
 export { normalizeStatus };
 
-/** Below this % of ARV the listing is almost always bad sqft data, land value or a teardown. */
+/** Outside this % of ARV the price or size data is wrong (bad sqft, $1
+ *  placeholders, land value), so no ARV is shown rather than a nonsense ratio. */
 export const SUSPECT_ARV_PCT = 35;
+export const MAX_ARV_PCT = 300;
 
 /** "Target now" needs at least this many sold comps behind its ARV. */
 export const MIN_TARGET_COMPS = 5;
@@ -60,25 +62,28 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     const pocketPricePerSqft = comparableMedian ?? overallMedian;
     const modeledArv = listing.sqft && pocketPricePerSqft ? listing.sqft * pocketPricePerSqft : null;
     const comps = estimate?.(listing) ?? null;
-    const arv = comps?.arv ?? listing.estimatedArv ?? modeledArv;
-    const arvSource: DealCandidate["arvSource"] = comps ? comps.method : listing.estimatedArv ? "Property estimate" : modeledArv ? "Pocket $/sqft model" : "Insufficient data";
-    const arvConfidence: DealCandidate["arvConfidence"] = comps ? comps.confidence : listing.estimatedArv ? "Medium" : modeledArv ? "Low" : null;
+    const estimatedArv = comps?.arv ?? listing.estimatedArv ?? modeledArv;
     // A sale is judged on what it sold for; everything else on its asking price.
     const price = listing.closePrice ?? listing.listPrice;
-    const listToArvPct = price && arv ? (price / arv) * 100 : null;
-    const suspect = listToArvPct != null && listToArvPct < SUSPECT_ARV_PCT;
+    const rawPct = price && estimatedArv ? (price / estimatedArv) * 100 : null;
+    const implausible = rawPct != null && (rawPct < SUSPECT_ARV_PCT || rawPct > MAX_ARV_PCT);
+    const arv = implausible ? null : estimatedArv;
+    const arvSource: DealCandidate["arvSource"] = !arv ? "Insufficient data" : comps ? comps.method : listing.estimatedArv ? "Property estimate" : "Pocket $/sqft model";
+    const arvConfidence: DealCandidate["arvConfidence"] = !arv ? null : comps ? comps.confidence : listing.estimatedArv ? "Medium" : "Low";
+    const listToArvPct = implausible ? null : rawPct;
     // Only a sold-comps ARV backed by enough sales can drive "Target now".
-    const actionableArv = (arvConfidence === "High" || arvConfidence === "Medium") && !suspect && (comps == null || comps.compCount >= MIN_TARGET_COMPS);
+    const actionableArv = (arvConfidence === "High" || arvConfidence === "Medium") && (comps == null || comps.compCount >= MIN_TARGET_COMPS);
     const rule70Price = arv ? arv * (threshold / 100) : null;
     const rule70Spread = rule70Price != null && listing.listPrice != null ? rule70Price - listing.listPrice : null;
-    const ppsfDiscountPct = pricePerSqft && pocketPricePerSqft ? ((pocketPricePerSqft - pricePerSqft) / pocketPricePerSqft) * 100 : null;
+    const rawPpsfDiscount = pricePerSqft && pocketPricePerSqft ? ((pocketPricePerSqft - pricePerSqft) / pocketPricePerSqft) * 100 : null;
+    const ppsfDiscountPct = rawPpsfDiscount != null && rawPpsfDiscount >= -200 ? rawPpsfDiscount : null;
     const conditionSignal = listing.distressSignal ?? hasConditionLanguage(listing.remarks);
     const motivatedSignal = listing.motivatedSignal ?? hasMotivatedLanguage(listing.remarks);
     const status = normalizeStatus(listing.status);
     const priceReductionPct = listing.originalListPrice && listing.listPrice && listing.originalListPrice > listing.listPrice ? ((listing.originalListPrice - listing.listPrice) / listing.originalListPrice) * 100 : 0;
     const reasons: string[] = [];
     let score = 0;
-    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: comps?.compCount ?? null, arvRadiusMiles: comps?.radiusMiles ?? null, arvSameSubdivision: comps?.sameSubdivision ?? false, arvCompBasis: comps?.basis ?? null, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
+    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: arv && comps ? comps.compCount : null, arvRadiusMiles: arv && comps ? comps.radiusMiles : null, arvSameSubdivision: Boolean(arv && comps?.sameSubdivision), arvCompBasis: arv && comps ? comps.basis : null, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
 
     if (status === "Closed") {
       // Sold listings are comps, not opportunities; say what it sold at.
@@ -86,7 +91,7 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
       return { ...listing, ...scoreFields, dealScore: 0, priority: "Low" as const, reasons };
     }
 
-    const arvLabel = suspect ? "ARV — verify sqft/data" : actionableArv ? "projected ARV" : "rough ARV (verify)";
+    const arvLabel = actionableArv ? "projected ARV" : "rough ARV (verify)";
     if (listToArvPct != null) {
       if (listToArvPct <= threshold) { score += 50 + Math.min(15, threshold - listToArvPct); reasons.push(`${Math.round(listToArvPct)}% of ${arvLabel}`); }
       else if (listToArvPct <= threshold + 10) { score += 32; reasons.push(`${Math.round(listToArvPct)}% of ${arvLabel}`); }

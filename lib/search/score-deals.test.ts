@@ -52,11 +52,14 @@ describe("scoreDeals with sold-comps ARV", () => {
     expect(out.every((x) => x.priority !== "Target now")).toBe(true);
   });
 
-  it("flags far-below-comps prices as suspect data instead of Target now", () => {
-    const [d] = scoreDeals([L({ listPrice: 100000, sqft: 1000 })], 70, () => est(400000, "High"));
-    expect(d.listToArvPct).toBe(25);
-    expect(d.priority).not.toBe("Target now");
-    expect(d.reasons[0]).toBe("25% of ARV — verify sqft/data");
+  it("shows no ARV when the price/ARV ratio is implausible (bad data)", () => {
+    for (const listPrice of [100000, 1300000]) {
+      const [d] = scoreDeals([L({ listPrice, sqft: 1000 })], 70, () => est(400000, "High"));
+      expect(d.arv).toBeNull();
+      expect(d.listToArvPct).toBeNull();
+      expect(d.arvSource).toBe("Insufficient data");
+      expect(d.priority).not.toBe("Target now");
+    }
   });
 
   it("judges Closed rows on sold price and does not rank them", () => {
