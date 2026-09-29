@@ -108,7 +108,7 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
 
     if (UNAVAILABLE.includes(status)) reasons.push(`${status} — backup offer only`);
 
-    score = Math.min(99, score);
+    score = Math.min(99, Math.round(score));
     const meetsRule = listToArvPct != null && listToArvPct <= threshold;
     let priority: DealCandidate["priority"] = meetsRule && actionableArv ? "Target now" : score >= 65 ? "High" : score >= 38 ? "Watch" : "Low";
     if (UNAVAILABLE.includes(status) && (priority === "Target now" || priority === "High")) priority = "Watch";
