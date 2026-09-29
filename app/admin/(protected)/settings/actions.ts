@@ -2,7 +2,7 @@
 
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
 
 export async function changePassword(formData: FormData) {
@@ -16,7 +16,7 @@ export async function changePassword(formData: FormData) {
   if (next.length < 8) redirect("/admin/settings?tab=password&error=short");
 
   const user = await prisma.adminUser.findUnique({ where: { id: session.userId } });
-  if (!user || hashPassword(current) !== user.passwordHash) {
+  if (!user || !verifyPassword(current, user.passwordHash).ok) {
     redirect("/admin/settings?tab=password&error=wrong");
   }
 
