@@ -227,7 +227,7 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
   return (
     <main className={styles.shell}>
       <header className={styles.pageHeader}>
-        <div className={styles.searchTitle}><div><h1>Deal Search</h1><p>MLS filters, map pockets, and {arvThreshold}% ARV deal ranking.</p></div></div>
+        <div className={styles.searchTitle}><div><h1>Deal Search</h1></div></div>
         <div className={styles.headerTools}>
           <nav className={styles.viewNav} aria-label="Search views">
             {(["map", "list", "detail"] as WorkspaceView[]).map((item) => <button key={item} type="button" className={view === item ? styles.viewActive : ""} onClick={() => setView(item)}>{item.charAt(0).toUpperCase() + item.slice(1)}</button>)}
