@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildFilters, type CriteriaKey } from "@/lib/search/build-filters";
-import { parseCities } from "@/lib/search/cities";
+import { FEATURED_CITIES, parseCities, VALLEY_CITIES } from "@/lib/search/cities";
 import { mlsLinks } from "@/lib/search/mls-links";
 import { normalizeStatus } from "@/lib/search/score-deals";
 import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, ListingRecord, SearchResponse } from "@/lib/search/types";
@@ -24,7 +24,7 @@ const criteria: { key: CriteriaKey; label: string }[] = [
   { key: "zip", label: "ZIP code" },
 ];
 
-const cityOptions = ["Gilbert", "Tempe", "Scottsdale", "Phoenix", "Mesa", "Chandler"];
+const moreCities = VALLEY_CITIES.filter((city) => !FEATURED_CITIES.includes(city));
 
 const statusOptions = ["Active", "Coming Soon", "Under Contract", "Pending", "Closed", "Expired", "Canceled"];
 const dwellingOptions = ["Single Family", "Townhouse", "Condo", "Patio Home", "Manufactured", "Multi-Family", "Land", "Commercial"];
@@ -248,14 +248,14 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
               </div>
               <input id="search-cities" value={cities} onChange={(event) => setCities(event.target.value)} placeholder="Gilbert, Tempe, or other cities" />
               <div className={styles.cityChoices} role="group" aria-label="Popular cities">
-                {cityOptions.map((city) => {
-                  const selected = selectedCities.includes(city.toLowerCase());
-                  return <button key={city} type="button" aria-pressed={selected} onClick={() => {
-                    const next = selected ? selectedCities.filter((value) => value !== city.toLowerCase()) : [...selectedCities, city.toLowerCase()];
-                    setCities(next.map((value) => value.replace(/\b\w/g, (letter) => letter.toUpperCase())).join(", "));
-                  }}>{city}</button>;
-                })}
+                {FEATURED_CITIES.map((city) => <CityChip key={city} city={city} selected={selectedCities} onChange={setCities} />)}
               </div>
+              <details className={styles.moreCities} open={moreCities.some((city) => selectedCities.includes(city.toLowerCase())) || undefined}>
+                <summary>More cities</summary>
+                <div className={styles.cityChoices} role="group" aria-label="More cities">
+                  {moreCities.map((city) => <CityChip key={city} city={city} selected={selectedCities} onChange={setCities} />)}
+                </div>
+              </details>
             </div>
             {criteria.map(({ key, label }) => {
               const active = activeCriteria.has(key);
@@ -352,6 +352,14 @@ function MlsSiteLinks({ listing, className }: { listing: ListingRecord; classNam
     <a href={links.curbview.href} target="_blank" rel="noopener noreferrer" title={`Open MLS # ${links.curbview.copy} in CurbView`}>CurbView ↗</a>
   </>;
   return className ? <div className={className}>{anchors}</div> : anchors;
+}
+
+function CityChip({ city, selected, onChange }: { city: string; selected: string[]; onChange: (value: string) => void }) {
+  const on = selected.includes(city.toLowerCase());
+  return <button type="button" aria-pressed={on} onClick={() => {
+    const next = on ? selected.filter((value) => value !== city.toLowerCase()) : [...selected, city.toLowerCase()];
+    onChange(next.map((value) => value.replace(/\b\w/g, (letter) => letter.toUpperCase())).join(", "));
+  }}>{city}</button>;
 }
 
 function PlaceholderView({ title, detail }: { title: string; detail: string }) { return <div className={styles.placeholder}><strong>{title}</strong><span>{detail}</span></div>; }

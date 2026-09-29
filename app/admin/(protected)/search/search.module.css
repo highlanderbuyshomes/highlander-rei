@@ -401,3 +401,8 @@
   .matchesActions { gap: 6px; padding: 12px; }
   .matchesActions button { flex: 1; padding: 10px 8px; }
 }
+.moreCities { margin-top: 6px; }
+.moreCities > summary { cursor: pointer; font-size: 11px; color: #6b747a; list-style: none; }
+.moreCities > summary::before { content: "+ "; }
+.moreCities[open] > summary::before { content: "− "; }
+.moreCities .cityChoices { margin-top: 6px; }
