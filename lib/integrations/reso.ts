@@ -114,7 +114,8 @@ function buildFilter(opts: ResoScopeOpts): string {
   if (cities?.length) areaParts.push(`City in (${cities.map((c) => `'${c.replace(/'/g, "''")}'`).join(",")})`);
   const areaFilter = areaParts.length ? `(${areaParts.join(" or ")})` : null;
   // Deal Search is for sales; skip lease/rental listings at the source.
-  const salesOnly = `PropertyType ne 'Residential Lease' and PropertyType ne 'Commercial Lease'`;
+  // ARMLS labels commercial rentals "Comm/Industry Lease" (not the RESO "Commercial Lease").
+  const salesOnly = `PropertyType ne 'Residential Lease' and PropertyType ne 'Commercial Lease' and PropertyType ne 'Comm/Industry Lease'`;
   const withArea = (f: string) => (areaFilter ? `${areaFilter} and ${f} and ${salesOnly}` : `${f} and ${salesOnly}`);
 
   if (opts.modifiedSince) return withArea(`ModificationTimestamp gt ${opts.modifiedSince}`);
