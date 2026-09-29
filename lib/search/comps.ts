@@ -1,10 +1,14 @@
 /**
- * Deterministic sold-comps ARV. No model, no third party: for each subject it
- * finds nearby Closed MLS sales of the same dwelling class and similar size,
- * widening the search radius / look-back in fixed tiers until enough comps
- * are found. Outlier sales are trimmed, then the subject is priced at the
- * upper-quartile sold $/sqft (the renovated end of the market — what a flip
- * resells for) when there are enough comps to trust that, else the median.
+ * Deterministic sold-comps ARV. No model, no third party. For each subject it
+ * looks for nearby Closed MLS sales of the same dwelling class and similar
+ * size, trying the strongest evidence first:
+ *   1. Flip resales: a sale whose property was bought with cash in the prior
+ *      12 months (buy at a discount, renovate, resell). Median $/sqft.
+ *   2. Renovated comps: sales whose remarks say remodeled/updated/etc. Median.
+ *   3. All similar sales: the upper-quartile $/sqft as a proxy for renovated
+ *      value (median with few comps). Capped at Medium confidence.
+ * Within each basis the radius / look-back widens in fixed tiers until enough
+ * comps are found, and outlier sales are trimmed.
  */
 
 export type ClosedComp = {
@@ -22,7 +26,13 @@ export type ClosedComp = {
   closedAt: number; // epoch ms
   address: string;
   city: string;
+  /** Resold within 12 months of a cash purchase — a flip's after-repair sale. */
+  flipResale?: boolean;
+  /** Remarks describe a remodel/update. */
+  renovated?: boolean;
 };
+
+export type ArvBasis = "Flip resales" | "Renovated comps" | "All sales";
 
 export type ArvSubject = {
   id: string;
@@ -42,6 +52,7 @@ export type ArvEstimate = {
   arv: number;
   pricePerSqft: number;
   method: "Sold comps" | "ZIP sold $/sqft";
+  basis: ArvBasis;
   confidence: ArvConfidence;
   compCount: number;
   radiusMiles: number | null;
@@ -71,6 +82,13 @@ export const MAX_COMPS = 10;
 export const ARV_PERCENTILE = 0.75;
 /** ...but only with this many comps; fewer use the median so one sale can't set the ARV. */
 export const PERCENTILE_MIN_COMPS = 6;
+/** Flip and renovated comps are already the after-repair market: radius tiers they may use. */
+export const RENOVATED_TIERS = [
+  { miles: 0.5, months: 12 },
+  { miles: 1, months: 12 },
+];
+/** Renovated evidence with at least this many comps is High confidence, else Medium. */
+const RENOVATED_HIGH_COMPS = 5;
 /** Comps further than this factor from the median $/sqft are dropped as outliers. */
 const OUTLIER_FACTOR = 1.5;
 const SQFT_TOLERANCE = 0.25;
@@ -166,32 +184,56 @@ export function estimateArv(subject: ArvSubject, index: CompIndex, now: number =
       }
     }
     const subKey = subdivisionKey(subject.subdivision);
+    const attached = ATTACHED_CLASSES.includes(subject.dwellingType);
+    const withinTier = (p: { comp: ClosedComp; miles: number }, miles: number, months: number, sameSubdivision: boolean) =>
+      p.miles <= miles && p.comp.closedAt >= now - months * MONTH_MS && (!sameSubdivision || p.comp.subdivision === subKey);
+    const result = (hits: { comp: ClosedComp; miles: number }[], ppsf: number, basis: ArvBasis, confidence: ArvConfidence, tier: { miles: number; months: number; sameSubdivision: boolean }): ArvEstimate => ({
+      arv: Math.round(ppsf * subject.sqft!),
+      pricePerSqft: ppsf,
+      method: "Sold comps",
+      basis,
+      confidence,
+      compCount: hits.length,
+      radiusMiles: tier.miles,
+      sameSubdivision: tier.sameSubdivision,
+      monthsBack: tier.months,
+      comps: hits.map((h) => ({ id: h.comp.id, distanceMiles: Math.round(h.miles * 100) / 100 })),
+    });
+
+    // 1-2. Flip resales, then renovated comps: already the after-repair market, so the median.
+    const renovatedTiers = [
+      ...(subKey ? [{ ...SUBDIVISION_TIER, sameSubdivision: true }] : []),
+      ...RENOVATED_TIERS.map((t) => ({ ...t, sameSubdivision: false })).filter((t) => !attached || t.miles <= ATTACHED_MAX_MILES),
+    ];
+    const evidence: [ArvBasis, (c: ClosedComp) => boolean][] = [
+      ["Flip resales", (c) => c.flipResale === true],
+      ["Renovated comps", (c) => c.flipResale === true || c.renovated === true],
+    ];
+    for (const [basis, qualifies] of evidence) {
+      for (const tier of renovatedTiers) {
+        const nearest = pool.filter((p) => qualifies(p.comp) && withinTier(p, tier.miles, tier.months, tier.sameSubdivision))
+          .sort((a, b) => a.miles - b.miles).slice(0, MAX_COMPS);
+        const hits = trimOutliers(nearest, (h) => h.comp.price / h.comp.sqft);
+        if (hits.length < MIN_COMPS) continue;
+        const ppsf = percentile(hits.map((h) => h.comp.price / h.comp.sqft), 0.5)!;
+        return result(hits, ppsf, basis, hits.length >= RENOVATED_HIGH_COMPS ? "High" : "Medium", tier);
+      }
+    }
+
+    // 3. All similar sales, priced at the upper quartile as a stand-in for renovated value.
     const tiers = [
       ...(subKey ? [{ ...SUBDIVISION_TIER, sameSubdivision: true }] : []),
-      ...TIERS.map((t) => ({ ...t, sameSubdivision: false }))
-        .filter((t) => !ATTACHED_CLASSES.includes(subject.dwellingType) || t.miles <= ATTACHED_MAX_MILES),
+      ...TIERS.map((t) => ({ ...t, sameSubdivision: false })).filter((t) => !attached || t.miles <= ATTACHED_MAX_MILES),
     ];
     for (const tier of tiers) {
-      const since = now - tier.months * MONTH_MS;
-      const nearest = pool
-        .filter((p) => p.miles <= tier.miles && p.comp.closedAt >= since && (!tier.sameSubdivision || p.comp.subdivision === subKey))
+      const nearest = pool.filter((p) => withinTier(p, tier.miles, tier.months, tier.sameSubdivision))
         .sort((a, b) => a.miles - b.miles).slice(0, MAX_COMPS);
       const hits = trimOutliers(nearest, (h) => h.comp.price / h.comp.sqft);
       if (hits.length < MIN_COMPS) continue;
       const ppsf = arvPpsf(hits.map((h) => h.comp.price / h.comp.sqft));
-      // Few comps at the tightest tier is still only Medium.
-      const confidence: ArvConfidence = tier.confidence === "High" && hits.length < 5 ? "Medium" : tier.confidence;
-      return {
-        arv: Math.round(ppsf * subject.sqft),
-        pricePerSqft: ppsf,
-        method: "Sold comps",
-        confidence,
-        compCount: hits.length,
-        radiusMiles: tier.miles,
-        sameSubdivision: tier.sameSubdivision,
-        monthsBack: tier.months,
-        comps: hits.map((h) => ({ id: h.comp.id, distanceMiles: Math.round(h.miles * 100) / 100 })),
-      };
+      // A guess at renovated value is never High.
+      const confidence: ArvConfidence = tier.confidence === "Low" ? "Low" : "Medium";
+      return result(hits, ppsf, "All sales", confidence, tier);
     }
   }
 
@@ -204,6 +246,7 @@ export function estimateArv(subject: ArvSubject, index: CompIndex, now: number =
     arv: Math.round(ppsf * subject.sqft),
     pricePerSqft: ppsf,
     method: "ZIP sold $/sqft",
+    basis: "All sales",
     confidence: "Low",
     compCount: zipSales.length,
     radiusMiles: null,

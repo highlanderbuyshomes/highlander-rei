@@ -29,7 +29,8 @@ describe("estimateArv", () => {
     expect(e.method).toBe("Sold comps");
     expect(e.compCount).toBe(5);
     expect(e.radiusMiles).toBe(0.5); // only 2 comps inside 0.25 mi
-    expect(e.confidence).toBe("High");
+    expect(e.basis).toBe("All sales");
+    expect(e.confidence).toBe("Medium"); // an all-sales guess at renovated value is never High
     // $/sqft 210,220,230,240,250 -> median 230
     expect(e.pricePerSqft).toBeCloseTo(230, 6);
     expect(e.arv).toBe(345000);
@@ -106,5 +107,23 @@ describe("subdivisionKey", () => {
     expect(subdivisionKey("  Garfield   CONDOS ")).toBe("garfield condos");
     expect(subdivisionKey("N/A")).toBeNull();
     expect(subdivisionKey(null)).toBeNull();
+  });
+
+  it("prefers flip resales, priced at their median, over all sales", () => {
+    const plain = [1, 2, 3, 4, 5, 6].map((i) => comp(i, { lat: 33.5 + i * 0.0005 }));
+    const flips = [7, 8, 9].map((i) => comp(i, { lat: 33.5 + i * 0.0005, price: 1500 * 300, flipResale: true }));
+    const e = estimateArv(subject, buildCompIndex([...plain, ...flips]), NOW)!;
+    expect(e.basis).toBe("Flip resales");
+    expect(e.compCount).toBe(3);
+    expect(e.confidence).toBe("Medium"); // fewer than 5 renovated comps
+    expect(e.pricePerSqft).toBeCloseTo(300, 6);
+  });
+
+  it("falls back to renovated-remarks comps when there are too few flips", () => {
+    const reno = [1, 2, 3, 4].map((i) => comp(i, { renovated: true }));
+    const e = estimateArv(subject, buildCompIndex([...reno, comp(5, { flipResale: true })]), NOW)!;
+    expect(e.basis).toBe("Renovated comps");
+    expect(e.compCount).toBe(5); // a lone flip resale still counts as renovated
+    expect(e.confidence).toBe("High");
   });
 });

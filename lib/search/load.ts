@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { DISTRESS_WORDS } from "@/lib/distress";
+import { CONDITION_PHRASES, MOTIVATED_PHRASES, pgPhraseRegex } from "@/lib/distress";
 import { RAW_KEYS } from "@/lib/integrations/reso-raw";
 import { buildWhere } from "./build-query";
 import { dwellingSql, normalizeDwelling, normalizeStatus, statusSql } from "./classify";
@@ -107,9 +107,13 @@ const num = (v: unknown): number | null => {
   return Number.isNaN(n) ? null : n;
 };
 
-function distressRegex() {
-  return DISTRESS_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-}
+const CONDITION_REGEX = pgPhraseRegex(CONDITION_PHRASES);
+const MOTIVATED_REGEX = pgPhraseRegex(MOTIVATED_PHRASES);
+
+/** Leased land (park manufactured homes, leasehold) is never a Deal Search result. */
+export const leasedLandSql = (src: string, prop: string) => Prisma.raw(`COALESCE(
+  lower(COALESCE(${src}->>'LandLeaseYN', ${prop}->>'LandLeaseYN', '')) = 'true'
+  OR lower(COALESCE(${src}->>'Ownership', ${prop}->>'Ownership', '')) = 'leasehold', false)`);
 
 type CandidateRow = {
   id: string;
@@ -128,6 +132,7 @@ type CandidateRow = {
   estimatedArv: number | null;
   originalListPrice: number | null;
   distress: boolean;
+  motivated: boolean;
   latitude: number | null;
   longitude: number | null;
   address: string;
@@ -144,8 +149,6 @@ type CandidateRow = {
  * page is loaded separately via `loadRowsByIds`.
  */
 export async function loadCandidates(filters: SearchFilters): Promise<ListingRecord[]> {
-  const regex = distressRegex();
-
   const rows = await prisma.$queryRaw<CandidateRow[]>`
     WITH b AS (
       SELECT p.id,
@@ -167,8 +170,8 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
         CASE WHEN p.source = 'reso' THEN NULL ELSE p."estimatedValue" END AS "estimatedArv",
         COALESCE(lower(COALESCE(src->>'PropertyType', '')) LIKE '%lease%' OR lower(COALESCE(src->>'PropertyType', '')) LIKE '%rental%', false) AS lease,
         ${numPrefix("COALESCE(src->>'OriginalListPrice', src->>'OriginalPrice', src->>'PreviousListPrice')")} AS "originalListPrice",
-        COALESCE(COALESCE(l."rawJson"->>'PublicRemarks', l."rawJson"->>'Remarks', l."rawJson"->>'MarketingRemarks', l."rawJson"->>'description',
-                           p."rawJson"->>'PublicRemarks', p."rawJson"->>'Remarks', p."rawJson"->>'MarketingRemarks', p."rawJson"->>'description') ~* ${regex}, false) AS distress,
+        COALESCE(${remarksOf('l."rawJson"')}, ${remarksOf('p."rawJson"')}) AS remarks,
+        ${leasedLandSql("src", 'p."rawJson"')} AS "leasedLand",
         p.latitude, p.longitude
       FROM "Property" p
       LEFT JOIN LATERAL (SELECT * FROM "MlsListing" WHERE "propertyId" = p.id ORDER BY "updatedAt" DESC LIMIT 1) l ON true
@@ -176,10 +179,13 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
       CROSS JOIN LATERAL (SELECT COALESCE(l."rawJson", p."rawJson") AS src) s
     ), c AS (
       -- Closed rows are priced (and price-filtered) at what they sold for.
-      SELECT b.*, CASE WHEN b.status = 'Closed' THEN COALESCE(b."closePrice", b."listPrice") ELSE b."listPrice" END AS price FROM b
+      SELECT b.*, CASE WHEN b.status = 'Closed' THEN COALESCE(b."closePrice", b."listPrice") ELSE b."listPrice" END AS price,
+        COALESCE(b.remarks ~* ${CONDITION_REGEX}, false) AS distress,
+        COALESCE(b.remarks ~* ${MOTIVATED_REGEX}, false) AS motivated
+      FROM b
     )
-    SELECT id, status, price, "closePrice", sqft, beds, "yearBuilt", zip, subdivision, dwelling, dom, "estimatedEquityPct", "ownerOccupied", "estimatedArv", "originalListPrice", distress, latitude, longitude, address
-    FROM c WHERE c.lease IS NOT TRUE AND c.status <> 'Deleted' AND ${buildWhere(filters)} ORDER BY c.id`;
+    SELECT id, status, price, "closePrice", sqft, beds, "yearBuilt", zip, subdivision, dwelling, dom, "estimatedEquityPct", "ownerOccupied", "estimatedArv", "originalListPrice", distress, motivated, latitude, longitude, address
+    FROM c WHERE c.lease IS NOT TRUE AND c."leasedLand" IS NOT TRUE AND c.status <> 'Deleted' AND ${buildWhere(filters)} ORDER BY c.id`;
 
   return rows.map((r) => ({
     id: r.id,
@@ -211,6 +217,7 @@ export async function loadCandidates(filters: SearchFilters): Promise<ListingRec
     originalListPrice: num(r.originalListPrice),
     remarks: null,
     distressSignal: r.distress,
+    motivatedSignal: r.motivated,
     source: "",
   }));
 }
@@ -219,7 +226,7 @@ type FullRow = {
   id: string; apn: string | null; streetAddress: string; city: string; state: string; zip: string;
   subdivision: string | null; propertyType: string | null; beds: number | null; baths: number | null;
   sqft: number | null; lotSqft: number | null; yearBuilt: number | null; latitude: number | null; longitude: number | null;
-  estimatedValue: number | null; lastSaleDate: Date | string | null; source: string; propLite: unknown; distress: boolean;
+  estimatedValue: number | null; lastSaleDate: Date | string | null; source: string; propLite: unknown; distress: boolean; motivated: boolean;
   mlsNumber: string | null; mlsStatus: string | null; listPrice: number | null; dom: number | null;
   listDate: Date | string | null; soldDate: Date | string | null; soldPrice: number | null; listSource: string | null; listLite: unknown;
   ownerFullName: string | null; ownerFirstName: string | null; ownerLastName: string | null;
@@ -235,14 +242,13 @@ const toDate = (v: Date | string | null) => (v ? new Date(v) : null);
  */
 export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
   if (ids.length === 0) return [];
-  const regex = distressRegex();
-
   const rows = await prisma.$queryRaw<FullRow[]>`
     SELECT p.id, p.apn, p."streetAddress", p.city, p.state, p.zip, p.subdivision, p."propertyType",
            p.beds, p.baths, p.sqft, p."lotSqft", p."yearBuilt", p.latitude, p.longitude,
            p."estimatedValue", p."lastSaleDate", p.source,
            ${liteOf('p."rawJson"')} AS "propLite",
-           COALESCE(COALESCE(${remarksOf('l."rawJson"')}, ${remarksOf('p."rawJson"')}) ~* ${regex}, false) AS distress,
+           COALESCE(COALESCE(${remarksOf('l."rawJson"')}, ${remarksOf('p."rawJson"')}) ~* ${CONDITION_REGEX}, false) AS distress,
+           COALESCE(COALESCE(${remarksOf('l."rawJson"')}, ${remarksOf('p."rawJson"')}) ~* ${MOTIVATED_REGEX}, false) AS motivated,
            l."mlsNumber", l."mlsStatus", l."listPrice", l.dom, l."listDate", l."soldDate", l."soldPrice", l.source AS "listSource",
            ${liteOf('COALESCE(l."rawJson", p."rawJson")')} AS "listLite",
            o."fullName" AS "ownerFullName", o."firstName" AS "ownerFirstName", o."lastName" AS "ownerLastName",
@@ -289,6 +295,7 @@ export async function loadRowsByIds(ids: string[]): Promise<ListingRecord[]> {
       estimatedArv: r.source === "reso" ? null : num(r.estimatedValue),
       originalListPrice: rawNumber(source, ["OriginalListPrice", "OriginalPrice", "PreviousListPrice"]),
       distressSignal: r.distress,
+      motivatedSignal: r.motivated,
       source: r.listSource ?? r.source,
     };
   });

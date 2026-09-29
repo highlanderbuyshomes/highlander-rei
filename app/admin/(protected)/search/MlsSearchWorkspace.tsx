@@ -45,8 +45,9 @@ function pct(value: number | null | undefined) {
   return value == null ? "—" : `${Math.round(value)}%`;
 }
 
-function arvBasis(d: Pick<DealCandidate, "arvSource" | "arvConfidence" | "arvCompCount" | "arvRadiusMiles" | "arvSameSubdivision">) {
-  if (d.arvSource === "Sold comps") return `${d.arvCompCount} sold comps ${d.arvSameSubdivision ? "in subdivision" : `≤${d.arvRadiusMiles} mi`} · ${d.arvConfidence}`;
+function arvBasis(d: Pick<DealCandidate, "arvSource" | "arvConfidence" | "arvCompCount" | "arvRadiusMiles" | "arvSameSubdivision" | "arvCompBasis">) {
+  const what = d.arvCompBasis === "Flip resales" ? "flip resales" : d.arvCompBasis === "Renovated comps" ? "renovated sales" : "sales (upper quartile)";
+  if (d.arvSource === "Sold comps") return `${d.arvCompCount} ${what} ${d.arvSameSubdivision ? "in subdivision" : `≤${d.arvRadiusMiles} mi`} · ${d.arvConfidence}`;
   if (d.arvSource === "ZIP sold $/sqft") return `ZIP sold $/sqft (${d.arvCompCount} sales) · Low`;
   if (d.arvSource === "Pocket $/sqft model") return "Asking $/sqft only · Low";
   return d.arvSource;
@@ -56,7 +57,7 @@ function shortDate(value?: string | null) {
   return value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 }
 
-const ARV_THRESHOLD_OPTIONS = [70, 75, 80] as const;
+const ARV_THRESHOLD_OPTIONS = [70, 75, 80, 85, 90] as const;
 const ARV_THRESHOLD_MIN = 1;
 const ARV_THRESHOLD_MAX = 99;
 
@@ -378,7 +379,7 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
   const visible = candidates.filter((item) => {
     if (mode === "rule70") return item.listToArvPct != null && item.listToArvPct <= threshold;
     if (mode === "ppsf") return (item.ppsfDiscountPct ?? 0) >= 10;
-    if (mode === "motivated") return ["Expired", "Canceled"].includes(normalizeStatus(item.status)) || (item.dom ?? 0) >= 60 || item.reasons.some((reason) => reason.includes("condition"));
+    if (mode === "motivated") return ["Expired", "Canceled"].includes(normalizeStatus(item.status)) || (item.dom ?? 0) >= 60 || item.reasons.some((reason) => reason.includes("Motivated") || reason.includes("condition"));
     return true;
   });
   const rule70Count = candidates.filter((item) => item.listToArvPct != null && item.listToArvPct <= threshold).length;

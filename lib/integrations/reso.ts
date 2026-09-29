@@ -148,7 +148,9 @@ function buildFilter(opts: ResoScopeOpts): string {
   return withArea(statusFilter);
 }
 
-const CLOSED_LOOKBACK_MONTHS = 12;
+// 24 months: ARV comps use the last 12, and spotting a flip resale in that
+// window needs the purchase before it (up to 12 months earlier).
+const CLOSED_LOOKBACK_MONTHS = 24;
 const PAGE_SIZE = 200;
 const MAX_PAGES = 1000; // safety cap: 200,000 listings per sync run
 

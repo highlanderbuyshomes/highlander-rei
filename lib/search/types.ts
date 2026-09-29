@@ -34,6 +34,8 @@ export type ListingRecord = {
   remarks?: string | null;
   /** Precomputed server-side from remarks so the long text needn't ship to the browser. */
   distressSignal?: boolean;
+  /** Motivated-seller language in remarks (precomputed server-side like distressSignal). */
+  motivatedSignal?: boolean;
   source: string;
 };
 
@@ -47,6 +49,8 @@ export type DealCandidate = ListingRecord & {
   arvCompCount: number | null;
   arvRadiusMiles: number | null;
   arvSameSubdivision: boolean;
+  /** What the sold comps were: flip resales, renovated sales, or all sales. */
+  arvCompBasis: import("./comps").ArvBasis | null;
   listToArvPct: number | null;
   rule70Price: number | null;
   rule70Spread: number | null;
