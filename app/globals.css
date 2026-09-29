@@ -648,7 +648,7 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: #12161c;
+    background: #2478c5;
     color: #ffffff;
     border: none;
     cursor: pointer;
@@ -698,9 +698,9 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   }
 
   .admin-mobile-drawer a.active {
-    color: #12161c;
+    color: #1b65aa;
     font-weight: 600;
-    background: #eef2f6;
+    background: #eaf3ff;
   }
 
   .admin-mobile-drawer-divider {

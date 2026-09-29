@@ -14,35 +14,29 @@ export default function AdminSidebar({ role }: { role?: string }) {
       style={{
         width: "88px",
         flexShrink: 0,
-        background: "#12161c",
+        background: "#ffffff",
         minHeight: "calc(100vh - 56px)",
         position: "sticky",
         top: "56px",
         alignSelf: "flex-start",
-        boxShadow: "1px 0 0 rgba(0,0,0,.06), 4px 0 16px -8px rgba(15,23,32,.35)",
+        borderRight: "1px solid #e2e8f0",
       }}
     >
       <nav className="flex flex-col items-center gap-2 py-4">
         {navItems.map(({ href, label, icon }) => {
           const active = pathname.startsWith(href);
           return (
-            <Link key={href} href={href} title={label} className="group flex w-full flex-col items-center gap-1 py-1">
+            <Link key={href} href={href} title={label} aria-label={label} aria-current={active ? "page" : undefined} className="group flex w-full flex-col items-center gap-1 py-1">
               <span
                 className={`flex h-11 w-11 items-center justify-center rounded-md transition-all duration-150 ${
                   active
-                    ? "bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
-                    : "text-white/50 group-hover:bg-white/10 group-hover:text-white"
+                    ? "bg-blue-50 text-blue-600 ring-1 ring-blue-100"
+                    : "text-blue-500 group-hover:bg-blue-50 group-hover:text-blue-700"
                 }`}
               >
                 {icon(18)}
               </span>
-              <span
-                className={`text-[9px] font-semibold uppercase tracking-wide ${
-                  active ? "text-white" : "text-white/40 group-hover:text-white/70"
-                }`}
-              >
-                {label === "Our Buyers" ? "Buyers" : label}
-              </span>
+
             </Link>
           );
         })}

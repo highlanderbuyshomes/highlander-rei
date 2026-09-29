@@ -4,7 +4,7 @@
 .viewNav { height: 48px; display: flex; justify-content: flex-end; align-items: end; gap: 24px; padding: 0 28px; border-bottom: 1px solid #cfd3d6; background: #f6f7f8; }.viewNav button { height: 48px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #0878cf; font: 600 12px var(--font-body); cursor: pointer; }.viewNav .viewActive { border-bottom-color: #1687d1; color: #30363a; }
 .searchWorkspace { display: grid; grid-template-columns: 350px minmax(0,1fr); height: calc(100vh - 212px); min-height: 620px; gap: 10px; padding: 8px 12px 12px; }.criteriaPanel { display: flex; min-height: 0; flex-direction: column; overflow: hidden; border: 1px solid #c8cdd1; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.12); }.resultHeading { height: 37px; display: flex; align-items: center; padding: 0 10px; color: #22669b; font-size: 12px; }.resultHeading strong { margin-left: 3px; }.resultHeading button { margin-left: auto; border: 0; background: transparent; color: #2682c7; font-size: 22px; cursor: pointer; }.mlsLookup { min-height: 37px; display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-block: 1px solid #d8dcdf; }.mlsLookup > span { width: 17px; height: 17px; display: grid; place-items: center; border: 2px solid #1585d1; border-radius: 50%; color: #1585d1; font: 700 10px var(--font-body); }.mlsLookup input { min-width: 0; flex: 1; height: 24px; padding: 0 6px; border: 1px solid #666; border-radius: 3px; outline: none; font: 11px var(--font-body); }.mlsLookup button { border: 0; background: transparent; color: #176aa8; font: 600 10px var(--font-body); cursor: pointer; white-space: nowrap; }
 .criteriaList { flex: 1; min-height: 0; overflow-y: auto; }.criterion { border-bottom: 1px solid #e0e2e4; background: #fff; }.criterionActive { background: #fbfdff; }.criterionLabel { min-height: 37px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; cursor: pointer; }.criterionLabel input { width: 15px; height: 15px; accent-color: #1685d2; }.criterionLabel strong { font-size: 11.5px; }.criterionLabel span { overflow: hidden; color: #166da9; font-size: 10px; text-decoration: underline; text-overflow: ellipsis; white-space: nowrap; }.optionGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 12px 10px 32px; }.optionGrid label { display: flex; align-items: center; gap: 5px; color: #4c5357; font-size: 9.5px; }.optionGrid input { accent-color: #1785d1; }.rangeInputs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 5px; padding: 0 12px 10px 32px; }.rangeInputs label { height: 28px; display: flex; align-items: center; padding-left: 6px; border: 1px solid #bdc4c8; border-radius: 3px; color: #667078; font-size: 9px; background: #fff; }.rangeInputs input { width: 100%; min-width: 0; border: 0; outline: 0; font: 10px var(--font-body); }.rangeInputs > span { color: #858b8f; font-size: 9px; }.singleInput { width: calc(100% - 44px); height: 29px; margin: 0 12px 10px 32px; padding: 0 7px; border: 1px solid #bdc4c8; border-radius: 3px; background: #fff; font: 10px var(--font-body); }.criteriaFooter { display: flex; gap: 6px; padding: 8px; border-top: 1px solid #d7dbde; background: #f5f6f7; }.criteriaFooter button { flex: 1; height: 31px; border: 1px solid #c5cbd0; border-radius: 3px; background: #fff; color: #4f585e; font: 700 10px var(--font-body); cursor: pointer; }.criteriaFooter .applyButton { border-color: #0878c8; background: #1287d4; color: #fff; }.previewNote { padding: 6px 9px; border-top: 1px solid #eedfae; background: #fff9e8; color: #786631; font-size: 8px; }
-.mainStage { min-width: 0; overflow: hidden; border: 1px solid #c8cdd1; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.1); }.mapCanvas { position: relative; width: 100%; height: 100%; min-height: 620px; overflow: hidden; background: #e8e4d9; }.roadGrid { position: absolute; inset: 0; opacity: .85; background-color: #eeeae0; background-image: linear-gradient(18deg, transparent 47%, #c8d0d7 48%, #c8d0d7 49%, transparent 50%), linear-gradient(108deg, transparent 47%, #cbd4dc 48%, #cbd4dc 49%, transparent 50%), linear-gradient(#d9dfe2 1px, transparent 1px), linear-gradient(90deg, #d9dfe2 1px, transparent 1px), radial-gradient(circle at 77% 22%, #bee8cb 0 8%, transparent 8.5%), radial-gradient(circle at 20% 18%, #d7e8c7 0 11%, transparent 11.5%), radial-gradient(circle at 50% 90%, #c5e4c7 0 14%, transparent 14.5%); background-size: 220px 170px, 240px 190px, 34px 34px, 34px 34px, 100% 100%, 100% 100%, 100% 100%; }.mapControls { position: absolute; z-index: 8; top: 12px; right: 12px; display: flex; gap: 5px; }.mapControls button { height: 32px; padding: 0 13px; border: 0; border-radius: 5px; background: rgba(255,255,255,.96); box-shadow: 0 1px 4px rgba(0,0,0,.12); color: #0678cc; font: 700 10px var(--font-body); cursor: pointer; }.mapControls .mapControlActive { background: #111; color: #fff; }.cityLabel { position: absolute; z-index: 2; transform: translate(-50%,-50%); color: #384247; font-size: 13px; font-weight: 600; text-shadow: 0 1px #fff, 1px 0 #fff; }.freeway { position: absolute; z-index: 1; height: 24px; min-width: 420px; border-block: 4px solid #809ab7; color: #fff; font: 700 9px var(--font-body); text-shadow: 0 1px #344; }.freewayTen { left: 12%; top: 58%; transform: rotate(1deg); }.freewaySeventeen { left: 35%; top: 23%; transform: rotate(90deg); }.freewayOneOhOne { right: 6%; top: 37%; transform: rotate(-38deg); }.mapPin { position: absolute; z-index: 4; transform: translate(-50%,-50%); padding: 4px 6px; border: 2px solid #fff; border-radius: 14px; background: #167fbd; box-shadow: 0 2px 5px rgba(0,0,0,.3); color: #fff; font: 700 8px var(--font-body); cursor: pointer; }.mapPinSelected { z-index: 7; background: #d05032; transform: translate(-50%,-50%) scale(1.14); }.mapCard { position: absolute; z-index: 9; left: 16px; bottom: 16px; width: 300px; padding: 13px; border: 1px solid #bec5c9; border-radius: 5px; background: rgba(255,255,255,.97); box-shadow: 0 4px 14px rgba(0,0,0,.19); }.mapCard > button { position: absolute; right: 7px; top: 4px; border: 0; background: transparent; color: #70777b; font-size: 18px; cursor: pointer; }.mapCard > span { color: #1680c8; font-size: 8px; font-weight: 700; text-transform: uppercase; }.mapCard h2 { margin-top: 3px; font-size: 14px; }.mapCard p { color: #737b80; font-size: 9px; }.mapCard div { display: flex; align-items: baseline; justify-content: space-between; margin-top: 9px; padding-top: 8px; border-top: 1px solid #e0e3e5; }.mapCard div strong { font-size: 14px; }.mapCard div span { color: #555f64; font-size: 9px; }.mapCard small { display: block; margin-top: 6px; color: #7a8287; font-size: 8px; }.zoomControls { position: absolute; z-index: 8; right: 18px; bottom: 18px; display: grid; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 5px rgba(0,0,0,.2); }.zoomControls button { width: 34px; height: 34px; border: 0; border-bottom: 1px solid #d2d5d7; background: #fff; color: #596167; font-size: 24px; cursor: pointer; }
+.mainStage { min-width: 0; overflow: hidden; border: 1px solid #c8cdd1; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.1); }.mapCanvas { position: relative; width: 100%; height: 100%; min-height: 620px; overflow: hidden; background: #e8e4d9; }.roadGrid { position: absolute; inset: 0; opacity: .85; background-color: #eeeae0; background-image: linear-gradient(18deg, transparent 47%, #c8d0d7 48%, #c8d0d7 49%, transparent 50%), linear-gradient(108deg, transparent 47%, #cbd4dc 48%, #cbd4dc 49%, transparent 50%), linear-gradient(#d9dfe2 1px, transparent 1px), linear-gradient(90deg, #d9dfe2 1px, transparent 1px), radial-gradient(circle at 77% 22%, #bee8cb 0 8%, transparent 8.5%), radial-gradient(circle at 20% 18%, #d7e8c7 0 11%, transparent 11.5%), radial-gradient(circle at 50% 90%, #c5e4c7 0 14%, transparent 14.5%); background-size: 220px 170px, 240px 190px, 34px 34px, 34px 34px, 100% 100%, 100% 100%, 100% 100%; }.mapControls { position: absolute; z-index: 8; top: 12px; right: 12px; display: flex; gap: 5px; }.mapControls button { height: 32px; padding: 0 13px; border: 0; border-radius: 5px; background: rgba(255,255,255,.96); box-shadow: 0 1px 4px rgba(0,0,0,.12); color: #0678cc; font: 700 10px var(--font-body); cursor: pointer; }.mapControls .mapControlActive { background: #2478c5; color: #fff; }.cityLabel { position: absolute; z-index: 2; transform: translate(-50%,-50%); color: #384247; font-size: 13px; font-weight: 600; text-shadow: 0 1px #fff, 1px 0 #fff; }.freeway { position: absolute; z-index: 1; height: 24px; min-width: 420px; border-block: 4px solid #809ab7; color: #fff; font: 700 9px var(--font-body); text-shadow: 0 1px #344; }.freewayTen { left: 12%; top: 58%; transform: rotate(1deg); }.freewaySeventeen { left: 35%; top: 23%; transform: rotate(90deg); }.freewayOneOhOne { right: 6%; top: 37%; transform: rotate(-38deg); }.mapPin { position: absolute; z-index: 4; transform: translate(-50%,-50%); padding: 4px 6px; border: 2px solid #fff; border-radius: 14px; background: #167fbd; box-shadow: 0 2px 5px rgba(0,0,0,.3); color: #fff; font: 700 8px var(--font-body); cursor: pointer; }.mapPinSelected { z-index: 7; background: #d05032; transform: translate(-50%,-50%) scale(1.14); }.mapCard { position: absolute; z-index: 9; left: 16px; bottom: 16px; width: 300px; padding: 13px; border: 1px solid #bec5c9; border-radius: 5px; background: rgba(255,255,255,.97); box-shadow: 0 4px 14px rgba(0,0,0,.19); }.mapCard > button { position: absolute; right: 7px; top: 4px; border: 0; background: transparent; color: #70777b; font-size: 18px; cursor: pointer; }.mapCard > span { color: #1680c8; font-size: 8px; font-weight: 700; text-transform: uppercase; }.mapCard h2 { margin-top: 3px; font-size: 14px; }.mapCard p { color: #737b80; font-size: 9px; }.mapCard div { display: flex; align-items: baseline; justify-content: space-between; margin-top: 9px; padding-top: 8px; border-top: 1px solid #e0e3e5; }.mapCard div strong { font-size: 14px; }.mapCard div span { color: #555f64; font-size: 9px; }.mapCard small { display: block; margin-top: 6px; color: #7a8287; font-size: 8px; }.zoomControls { position: absolute; z-index: 8; right: 18px; bottom: 18px; display: grid; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 5px rgba(0,0,0,.2); }.zoomControls button { width: 34px; height: 34px; border: 0; border-bottom: 1px solid #d2d5d7; background: #fff; color: #596167; font-size: 24px; cursor: pointer; }
 .resultsTable { height: 100%; overflow: auto; }.resultsTable table { width: 100%; border-collapse: collapse; white-space: nowrap; }.resultsTable th { position: sticky; top: 0; z-index: 1; height: 38px; padding: 0 8px; border-bottom: 1px solid #c8cdd1; background: #f0f2f3; color: #566168; text-align: left; font-size: 8px; text-transform: uppercase; }.resultsTable td { height: 44px; padding: 0 8px; border-bottom: 1px solid #e3e6e8; color: #475159; font-size: 9px; cursor: pointer; }.resultsTable tr:hover td { background: #edf6fc; }.resultsTable td strong, .resultsTable td small { display: block; }.resultsTable td strong { color: #1d5f91; }.resultsTable td small { color: #899095; font-size: 8px; }.detailView { max-width: 800px; padding: 34px; }.detailView > span { color: #187fc3; font-size: 10px; font-weight: 700; }.detailView h2 { margin-top: 6px; font-size: 26px; }.detailView > p { color: #798187; font-size: 12px; }.detailGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 25px; }.detailGrid div { display: grid; gap: 4px; padding: 13px; border: 1px solid #dce0e3; border-radius: 5px; background: #f8f9f9; }.detailGrid small { color: #7c858b; font-size: 8px; text-transform: uppercase; }.detailGrid strong { font-size: 12px; }.placeholder { min-height: 400px; display: grid; place-items: center; align-content: center; gap: 7px; color: #788187; }.placeholder strong { color: #334047; font-size: 18px; }.placeholder span { font-size: 11px; }
 .savedPage { min-height: calc(100vh - 56px); padding: 28px; background: #f4f5f6; }.savedPage > button { border: 0; background: transparent; color: #0878cf; font: 600 11px var(--font-body); cursor: pointer; }.savedPage header { margin: 18px 0; }.savedPage h1 { font: 700 27px var(--font-body); }.savedPage header p { color: #778087; font: 11px var(--font-body); }.savedGrid { display: grid; grid-template-columns: 310px 1fr; gap: 14px; }.newSearch, .savedGrid section article { padding: 17px; border: 1px solid #d4d9dc; border-radius: 5px; background: #fff; }.newSearch { display: grid; gap: 11px; align-content: start; }.newSearch h2 { font: 700 15px var(--font-body); }.newSearch label { display: grid; gap: 4px; color: #657077; font: 700 8px var(--font-body); text-transform: uppercase; }.newSearch input, .newSearch textarea { padding: 8px; border: 1px solid #c8cfd3; border-radius: 3px; font: 10px var(--font-body); resize: vertical; }.newSearch > button { height: 32px; border: 0; border-radius: 3px; background: #1184cf; color: #fff; font: 700 10px var(--font-body); }.savedGrid section { display: grid; gap: 9px; align-content: start; }.savedGrid section article > div { display: flex; justify-content: space-between; }.savedGrid section article strong { font: 700 12px var(--font-body); }.savedGrid section article span, .savedGrid section article p { color: #7b8489; font: 9px var(--font-body); }.savedGrid section article footer { display: flex; gap: 5px; margin-top: 9px; }.savedGrid section article footer button { padding: 5px 8px; border: 1px solid #ccd2d5; border-radius: 3px; background: #fff; color: #4d5960; font: 700 8px var(--font-body); }
 .mapPinDeal { background: #d06a2f; box-shadow: 0 0 0 3px rgba(208,106,47,.2), 0 2px 6px rgba(0,0,0,.3); }.mapPinSelected { z-index: 7; background: #b53d2a; }
@@ -125,16 +125,16 @@
 @media (max-width: 780px) { .buyerBoxPanel { flex-wrap: wrap; }.buyerBoxPanel .manageBuyerBoxes { margin-left: 0; }.searchWorkspace, .searchWorkspaceWithBuyerBoxes { height: auto; }.manualZoomControls { bottom: 20px; } }
 
 /* Sidebar-matched monochrome system. Map-specific controls and colors stay unchanged. */
-.shell { background: #f5f5f4; color: #111110; }
+.shell { background: #f5f8fc; color: #111110; }
 .pageHeader { border-bottom-color: #dededb; background: #fff; }
 .pageHeader .searchTitle h1 { color: #111110; }
 .searchTitle p { color: #6f6f6b; }
-.titleIndex { background: #111110; color: #fff; }
+.titleIndex { background: #2478c5; color: #fff; }
 .viewNav { border-color: #d9d9d6; background: #f4f4f2; }
 .viewNav button { color: #686864; }
 .viewNav button:hover { color: #111110; }
 .viewNav .viewActive { background: #fff; color: #111110; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
-.pageHeader .saveSearchButton { border-color: #111110; background: #111110; color: #fff; }
+.pageHeader .saveSearchButton { border-color: #2478c5; background: #2478c5; color: #fff; }
 
 .criteriaPanel,
 .mainStage,
@@ -151,7 +151,7 @@
 .mlsLookup input:focus,
 .rangeInputs label:focus-within,
 .singleInput:focus,
-.statusDateFilter select:focus { border-color: #111110; box-shadow: 0 0 0 1px #111110; }
+.statusDateFilter select:focus { border-color: #2478c5; box-shadow: 0 0 0 1px #111110; }
 .criterion { border-bottom-color: #e3e3e0; }
 .criterionActive { background: #f7f7f5; }
 .criterionLabel input,
@@ -162,7 +162,7 @@
 .statusDateFilter { color: #4d4d49; }
 .criteriaFooter { border-top-color: #d9d9d6; background: #f3f3f1; }
 .criteriaFooter button { border-color: #c7c7c3; background: #fff; color: #111110; }
-.criteriaFooter .applyButton { border-color: #111110; background: #111110; color: #fff; }
+.criteriaFooter .applyButton { border-color: #2478c5; background: #2478c5; color: #fff; }
 .previewNote { border-top-color: #d8d8d4; background: #f2f2ef; color: #5d5d58; }
 
 .resultsTable th { border-bottom-color: #d0d0cd; background: #f0f0ee; color: #555551; }
@@ -178,7 +178,7 @@
 .placeholder strong { color: #111110; }
 
 .dealSection { background: #fff; }
-.dealHeader { border-bottom-color: #2d2d2a; background: #111110; color: #fff; }
+.dealHeader { border-bottom-color: #2478c5; background: #2478c5; color: #fff; }
 .dealHeader > div > span { color: rgba(255, 255, 255, .62); }
 .dealHeader p,
 .dealLegend { color: rgba(255, 255, 255, .68); }
@@ -189,7 +189,7 @@
 .dealMetrics small { color: #8b8b86; }
 .dealToolbar { border-bottom-color: #dededb; background: #f4f4f2; }
 .dealToolbar button { border-color: #cececa; background: #fff; color: #4f4f4b; }
-.dealToolbar .dealModeActive { border-color: #111110; background: #111110; color: #fff; }
+.dealToolbar .dealModeActive { border-color: #2478c5; background: #2478c5; color: #fff; }
 .dealToolbar > span { color: #74746f; }
 .thresholdGroup > span { color: #74746f; }
 .thresholdCustom { border-color: #cececa; background: #fff; color: #4f4f4b; }
@@ -200,18 +200,18 @@
 .dealTable td > strong,
 .scoreCell > strong { color: #111110; }
 .dealTable td > small { color: #858580; }
-.priorityTargetnow { background: #111110; color: #fff; }
+.priorityTargetnow { background: #2478c5; color: #fff; }
 .priorityHigh { background: #444441; color: #fff; }
 .priorityWatch { background: #d8d8d4; color: #292927; }
 .priorityLow { background: #eeeeeb; color: #666662; }
 .scoreCell > span { background: #dededb; }
-.scoreCell i { background: #111110; }
+.scoreCell i { background: #2478c5; }
 .dealTable .ruleMatch,
 .dealTable .positiveSpread { color: #111110; }
 .reasonList span { background: #eeeeeb; color: #444441; }
 .dealActions a,
 .dealActions button { border-color: #aaa9a5; background: #fff; color: #111110; }
-.dealActions form button { border-color: #111110; background: #111110; color: #fff; }
+.dealActions form button { border-color: #2478c5; background: #2478c5; color: #fff; }
 .dealActions button:disabled { border-color: #d5d5d1; background: #f1f1ef; color: #999994; }
 .noDeals { color: #777772; }
 .noDeals strong { color: #111110; }
@@ -239,7 +239,7 @@
 .mlsLookup input:focus,
 .rangeInputs label:focus-within,
 .singleInput:focus,
-.statusDateFilter select:focus { border-color: #12161c; box-shadow: 0 0 0 3px rgba(18,22,28,.1); }
+.statusDateFilter select:focus { border-color: #2478c5; box-shadow: 0 0 0 3px rgba(18,22,28,.1); }
 .criterion { border-bottom-color: #ecf0f3; }
 .criterionActive { background: #f6f9fb; }
 .optionGrid label,
@@ -249,7 +249,7 @@
 .criteriaFooter button { border-color: #d3dbe1; }
 .criteriaFooter button:hover { border-color: #b7c2cb; background: #f6f9fb; }
 .criteriaFooter .applyButton { box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 16px -8px rgba(18,22,28,.5); }
-.criteriaFooter .applyButton:hover { background: #22262c; border-color: #22262c; }
+.criteriaFooter .applyButton:hover { background: #1b65aa; border-color: #1b65aa; }
 
 .resultsTable th { background: #eef2f6; color: #5b6b7a; font-size: 8.5px; letter-spacing: .5px; }
 .resultsTable td { border-bottom-color: #ecf0f3; font-variant-numeric: tabular-nums; }
@@ -258,15 +258,15 @@
 .detailGrid div { border-color: #e1e7ec; background: #f8fafb; }
 .placeholder { color: #8996a3; }
 
-.dealHeader { background: #12161c; }
+.dealHeader { background: #2478c5; }
 .dealMetrics { border-bottom-color: #e1e7ec; }
 .dealMetrics > div { border-right-color: #ecf0f3; }
 .dealMetrics span { color: #7c8896; }
 .dealMetrics strong { font-variant-numeric: tabular-nums; }
 .dealToolbar { border-bottom-color: #e1e7ec; background: #f6f9fb; }
 .dealToolbar button:hover { border-color: #b7c2cb; }
-.dealToolbar .dealModeActive { border-color: #12161c; background: #12161c; box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 4px 10px -5px rgba(18,22,28,.55); }
-.thresholdCustom:focus-within { border-color: #12161c; box-shadow: 0 0 0 3px rgba(18,22,28,.1); }
+.dealToolbar .dealModeActive { border-color: #2478c5; background: #2478c5; box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 4px 10px -5px rgba(18,22,28,.55); }
+.thresholdCustom:focus-within { border-color: #2478c5; box-shadow: 0 0 0 3px rgba(18,22,28,.1); }
 .thresholdCustom input { font-variant-numeric: tabular-nums; }
 
 .dealTable th { background: #eef2f6; color: #64748b; font-size: 8.5px; }
@@ -275,7 +275,7 @@
 .dealTable tbody tr:hover td { background: #f6f9fb; }
 .scoreCell > strong { font-variant-numeric: tabular-nums; }
 .priorityBadge { font-size: 8px; }
-.priorityTargetnow { background: #12161c; }
+.priorityTargetnow { background: #2478c5; }
 .scoreCell > span { background: #e1e7ec; }
 .scoreCell i { box-shadow: 0 0 6px rgba(203,142,55,.35); }
 .reasonList span { background: #eef2f6; color: #526172; font-size: 7.5px; }
@@ -284,7 +284,7 @@
 .dealActions a:hover,
 .dealActions button:not(:disabled):hover { border-color: #b7c2cb; background: #f6f9fb; }
 .dealActions form button { box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 14px -8px rgba(18,22,28,.5); }
-.dealActions form button:hover { background: #22262c; border-color: #22262c; }
+.dealActions form button:hover { background: #1b65aa; border-color: #1b65aa; }
 .dealDisclaimer { border-top-color: #e1e7ec; background: #f8fafb; color: #8996a3; }
 
 .mapError { gap: 8px; background: #eef2f6; color: #64748b; }
@@ -303,8 +303,8 @@
 .detailLinks { display: flex; gap: 8px; margin-top: 12px; }
 .detailLinks a { height: 30px; display: inline-grid; place-items: center; padding: 0 14px; border: 1px solid #a9c9de; border-radius: 4px; background: #fff; color: #126fae; font-size: 11px; font-weight: 700; text-decoration: none; }
 .detailLinks a:hover { background: #edf6fc; }
-.dealActions a.offerButton { border-color: #111110; background: #111110; color: #fff; }
-.dealActions a.offerButton:hover { background: #22262c; border-color: #22262c; }
+.dealActions a.offerButton { border-color: #2478c5; background: #2478c5; color: #fff; }
+.dealActions a.offerButton:hover { background: #1b65aa; border-color: #1b65aa; }
 
 /* Consistent, touch-friendly filter controls, independent of inherited type sizes. */
 .searchWorkspace { grid-template-columns: 340px minmax(0, 1fr); }
@@ -357,7 +357,7 @@
 .cityChoices { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .cityChoices button { min-height: 34px; padding: 6px 10px; border: 1px solid #d3dbe1; border-radius: 18px; background: #fff; color: #526172; font: 500 12px var(--font-body); cursor: pointer; }
 .cityChoices button:hover { border-color: #64748b; }
-.cityChoices button[aria-pressed="true"] { border-color: #111110; background: #111110; color: #fff; }
+.cityChoices button[aria-pressed="true"] { border-color: #2478c5; background: #2478c5; color: #fff; }
 @media (max-width: 780px) {
   .cityFilter > input { font-size: 16px; }
   .cityChoices button { min-height: 44px; }
@@ -375,7 +375,7 @@
 .rectangleIcon, .circleIcon { background: #a6dcff; border-color: #78c5f6; }
 .mapModeControl { top: 14px; right: 14px; gap: 4px; padding: 4px; border-radius: 8px; }
 .mapModeControl button { height: 34px; padding: 0 16px; font: 600 13px var(--font-body); color: #0674c5; }
-.mapModeControl .mapModeActive { background: #111110; color: white; }
+.mapModeControl .mapModeActive { background: #2478c5; color: white; }
 .mapModeControl button:disabled, .manualZoomControls button:disabled { opacity: .5; cursor: not-allowed; }
 .manualZoomControls { right: 14px; bottom: 44px; }
 .manualZoomControls button { width: 44px; height: 40px; }
