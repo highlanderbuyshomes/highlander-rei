@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { buildFilter } from "./reso";
-import { toRentalRow } from "./rental-sync";
+import { resolveRentalPlan, toRentalRow } from "./rental-sync";
 
 describe("buildFilter leaseOnly", () => {
   it("selects residential leases modified since the watermark", () => {
@@ -44,5 +44,34 @@ describe("toRentalRow", () => {
 
   it("skips listings without a ZIP (no address key to join on)", () => {
     expect(toRentalRow({ ListingKey: "k3", UnparsedAddress: "1 Main St" })).toBeNull();
+  });
+});
+
+describe("resolveRentalPlan", () => {
+  const now = new Date("2026-09-30T12:00:00Z");
+
+  it("bootstraps 24 months of rentals when nothing has run", () => {
+    const plan = resolveRentalPlan(null, now);
+    expect(plan.kind).toBe("bootstrap");
+    expect(plan.scope).toEqual({ counties: ["Maricopa", "Pinal"], modifiedSince: "2024-09-30T12:00:00.000Z" });
+    expect(plan.control.meta).toEqual({ watermark: now.toISOString() });
+    expect(plan.control.resumeUrl).toBeUndefined();
+  });
+
+  it("resumes a partial run from its resume URL, keeping its watermark and scope", () => {
+    const scope = { counties: ["Maricopa", "Pinal"], modifiedSince: "2024-09-30T12:00:00.000Z" };
+    const plan = resolveRentalPlan({ status: "partial", rawMeta: { watermark: "2026-09-30T10:00:00.000Z", resumeUrl: "https://x/next", scope } }, now);
+    expect(plan).toEqual({ kind: "resume", scope, control: { resumeUrl: "https://x/next", meta: { watermark: "2026-09-30T10:00:00.000Z" } } });
+  });
+
+  it("runs incremental from a completed run's watermark, less a 5-minute overlap", () => {
+    const plan = resolveRentalPlan({ status: "completed", rawMeta: { watermark: "2026-09-30T11:00:00.000Z" } }, now);
+    expect(plan.kind).toBe("incremental");
+    expect(plan.scope.modifiedSince).toBe("2026-09-30T10:55:00.000Z");
+    expect(plan.control.meta).toEqual({ watermark: now.toISOString() });
+  });
+
+  it("bootstraps again when a partial run lost its resume point", () => {
+    expect(resolveRentalPlan({ status: "partial", rawMeta: { watermark: "2026-09-30T10:00:00.000Z" } }, now).kind).toBe("bootstrap");
   });
 });

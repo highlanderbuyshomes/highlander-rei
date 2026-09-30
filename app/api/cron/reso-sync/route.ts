@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { syncResoListings } from "@/lib/integrations/reso-sync";
 import { isResoConfigured } from "@/lib/integrations/reso";
-import { PLAN_STATUSES, resolveSyncPlan, VALLEY_COUNTIES } from "@/lib/integrations/reso-sync-plan";
-import { RENTAL_SOURCE, syncRentalListings, type RentalSyncResult } from "@/lib/integrations/rental-sync";
+import { PLAN_STATUSES, resolveSyncPlan } from "@/lib/integrations/reso-sync-plan";
+import { RENTAL_SOURCE, resolveRentalPlan, syncRentalListings, type RentalSyncResult } from "@/lib/integrations/rental-sync";
 
 // Live MLS feed: called every ~10 minutes by .github/workflows/reso-sync.yml
 // (Vercel cron on the Hobby plan only runs daily). Pulls just what changed
@@ -42,24 +42,23 @@ function authorized(req: NextRequest): boolean {
 }
 
 /**
- * Incremental rental listings for Investor comps, from the last completed
- * rental run. Skipped until scripts/backfill-rentals.ts has run once. Never
- * fails the sales sync.
+ * Rental listings for Investor comps. The first passes load 24 months in
+ * resumable chunks (paused near the DB size cap, like the sales bootstrap);
+ * after that, just what changed. Never fails the sales sync.
  */
 async function syncRentals(started: number): Promise<RentalSyncResult | { skipped: string } | { error: string }> {
   if (Date.now() > started + RENTAL_START_BY) return { skipped: "no time left" };
   try {
-    const last = await prisma.importRun.findFirst({
-      where: { source: RENTAL_SOURCE, status: "completed" },
+    const latest = await prisma.importRun.findFirst({
+      where: { source: RENTAL_SOURCE, status: { in: ["completed", "partial"] } },
       orderBy: { startedAt: "desc" },
-      select: { rawMeta: true, startedAt: true },
+      select: { status: true, rawMeta: true },
     });
-    if (!last) return { skipped: "rentals not backfilled" };
-    const watermark = (last.rawMeta as { watermark?: string } | null)?.watermark ?? last.startedAt!.toISOString();
-    return await syncRentalListings(
-      { counties: VALLEY_COUNTIES, modifiedSince: watermark },
-      { deadline: started + RENTAL_DEADLINE, meta: { watermark: new Date(started).toISOString() } },
-    );
+    const plan = resolveRentalPlan(latest, new Date(started));
+    if (plan.kind !== "incremental" && (await databaseBytes()) > DB_CAP_BYTES * BOOTSTRAP_MAX_SHARE) {
+      return { skipped: "rental backfill paused near database size cap" };
+    }
+    return await syncRentalListings(plan.scope, { ...plan.control, deadline: started + RENTAL_DEADLINE });
   } catch (err) {
     console.error("[reso/cron] rental pass failed:", err);
     return { error: err instanceof Error ? err.message : String(err) };

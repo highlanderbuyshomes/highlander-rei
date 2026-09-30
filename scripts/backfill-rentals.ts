@@ -1,7 +1,8 @@
 // One-time backfill: 24 months of ARMLS rental listings into RentalListing,
 // for Investor comps' landlord detection. Dry run by default (reads one page,
 // writes nothing); pass --apply to write. Safe to re-run: rows upsert by MLS #.
-// The completed run it records is the watermark the 10-minute cron continues from.
+// Optional: the 10-minute cron bootstraps the same 24 months on its own in
+// resumable chunks; this just does it in one go where RESO_ACCESS_TOKEN is set.
 //   npx tsx --env-file=.env.local scripts/backfill-rentals.ts [--apply]
 import { fetchResoListingPages, type ResoScopeOpts } from "../lib/integrations/reso";
 import { VALLEY_COUNTIES } from "../lib/integrations/reso-sync-plan";

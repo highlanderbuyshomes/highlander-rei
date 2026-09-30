@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { fetchResoListingPages, type ResoListing, type ResoScopeOpts } from "./reso";
 import { formatStreetAddress, normalizeAddressFingerprint } from "./reso-sync";
+import { OVERLAP_MS, VALLEY_COUNTIES } from "./reso-sync-plan";
 
 /**
  * ARMLS rental listings for Investor comps: a cash buy followed by a rental
@@ -12,6 +13,35 @@ export const RENTAL_SOURCE = "reso-lease";
 export type RentalRow = { mlsNumber: string; addressFingerprint: string; listDate: string | null; rent: number | null };
 
 export type RentalSyncResult = { importRunId: string; fetched: number; saved: number; partial: boolean };
+
+/** Months of rental listings the first (bootstrap) pass loads. */
+export const RENTAL_BOOTSTRAP_MONTHS = 24;
+
+export type RentalSyncControl = { deadline?: number; resumeUrl?: string; meta?: Record<string, unknown> };
+
+export type RentalPlan = { kind: "bootstrap" | "resume" | "incremental"; scope: ResoScopeOpts; control: RentalSyncControl };
+
+type RentalMeta = { watermark?: string; resumeUrl?: string; scope?: ResoScopeOpts };
+
+/**
+ * Picks the rental pass from the latest completed/partial rental run: resume
+ * a partial run, else continue incrementally from a completed run's
+ * watermark, else bootstrap the last RENTAL_BOOTSTRAP_MONTHS. The watermark is
+ * when the logical pass began, carried through its partial continuations.
+ */
+export function resolveRentalPlan(latest: { status: string; rawMeta: unknown } | null, now: Date = new Date()): RentalPlan {
+  const meta = (latest?.rawMeta ?? {}) as RentalMeta;
+  if (latest?.status === "partial" && meta.resumeUrl && meta.watermark && meta.scope) {
+    return { kind: "resume", scope: meta.scope, control: { resumeUrl: meta.resumeUrl, meta: { watermark: meta.watermark } } };
+  }
+  if (latest?.status === "completed" && meta.watermark) {
+    const modifiedSince = new Date(new Date(meta.watermark).getTime() - OVERLAP_MS).toISOString();
+    return { kind: "incremental", scope: { counties: VALLEY_COUNTIES, modifiedSince }, control: { meta: { watermark: now.toISOString() } } };
+  }
+  const since = new Date(now);
+  since.setUTCMonth(since.getUTCMonth() - RENTAL_BOOTSTRAP_MONTHS);
+  return { kind: "bootstrap", scope: { counties: VALLEY_COUNTIES, modifiedSince: since.toISOString() }, control: { meta: { watermark: now.toISOString() } } };
+}
 
 const validDate = (v: unknown) => {
   if (typeof v !== "string" || !v) return null;
@@ -53,16 +83,14 @@ async function upsertRows(rows: RentalRow[]) {
 }
 
 /** Pulls rental listings in the scope (forced lease-only) and upserts them. */
-export async function syncRentalListings(
-  opts: ResoScopeOpts,
-  control: { deadline?: number; meta?: Record<string, unknown> } = {},
-): Promise<RentalSyncResult> {
+export async function syncRentalListings(opts: ResoScopeOpts, control: RentalSyncControl = {}): Promise<RentalSyncResult> {
   const run = await prisma.importRun.create({ data: { source: RENTAL_SOURCE, status: "running", startedAt: new Date() } });
   const result: RentalSyncResult = { importRunId: run.id, fetched: 0, saved: 0, partial: false };
-  const meta = () => ({ ...control.meta, ...result, scope: { ...opts, leaseOnly: true } });
+  let resumeUrl: string | null = null;
+  const meta = () => ({ ...control.meta, ...result, scope: opts, ...(resumeUrl ? { resumeUrl } : {}) });
 
   try {
-    for await (const { listings, nextLink } of fetchResoListingPages({ ...opts, leaseOnly: true })) {
+    for await (const { listings, nextLink } of fetchResoListingPages({ ...opts, leaseOnly: true }, control.resumeUrl)) {
       result.fetched += listings.length;
       const byMls = new Map<string, RentalRow>();
       for (const l of listings) {
@@ -74,6 +102,7 @@ export async function syncRentalListings(
 
       if (nextLink && control.deadline && Date.now() > control.deadline) {
         result.partial = true;
+        resumeUrl = nextLink;
         break;
       }
     }
