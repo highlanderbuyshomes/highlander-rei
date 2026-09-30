@@ -154,6 +154,12 @@ export type InvestorCompsResponse = {
   flipper: InvestorPrice;
   landlord: InvestorPrice;
   buys: InvestorBuy[];
+  /**
+   * Nearby flips relisted and now pending/under contract, by asking $/sqft.
+   * Supporting facts only: the contract price is unknown and deals fall
+   * through, so this never feeds the ARV.
+   */
+  pendingFlips: { count: number; lowPpsf: number; highPpsf: number; medianPpsf: number } | null;
   /** Set when the subject can't be comped. */
   missing?: "location" | "sqft";
 };
@@ -172,8 +178,8 @@ export function findInvestorComps(
   opts: { radiusMiles: number; months: number; arv: number | null; types: InvestorTypes },
   now: number = Date.now(),
 ): InvestorCompsResponse {
-  if (subject.latitude == null || subject.longitude == null) return { flipper: EMPTY, landlord: EMPTY, buys: [], missing: "location" };
-  if (!subject.sqft) return { flipper: EMPTY, landlord: EMPTY, buys: [], missing: "sqft" };
+  if (subject.latitude == null || subject.longitude == null) return { flipper: EMPTY, landlord: EMPTY, buys: [], pendingFlips: null, missing: "location" };
+  if (!subject.sqft) return { flipper: EMPTY, landlord: EMPTY, buys: [], pendingFlips: null, missing: "sqft" };
   const lat = subject.latitude, lng = subject.longitude, sqft = subject.sqft;
 
   const subKey = subdivisionKey(subject.subdivision);
@@ -235,6 +241,13 @@ export function findInvestorComps(
     rent: b.rent,
   }));
 
-  return { flipper: priceOf("Flipper"), landlord: priceOf("Landlord"), buys };
+  const pendingPpsf = hits
+    .filter((h) => h.buy.kind === "Flipper" && h.buy.exit?.price && /^(Pending|Under Contract)$/.test(h.buy.exit.status))
+    .map((h) => h.buy.exit!.price! / h.buy.sqft);
+  const pendingFlips = pendingPpsf.length
+    ? { count: pendingPpsf.length, lowPpsf: Math.round(Math.min(...pendingPpsf)), highPpsf: Math.round(Math.max(...pendingPpsf)), medianPpsf: Math.round(percentile(pendingPpsf, 0.5)!) }
+    : null;
+
+  return { flipper: priceOf("Flipper"), landlord: priceOf("Landlord"), buys, pendingFlips };
 }
 

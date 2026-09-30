@@ -1,0 +1,9 @@
+{
+  "_readme": "Hand-checked properties with a known outcome. scripts/backtest-arv.ts re-scores each on every run with the current engine. condition 'remodeled' is checked against the ARV, 'clean' (maintained, not remodeled) against the as-is value. status 'pending' is an accepted offer, not a sale: reported as a supporting fact only, never counted in accuracy or used to tune.",
+  "samples": [
+    { "address": "4241 N 82ND Drive", "zip": "85033", "status": "sold", "price": 410000, "condition": "remodeled", "note": "Steven's resale" },
+    { "address": "2437 E NORTH Lane", "zip": "85028", "status": "sold", "price": 1025000, "date": "2026-01-05", "condition": "remodeled", "note": "Flip: bought $645k conventional Aug 2025; luxury finishes ($464/ft)" },
+    { "address": "2847 S 64TH Drive", "zip": "85043", "status": "sold", "price": 355000, "date": "2025-04-23", "condition": "clean", "note": "Steven's: bought ~$260k off-market, ~$15k clean-up, not a full flip" },
+    { "address": "4902 E GRANADA Road", "zip": "85008", "status": "pending", "price": 450000, "priceHigh": 460000, "date": "2026-09-30", "condition": "remodeled", "note": "Steven's JV flip; offer $450-460k pending; slower ZIP" }
+  ]
+}
