@@ -13,13 +13,29 @@ export type RentalRow = { mlsNumber: string; addressFingerprint: string; listDat
 
 export type RentalSyncResult = { importRunId: string; fetched: number; saved: number; partial: boolean };
 
+const validDate = (v: unknown) => {
+  if (typeof v !== "string" || !v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+/** When the rental hit the market. ARMLS doesn't reliably send ListDate, so
+ *  fall back to the contract/on-market dates, then last change minus DOM. */
+export function rentalListDate(l: ResoListing): Date | null {
+  const direct = validDate(l.ListingContractDate) ?? validDate(l.OnMarketDate) ?? validDate(l.ListDate);
+  if (direct) return direct;
+  const modified = validDate(l.ModificationTimestamp);
+  if (!modified) return null;
+  return new Date(modified.getTime() - (l.DaysOnMarket ?? 0) * 24 * 3600_000);
+}
+
 export function toRentalRow(l: ResoListing): RentalRow | null {
   if (!l.PostalCode) return null;
-  const listDate = l.ListDate ? new Date(l.ListDate) : null;
+  const listDate = rentalListDate(l);
   return {
     mlsNumber: l.ListingId ?? l.ListingKey,
     addressFingerprint: normalizeAddressFingerprint(formatStreetAddress(l), l.PostalCode),
-    listDate: listDate && !Number.isNaN(listDate.getTime()) ? listDate.toISOString() : null,
+    listDate: listDate ? listDate.toISOString() : null,
     rent: typeof l.ListPrice === "number" && Number.isFinite(l.ListPrice) ? l.ListPrice : null,
   };
 }

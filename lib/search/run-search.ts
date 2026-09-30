@@ -2,6 +2,8 @@ import { isPointInsideShape } from "@/lib/filter-listings";
 import { estimateArv, type CompIndex } from "./comps";
 import { loadCandidates, loadRowsByIds } from "./load";
 import { loadCompIndex } from "./load-comps";
+import { findInvestorComps, type InvestorCompsResponse } from "./investor-comps";
+import { loadInvestorIndex } from "./load-investor-buys";
 import { scoreDeals } from "./score-deals";
 import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, ListingRecord, Pin, SearchRequest, SearchResponse } from "./types";
 import { MAX_PINS, PAGE_SIZE } from "./types";
@@ -73,4 +75,14 @@ export async function loadListingDetail(id: string, arvThreshold: number): Promi
     return [{ id: c.id, address: c.address, city: c.city, price: c.price, sqft: c.sqft, pricePerSqft: c.price / c.sqft, beds: c.beds, yearBuilt: c.yearBuilt, closedDate: new Date(c.closedAt).toISOString(), distanceMiles }];
   });
   return { ...scored, comps };
+}
+
+/** What flippers and landlords paid near one listing (Investor comps). */
+export async function loadInvestorComps(id: string, radiusMiles: number, months: number): Promise<InvestorCompsResponse | null> {
+  const [[row], compIndex, investorIndex] = await Promise.all([loadRowsByIds([id]), loadCompIndex(), loadInvestorIndex()]);
+  if (!row) return null;
+  const arv = estimateArv(row, compIndex)?.arv ?? null;
+  const radius = Math.min(2, Math.max(0.25, Number.isFinite(radiusMiles) ? radiusMiles : 2));
+  const period = Math.min(24, Math.max(1, Math.round(Number.isFinite(months) ? months : 24)));
+  return findInvestorComps(row, investorIndex, { radiusMiles: radius, months: period, arv });
 }

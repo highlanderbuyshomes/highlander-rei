@@ -35,6 +35,13 @@ describe("toRentalRow", () => {
       .toEqual({ mlsNumber: "k2", addressFingerprint: "1mainst|85018", listDate: null, rent: null });
   });
 
+  it("dates the rental from contract/on-market dates, else last change minus days on market", () => {
+    const base = { ListingKey: "k4", UnparsedAddress: "1 Main St", PostalCode: "85018" };
+    expect(toRentalRow({ ...base, ListingContractDate: "2026-04-02", ListDate: "2026-05-01" })!.listDate).toBe("2026-04-02T00:00:00.000Z");
+    expect(toRentalRow({ ...base, OnMarketDate: "2026-04-03" })!.listDate).toBe("2026-04-03T00:00:00.000Z");
+    expect(toRentalRow({ ...base, ModificationTimestamp: "2026-06-11T00:00:00Z", DaysOnMarket: 10 })!.listDate).toBe("2026-06-01T00:00:00.000Z");
+  });
+
   it("skips listings without a ZIP (no address key to join on)", () => {
     expect(toRentalRow({ ListingKey: "k3", UnparsedAddress: "1 Main St" })).toBeNull();
   });

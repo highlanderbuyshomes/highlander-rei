@@ -88,6 +88,8 @@ export type CompSale = { id: string; address: string; city: string; price: numbe
 
 export type ListingDetailResponse = DealCandidate & { comps: CompSale[] };
 
+export type { InvestorBuy, InvestorCompsResponse, InvestorKind, InvestorPrice } from "./investor-comps";
+
 export const PAGE_SIZE = 100;
 
 /** Most map pins returned per search; the client draws only the top 250 anyway. `total`/`targetCount` still reflect every match. */
