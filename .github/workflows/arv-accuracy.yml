@@ -1,0 +1,20 @@
+name: ARV accuracy (weekly)
+
+# Re-runs the ARV / as-is backtest and saves it for Settings > ARV Accuracy.
+# The repo is public: the endpoint returns only ok/duration, never results.
+on:
+  schedule:
+    - cron: "17 13 * * 1" # Mondays 06:17 Phoenix
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run and save
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --max-time 320 -H "Authorization: Bearer $CRON_SECRET" \
+            "https://highlanderrei.com/api/cron/arv-accuracy"
