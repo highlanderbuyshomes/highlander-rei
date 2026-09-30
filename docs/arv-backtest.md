@@ -7,7 +7,10 @@ only the sales closed before that month (excluding the property's own sales)
 and compares to the real price. Re-run it before changing `lib/search/comps.ts`;
 a change ships only if it beats the current baseline.
 
-    npx tsx --env-file=.env.local scripts/backtest-arv.ts
+    npx tsx --env-file=.env.local scripts/backtest-arv.ts [--save]
+
+It also runs weekly (Mondays) and on demand from Admin → Settings → ARV
+Accuracy, which shows the latest results.
 
 ## Current baseline — 2026-09-30 (main @ 4c17964)
 
@@ -55,20 +58,15 @@ Backtested the same way on 30,260 clean sales: **median miss 7.5%**, bias
 ARV ÷ as-is = what a remodel adds in that pocket (2000s tract homes ~12–14%).
 
 Tried and dropped: an "investor-implied ARV" check (flipper price ÷ average
-% of resale). With few ARMLS-visible flips it false-alarmed on 2 of 4 samples
-(64th Dr, 82nd Dr), so it didn't ship.
+% of resale). With few ARMLS-visible flips it false-alarmed on 2 of 4 samples,
+so it didn't ship.
 
 ## Hand-checked samples
 
-Kept as data in `data/arv-samples.json` and re-scored by the backtest on every
-run (today's engine). `condition: clean` is checked against the as-is value,
-`remodeled` against the ARV. `status: pending` (an accepted offer) is printed as
-a supporting fact only — never counted in accuracy or used to tune.
-
-As of 2026-09-30: 4241 N 82nd Dr −1.4% (sold $410k); 2847 S 64th Dr as-is
-−1.0% (sold clean $355k); 2437 E North Ln −20% (luxury flip, $1.025M);
-4902 E Granada Rd −13.8% vs a $450–460k pending offer (supporting; 3 comps,
-slower ZIP).
+Private: kept in the database and managed in **Admin → Settings → ARV
+Accuracy** (this repo is public, so no deal details live here). Each run
+re-scores them — `clean` against the as-is value, `remodeled` against the ARV;
+`pending` (an accepted offer) is shown as a supporting fact only.
 
 ## Supporting evidence — pending flip relists (not ground truth)
 
@@ -84,6 +82,6 @@ flips nearby · asking $X–Y/ft · not in ARV".
 - **$700k+**: finish level (luxury vs basic update), views and pools drive
   price; ARMLS fields can't see them. Photo-based remodel scoring is the lever
   (designed, paused).
-- **Thin comp sets** (Granada: 3 comps) — cross-check against what investors
+- **Thin comp sets** (3 comps) — cross-check against what investors
   pay: flippers pay ~66–69% of resale, so investor price ÷ that ratio is an
   independent ARV check.

@@ -7,15 +7,20 @@ import GhlPanel from "./GhlPanel";
 import ResoSyncPanel from "./ResoSyncPanel";
 import DialerIntegrationPanel from "../dialer/DialerIntegrationPanel";
 import { isResoConfigured } from "@/lib/integrations/reso";
+import ArvAccuracyPanel from "./ArvAccuracyPanel";
+import type { ArvAccuracySummary } from "@/lib/search/backtest";
 
 export const metadata: Metadata = { title: "Settings | Highlander REI" };
+// "Run now" on the ARV accuracy tab runs the backtest in a Server Action (~40 s).
+export const maxDuration = 300;
 
-type Tab = "password" | "team" | "connections" | "billing";
+type Tab = "password" | "team" | "connections" | "arv" | "billing";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "password", label: "Password" },
   { key: "team", label: "Team" },
   { key: "connections", label: "API Connections" },
+  { key: "arv", label: "ARV Accuracy" },
   { key: "billing", label: "Billing" },
 ];
 
@@ -26,12 +31,14 @@ export default async function SettingsPage({
 }) {
   await requireAdmin();
   const params = await searchParams;
-  const activeTab = (["password", "team", "connections", "billing"].includes(params.tab ?? "") ? params.tab : "password") as Tab;
+  const activeTab = (["password", "team", "connections", "arv", "billing"].includes(params.tab ?? "") ? params.tab : "password") as Tab;
   const team = activeTab === "team" ? await prisma.adminUser.findMany({ orderBy: { createdAt: "asc" } }) : [];
   const pendingAssignments = activeTab === "connections" ? await prisma.callAssignment.count({ where: { status: "pending" } }) : 0;
   const lastLiveSync = activeTab === "connections"
     ? await prisma.importRun.findFirst({ where: { source: "reso-incremental", status: { in: ["completed", "completed_with_errors", "partial"] } }, orderBy: { startedAt: "desc" }, select: { completedAt: true } })
     : null;
+  const arvRun = activeTab === "arv" ? await prisma.arvAccuracyRun.findFirst({ orderBy: { createdAt: "desc" } }) : null;
+  const arvSamples = activeTab === "arv" ? await prisma.arvSample.findMany({ orderBy: { createdAt: "asc" } }) : [];
   const dialerConfigured = Boolean(process.env.COLD_CALL_DOGS_URL && process.env.INTEGRATION_SHARED_SECRET);
 
   const errorMsg: Record<string, string> = {
@@ -39,6 +46,7 @@ export default async function SettingsPage({
     short: "New password must be at least 8 characters.",
     wrong: "Current password is incorrect.",
     invalid: "Name, email, and an 8+ character password are required.",
+    sample: "Address, a 5-digit ZIP and a price are required.",
   };
 
   return (
@@ -152,6 +160,22 @@ export default async function SettingsPage({
               </div>
             ))}
           </div>
+        </>
+      )}
+
+      {activeTab === "arv" && (
+        <>
+          {params.success && (
+            <div style={{ background: "#eaf6f0", border: "1px solid #b8dfc8", borderRadius: "8px", padding: "12px 16px", fontSize: "13px", color: "#3a7a50", marginBottom: "20px" }}>
+              {params.success === "run" ? "Accuracy run finished." : "Sample added — it's scored on the next run."}
+            </div>
+          )}
+          {params.error && (
+            <div style={{ background: "rgba(192,57,43,0.07)", border: "1px solid rgba(192,57,43,0.25)", borderRadius: "8px", padding: "12px 16px", fontSize: "13px", color: "#c0392b", marginBottom: "20px" }}>
+              {errorMsg[params.error] ?? "Something went wrong."}
+            </div>
+          )}
+          <ArvAccuracyPanel run={arvRun && { createdAt: arvRun.createdAt, summary: arvRun.summary as unknown as ArvAccuracySummary }} samples={arvSamples} />
         </>
       )}
 

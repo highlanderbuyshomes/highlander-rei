@@ -533,3 +533,29 @@ model RentalListing {
 
   @@index([addressFingerprint])
 }
+
+/// Hand-checked properties with a known outcome, re-scored by the ARV
+/// accuracy run. Kept in the database, not the (public) repo, because they're
+/// the owner's own deals. status "pending" is an accepted offer: supporting only.
+model ArvSample {
+  id        String    @id @default(cuid())
+  address   String
+  zip       String
+  status    String    // "sold" | "pending"
+  price     Float
+  priceHigh Float?
+  date      DateTime?
+  condition String    // "remodeled" -> ARV, "clean" -> as-is
+  note      String?
+  createdAt DateTime  @default(now())
+}
+
+/// One ARV backtest run (scripts/backtest-arv.ts logic), shown in Settings.
+model ArvAccuracyRun {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  durationMs Int
+  summary    Json
+
+  @@index([createdAt])
+}

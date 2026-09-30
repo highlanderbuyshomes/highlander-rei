@@ -24,10 +24,10 @@ describe("buildFilter leaseOnly", () => {
 describe("toRentalRow", () => {
   it("keeps only the MLS #, address key, list date and monthly rent", () => {
     const row = toRentalRow({
-      ListingKey: "k1", ListingId: "6812345", UnparsedAddress: "4902 E Granada Rd", PostalCode: "85008",
+      ListingKey: "k1", ListingId: "6812345", UnparsedAddress: "1234 E Sample Rd", PostalCode: "85008",
       ListDate: "2026-05-01", ListPrice: 2100, PublicRemarks: "not stored",
     });
-    expect(row).toEqual({ mlsNumber: "6812345", addressFingerprint: "4902egranadard|85008", listDate: "2026-05-01T00:00:00.000Z", rent: 2100 });
+    expect(row).toEqual({ mlsNumber: "6812345", addressFingerprint: "1234esamplerd|85008", listDate: "2026-05-01T00:00:00.000Z", rent: 2100 });
   });
 
   it("falls back to ListingKey and tolerates missing date/rent", () => {

@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
+import { recordArvAccuracyRun } from "@/lib/search/backtest";
 
 export async function changePassword(formData: FormData) {
   const session = await requireAdmin();
@@ -60,4 +61,32 @@ export async function addTeamMember(formData: FormData) {
   });
 
   redirect("/admin/settings?tab=team&success=1");
+}
+
+export async function runArvAccuracy() {
+  await requireAdmin();
+  await recordArvAccuracyRun();
+  redirect("/admin/settings?tab=arv&success=run");
+}
+
+export async function addArvSample(formData: FormData) {
+  await requireAdmin();
+  const text = (k: string) => String(formData.get(k) ?? "").trim();
+  const money = (k: string) => { const n = Number(text(k).replace(/[$,\s]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; };
+  const address = text("address"), zip = text("zip"), price = money("price");
+  const status = text("status") === "pending" ? "pending" : "sold";
+  const condition = text("condition") === "clean" ? "clean" : "remodeled";
+  if (!address || !/^\d{5}$/.test(zip) || price == null) redirect("/admin/settings?tab=arv&error=sample");
+  const date = text("date") ? new Date(text("date")) : null;
+  await prisma.arvSample.create({
+    data: { address, zip, status, condition, price, priceHigh: money("priceHigh"), date: date && !Number.isNaN(date.getTime()) ? date : null, note: text("note") || null },
+  });
+  redirect("/admin/settings?tab=arv&success=sample");
+}
+
+export async function deleteArvSample(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (id) await prisma.arvSample.delete({ where: { id } }).catch(() => undefined);
+  redirect("/admin/settings?tab=arv");
 }
