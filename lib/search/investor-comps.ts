@@ -237,3 +237,4 @@ export function findInvestorComps(
 
   return { flipper: priceOf("Flipper"), landlord: priceOf("Landlord"), buys };
 }
+

@@ -34,6 +34,8 @@ export type ClosedComp = {
   flipResale?: boolean;
   /** Remarks describe a remodel/update. */
   renovated?: boolean;
+  /** Remarks describe a fixer / as-is / needs-work sale. */
+  fixer?: boolean;
   lotSqft?: number | null;
 };
 
@@ -198,25 +200,87 @@ function similar(subject: ArvSubject, c: ClosedComp) {
   return true;
 }
 
+type PoolHit = { comp: ClosedComp; miles: number };
+
+/** Every similar comp (not the subject property) inside the widest radius tier. */
+function nearbyPool(subject: ArvSubject, index: CompIndex): PoolHit[] {
+  const lat = subject.latitude!, lng = subject.longitude!;
+  const widest = TIERS[TIERS.length - 1];
+  const span = Math.ceil(widest.miles / 69 / CELL) + 1;
+  const cx = Math.floor(lat / CELL), cy = Math.floor(lng / CELL);
+  const pool: PoolHit[] = [];
+  for (let dx = -span; dx <= span; dx++) {
+    for (let dy = -span; dy <= span; dy++) {
+      for (const c of index.cells.get(cellKey(cx + dx, cy + dy)) ?? []) {
+        if (c.id === subject.id || c.propertyId === subject.id || !similar(subject, c)) continue;
+        const miles = milesBetween(lat, lng, c.lat, c.lng);
+        if (miles <= widest.miles) pool.push({ comp: c, miles });
+      }
+    }
+  }
+  return pool;
+}
+
+/** Radius/look-back tiers for a subject: its own subdivision first, then rings (attached homes stay close). */
+function tiersFor(subject: ArvSubject) {
+  const attached = ATTACHED_CLASSES.includes(subject.dwellingType);
+  return [
+    ...(subdivisionKey(subject.subdivision) ? [{ ...SUBDIVISION_TIER, sameSubdivision: true }] : []),
+    ...TIERS.map((t) => ({ ...t, sameSubdivision: false })).filter((t) => !attached || t.miles <= ATTACHED_MAX_MILES),
+  ];
+}
+
+export type AsIsEstimate = {
+  /** What a clean, maintained (not remodeled) version of the subject sells for. */
+  value: number;
+  pricePerSqft: number;
+  compCount: number;
+  radiusMiles: number;
+  sameSubdivision: boolean;
+  /** ±% that 7 in 10 backtested clean sales fell within. */
+  rangePct: number;
+  comps: { id: string; distanceMiles: number }[];
+};
+
+/** ±% from the clean-sale backtest (30,260 sales, Sept 2026): p70 absolute error by value. */
+export function asIsRangePct(value: number): number {
+  if (value < 300_000) return 15;
+  if (value < 450_000) return 10;
+  if (value < 700_000) return 12;
+  return 20;
+}
+
+/**
+ * Clean as-is value: nearby sales with no remodel, flip or fixer signal —
+ * maintained homes — at their median size-adjusted $/sqft. Against the ARV it
+ * shows how much a remodel adds in this pocket.
+ */
+export function estimateAsIs(subject: ArvSubject, index: CompIndex, now: number = Date.now()): AsIsEstimate | null {
+  if (!subject.sqft || subject.sqft < 300 || subject.latitude == null || subject.longitude == null) return null;
+  const subKey = subdivisionKey(subject.subdivision);
+  const clean = nearbyPool(subject, index).filter((p) => !p.comp.renovated && !p.comp.flipResale && !p.comp.fixer);
+  const sized = (h: PoolHit) => sizedPpsf(h.comp, subject.sqft!);
+  for (const tier of tiersFor(subject)) {
+    const nearest = clean
+      .filter((p) => p.miles <= tier.miles && p.comp.closedAt >= now - tier.months * MONTH_MS && (!tier.sameSubdivision || p.comp.subdivision === subKey))
+      .sort((a, b) => a.miles - b.miles).slice(0, MAX_COMPS);
+    const hits = trimOutliers(nearest, sized);
+    if (hits.length < MIN_COMPS) continue;
+    const ppsf = percentile(hits.map(sized), 0.5)!;
+    return {
+      value: Math.round(ppsf * subject.sqft), pricePerSqft: ppsf, compCount: hits.length, radiusMiles: tier.miles,
+      sameSubdivision: tier.sameSubdivision, rangePct: asIsRangePct(ppsf * subject.sqft),
+      comps: hits.map((h) => ({ id: h.comp.id, distanceMiles: Math.round(h.miles * 100) / 100 })),
+    };
+  }
+  return null;
+}
+
 export function estimateArv(subject: ArvSubject, index: CompIndex, now: number = Date.now()): ArvEstimate | null {
   if (!subject.sqft || subject.sqft < 300) return null;
 
   if (subject.latitude != null && subject.longitude != null) {
-    const lat = subject.latitude, lng = subject.longitude;
-    // Gather every similar comp inside the widest tier once, then filter per tier.
-    const widest = TIERS[TIERS.length - 1];
-    const span = Math.ceil(widest.miles / 69 / CELL) + 1;
-    const cx = Math.floor(lat / CELL), cy = Math.floor(lng / CELL);
-    const pool: { comp: ClosedComp; miles: number }[] = [];
-    for (let dx = -span; dx <= span; dx++) {
-      for (let dy = -span; dy <= span; dy++) {
-        for (const c of index.cells.get(cellKey(cx + dx, cy + dy)) ?? []) {
-          if (c.id === subject.id || c.propertyId === subject.id || !similar(subject, c)) continue;
-          const miles = milesBetween(lat, lng, c.lat, c.lng);
-          if (miles <= widest.miles) pool.push({ comp: c, miles });
-        }
-      }
-    }
+    const pool = nearbyPool(subject, index);
     const subKey = subdivisionKey(subject.subdivision);
     const attached = ATTACHED_CLASSES.includes(subject.dwellingType);
     const withinTier = (p: { comp: ClosedComp; miles: number }, miles: number, months: number, sameSubdivision: boolean) =>
@@ -257,11 +321,7 @@ export function estimateArv(subject: ArvSubject, index: CompIndex, now: number =
     }
 
     // 3. All similar sales, priced at the upper quartile as a stand-in for renovated value.
-    const tiers = [
-      ...(subKey ? [{ ...SUBDIVISION_TIER, sameSubdivision: true }] : []),
-      ...TIERS.map((t) => ({ ...t, sameSubdivision: false })).filter((t) => !attached || t.miles <= ATTACHED_MAX_MILES),
-    ];
-    for (const tier of tiers) {
+    for (const tier of tiersFor(subject)) {
       const nearest = pool.filter((p) => withinTier(p, tier.miles, tier.months, tier.sameSubdivision))
         .sort((a, b) => a.miles - b.miles).slice(0, MAX_COMPS);
       const hits = trimOutliers(nearest, sized);

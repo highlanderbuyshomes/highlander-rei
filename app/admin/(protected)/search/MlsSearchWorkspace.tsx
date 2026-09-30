@@ -284,7 +284,7 @@ export default function MlsSearchWorkspace({ initial }: { initial: SearchRespons
       </div></div>)}
 </div>
           {view === "list" && <ResultsList listings={rows} total={result.total} loading={loading} loadingMore={loadingMore} onLoadMore={loadMore} onSelect={(id) => { setSelectedId(id); setView("detail"); }} />}
-          {view === "detail" && <ListingDetail listing={selected} comps={loadedDetail?.comps ?? null} threshold={arvThreshold} />}
+          {view === "detail" && <ListingDetail listing={selected} comps={loadedDetail?.comps ?? null} asIs={loadedDetail ? loadedDetail.asIs : undefined} threshold={arvThreshold} />}
         </section>
       </div>
       <DealIntelligence candidates={rows} threshold={arvThreshold} onThresholdChange={setArvThreshold} />
@@ -333,34 +333,36 @@ function ResultsList({ listings, total, loading, loadingMore, onLoadMore, onSele
     {listings.length === 0 && <PlaceholderView title="No results" detail="Change or reset the selected criteria." />}</div>;
 }
 
-function ListingDetail({ listing, comps, threshold }: { listing: DealCandidate | null; comps: CompSale[] | null; threshold: number }) {
+function ListingDetail({ listing, comps, asIs, threshold }: { listing: DealCandidate | null; comps: CompSale[] | null; asIs: ListingDetailResponse["asIs"] | undefined; threshold: number }) {
   if (!listing) return <PlaceholderView title="No listing selected" detail="Choose a listing from the List or Map view." />;
   const closed = normalizeStatus(listing.status) === "Closed";
   return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2><a className={styles.linkButton} href={mlsLinks(listing).rpr.href} target="_blank" rel="noopener noreferrer" title={`Underwrite MLS # ${listing.mlsNumber} in RPR`}>{listing.address}</a></h2><p>{listing.city}, {listing.state} {listing.zip}</p>
     <MlsSiteLinks listing={listing} className={styles.detailLinks} />
     <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", arvWithRange(listing)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore}/99 · Higher is better · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     <div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Square feet", listing.sqft?.toLocaleString() ?? "—"], ["Year built", listing.yearBuilt ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
-    <CompsSection key={listing.id} listing={listing} comps={comps} />
+    <CompsSection key={listing.id} listing={listing} comps={comps} asIs={asIs} />
   </div>;
 }
 
-// Retail comps (sold comps behind the ARV) are the default; Investor comps
-// only mounts, and so only fetches, once its tab is clicked.
-function CompsSection({ listing, comps }: { listing: DealCandidate; comps: CompSale[] | null }) {
-  const [tab, setTab] = useState<"retail" | "investor">("retail");
-  const [investorOpened, setInvestorOpened] = useState(false);
-  const open = (next: "retail" | "investor") => { setTab(next); if (next === "investor") setInvestorOpened(true); };
-  return <>
-    <div className={`${styles.compTabs} ${styles.compTabsMain}`} role="tablist">
-      <button type="button" role="tab" aria-selected={tab === "retail"} className={tab === "retail" ? styles.compTabActive : ""} onClick={() => open("retail")}>Retail comps · ARV {arvWithRange(listing)}</button>
-      <button type="button" role="tab" aria-selected={tab === "investor"} className={tab === "investor" ? styles.compTabActive : ""} onClick={() => open("investor")}>Investor comps</button>
+// Step 2 of a deal: one Comps button answers ARV, clean as-is value, and what
+// flippers and landlords pay here. Nothing investor-side loads until it's clicked.
+function CompsSection({ listing, comps, asIs }: { listing: DealCandidate; comps: CompSale[] | null; asIs: ListingDetailResponse["asIs"] | undefined }) {
+  const [open, setOpen] = useState(false);
+  if (!open) return <button type="button" className={`${styles.applyButton} ${styles.compsButton}`} onClick={() => setOpen(true)}>Comps</button>;
+  const buyBox = listing.conservativeArv ? `70–75%: ${money(listing.conservativeArv * 0.7, true)}–${money(listing.conservativeArv * 0.75, true)}` : null;
+  const remodel = listing.arv && asIs ? Math.round((listing.arv / asIs.value - 1) * 100) : null;
+  return <div className={styles.compsPanel}>
+    <div className={`${styles.detailGrid} ${styles.compsSummary}`}>
+      <div><small>ARV</small><strong>{arvWithRange(listing)}</strong><small>{[arvBasis(listing), buyBox].filter(Boolean).join(" · ")}</small></div>
+      <div><small>Clean as-is</small><strong>{asIs === undefined ? "…" : asIs ? `${money(asIs.value)} ±${asIs.rangePct}%` : "—"}</strong><small>{asIs ? [`${asIs.compCount} clean sales ≤${asIs.radiusMiles} mi`, remodel != null ? `remodel adds ${remodel >= 0 ? "+" : ""}${remodel}%` : null].filter(Boolean).join(" · ") : asIs === null ? "Too few clean sales" : ""}</small></div>
     </div>
-    <div hidden={tab !== "retail"}>
-      {comps == null ? <p className={styles.previewNote}>Loading sold comps…</p> : comps.length === 0 ? <p className={styles.previewNote}>No nearby sold comps — ARV is {listing.arvSource === "Insufficient data" ? "unavailable" : `from ${listing.arvSource}`}; verify before offering.</p> :
-        <div className={styles.resultsTable}><table><thead><tr><th>Sold comp</th><th>Sold</th><th>Price</th><th>Sq Ft</th><th>$/sqft</th><th>Beds</th><th>Built</th><th>Distance</th></tr></thead><tbody>{comps.map((c) => <tr key={c.id}><td><strong>{c.address}</strong><small>{c.city}</small></td><td>{shortDate(c.closedDate)}</td><td>{money(c.price)}</td><td>{c.sqft.toLocaleString()}</td><td>{money(c.pricePerSqft)}</td><td>{c.beds ?? "—"}</td><td>{c.yearBuilt ?? "—"}</td><td>{c.distanceMiles == null ? "—" : `${c.distanceMiles} mi`}</td></tr>)}</tbody></table></div>}
-    </div>
-    {investorOpened && <div hidden={tab !== "investor"}><InvestorComps listingId={listing.id} /></div>}
-  </>;
+    <InvestorComps listingId={listing.id} />
+    <details className={styles.soldComps}>
+      <summary>Sold comps{comps ? ` (${comps.length})` : ""}</summary>
+        {comps == null ? <p className={styles.previewNote}>Loading sold comps…</p> : comps.length === 0 ? <p className={styles.previewNote}>No nearby sold comps — ARV is {listing.arvSource === "Insufficient data" ? "unavailable" : `from ${listing.arvSource}`}; verify before offering.</p> :
+          <div className={styles.resultsTable}><table><thead><tr><th>Sold comp</th><th>Sold</th><th>Price</th><th>Sq Ft</th><th>$/sqft</th><th>Beds</th><th>Built</th><th>Distance</th></tr></thead><tbody>{comps.map((c) => <tr key={c.id}><td><strong>{c.address}</strong><small>{c.city}</small></td><td>{shortDate(c.closedDate)}</td><td>{money(c.price)}</td><td>{c.sqft.toLocaleString()}</td><td>{money(c.pricePerSqft)}</td><td>{c.beds ?? "—"}</td><td>{c.yearBuilt ?? "—"}</td><td>{c.distanceMiles == null ? "—" : `${c.distanceMiles} mi`}</td></tr>)}</tbody></table></div>}
+    </details>
+  </div>;
 }
 
 // CurbView opens the listing directly; Flexmls has no public listing URL, so it

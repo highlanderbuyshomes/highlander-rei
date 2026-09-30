@@ -462,8 +462,12 @@
 .compTabs { display: flex; flex-wrap: wrap; gap: 5px; }
 .compTabs button { height: 29px; padding: 0 10px; border: 1px solid #d2d8d4; border-radius: 4px; background: #fff; color: #5d6862; font: 700 9px var(--font-body); cursor: pointer; }
 .compTabs .compTabActive { border-color: #2478c5; background: #2478c5; color: #fff; }
-.compTabsMain { margin: 25px 0 10px; }
-.compTabsMain button { height: 32px; font-size: 10px; }
+.compsButton { width: auto; height: 34px; margin-top: 25px; padding: 0 22px; border: 1px solid #0878c8; border-radius: 4px; font: 700 11px var(--font-body); cursor: pointer; }
+.compsPanel { margin-top: 25px; }
+.compsPanel > .compsSummary { grid-template-columns: repeat(2, 1fr); margin-top: 0; margin-bottom: 10px; }
+.compsSummary strong { font-size: 18px; }
+.soldComps { margin-top: 14px; }
+.soldComps summary { cursor: pointer; color: #1d5f91; font-size: 11px; font-weight: 700; }
 .investorComps .detailGrid { grid-template-columns: repeat(2, 1fr); margin-top: 0; }
 .investorComps .detailGrid strong { font-size: 18px; }
 .investorFilters { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0 10px; }

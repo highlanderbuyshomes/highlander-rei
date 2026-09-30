@@ -90,7 +90,11 @@ export type SearchResponse = { total: number; pins: Pin[]; rows: DealCandidate[]
 /** A closed sale used in a subject's ARV, for the detail view. */
 export type CompSale = { id: string; address: string; city: string; price: number; sqft: number; pricePerSqft: number; beds: number | null; yearBuilt: number | null; closedDate: string; distanceMiles: number | null };
 
-export type ListingDetailResponse = DealCandidate & { comps: CompSale[] };
+export type ListingDetailResponse = DealCandidate & {
+  comps: CompSale[];
+  /** Clean, maintained (not remodeled) value from nearby clean sales. */
+  asIs: { value: number; rangePct: number; compCount: number; radiusMiles: number } | null;
+};
 
 export type { InvestorBuy, InvestorCompsResponse, InvestorKind, InvestorPrice, InvestorTypes } from "./investor-comps";
 
