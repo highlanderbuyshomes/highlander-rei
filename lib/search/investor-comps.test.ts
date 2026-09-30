@@ -19,39 +19,40 @@ const buy = (i: number, o: Partial<InvestorBuyRecord> = {}): InvestorBuyRecord =
   address: `${i} Buy St`, city: "Phoenix", kind: "Flipper", exit: null, rent: null, ...o,
 });
 
-const opts = { radiusMiles: 2, months: 24, arv: 500_000 };
+const opts = { radiusMiles: 2, months: 24, arv: 500_000, types: "same" as const };
 
 describe("classifyInvestorBuy", () => {
   const soldAt = NOW - 400 * DAY;
   const at = (days: number) => soldAt + days * DAY;
 
   it("relist 30–365 days after purchase is a flipper", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(30), rentalAt: null }, NOW)).toBe("Flipper");
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(365), rentalAt: null }, NOW)).toBe("Flipper");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(30), rentalAt: null })).toBe("Flipper");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(365), rentalAt: null })).toBe("Flipper");
   });
   it("relist under 30 days is unclassified", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(29), rentalAt: null }, NOW)).toBeNull();
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(10), rentalAt: at(5) }, NOW)).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(29), rentalAt: null })).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(10), rentalAt: at(5) })).toBeNull();
   });
   it("rental listing within a year is a landlord", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 90 * DAY, relistAt: null, rentalAt: NOW - 40 * DAY }, NOW)).toBe("Landlord");
+    expect(classifyInvestorBuy({ soldAt: NOW - 90 * DAY, relistAt: null, rentalAt: NOW - 40 * DAY })).toBe("Landlord");
   });
   it("rental before a sale relist is a landlord", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(200), rentalAt: at(60) }, NOW)).toBe("Landlord");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(200), rentalAt: at(60) })).toBe("Landlord");
   });
   it("sale relist before a rental is a flipper", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(60), rentalAt: at(200) }, NOW)).toBe("Flipper");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(60), rentalAt: at(200) })).toBe("Flipper");
   });
-  it("held a year without relist is a landlord", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 365 * DAY, relistAt: null, rentalAt: null }, NOW)).toBe("Landlord");
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(500), rentalAt: null }, NOW)).toBe("Landlord");
+  it("holding without a rental listing is not evidence of a landlord", () => {
+    // A cash buyer who moves in holds too; only a rental listing says landlord.
+    expect(classifyInvestorBuy({ soldAt: NOW - 700 * DAY, relistAt: null, rentalAt: null })).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(500), rentalAt: null })).toBeNull();
   });
   it("recent buy with no signal is unclassified", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null }, NOW)).toBeNull();
+    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null })).toBeNull();
   });
   it("rental more than a year later does not count", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null }, NOW)).toBeNull();
-    expect(classifyInvestorBuy({ soldAt, relistAt: null, rentalAt: at(380) }, NOW)).toBe("Landlord"); // held
+    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null })).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: null, rentalAt: at(380) })).toBeNull();
   });
 });
 
@@ -118,6 +119,18 @@ describe("findInvestorComps", () => {
     expect(r.buys.map((b) => b.id)).toEqual(["b1"]);
   });
 
+  it("Any type mixes residential classes and drops the attached distance cap", () => {
+    const buys = [
+      buy(1),
+      buy(2, { dwelling: "Townhouse", lat: 33.5 + 1 * MILE_LAT }),
+      buy(3, { dwelling: "Condo" }),
+    ];
+    const r = findInvestorComps(subject, buildInvestorIndex(buys), { ...opts, types: "any" }, NOW);
+    expect(r.buys.map((b) => b.id).sort()).toEqual(["b1", "b2", "b3"]);
+    const same = findInvestorComps(subject, buildInvestorIndex(buys), opts, NOW);
+    expect(same.buys.map((b) => b.id)).toEqual(["b1"]);
+  });
+
   it("attached homes beyond 0.5 mi only count in the same subdivision", () => {
     const condo: ArvSubject = { ...subject, dwellingType: "Condo", subdivision: "The Palms" };
     const buys = [
@@ -145,5 +158,6 @@ describe("findInvestorComps", () => {
     const b1 = r.buys.find((b) => b.id === "b1")!;
     expect(b1.exit).toEqual({ price: 450_000, date: new Date(NOW - 10 * DAY).toISOString(), status: "Closed" });
     expect(r.buys.find((b) => b.id === "b2")!.rent).toBe(2_100);
+    expect(b1.dwelling).toBe("Single Family");
   });
 });

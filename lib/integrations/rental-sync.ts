@@ -70,6 +70,14 @@ export function toRentalRow(l: ResoListing): RentalRow | null {
   };
 }
 
+/** Rentals listed before the bootstrap window can't follow a purchase Investor comps looks at. */
+export function isRecentRental(row: RentalRow, now: Date = new Date()): boolean {
+  if (!row.listDate) return false;
+  const since = new Date(now);
+  since.setUTCMonth(since.getUTCMonth() - RENTAL_BOOTSTRAP_MONTHS);
+  return new Date(row.listDate).getTime() >= since.getTime();
+}
+
 async function upsertRows(rows: RentalRow[]) {
   if (rows.length === 0) return;
   await prisma.$executeRaw`
@@ -95,7 +103,7 @@ export async function syncRentalListings(opts: ResoScopeOpts, control: RentalSyn
       const byMls = new Map<string, RentalRow>();
       for (const l of listings) {
         const row = toRentalRow(l);
-        if (row) byMls.set(row.mlsNumber, row);
+        if (row && isRecentRental(row)) byMls.set(row.mlsNumber, row);
       }
       await upsertRows([...byMls.values()]);
       result.saved += byMls.size;

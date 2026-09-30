@@ -72,14 +72,13 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
       ORDER BY rl."listDate" LIMIT 1
     ) r ON true`;
 
-  const now = Date.now();
   const buys: InvestorBuyRecord[] = [];
   for (const r of rows) {
     if (!RESIDENTIAL_CLASSES.includes(r.dwelling)) continue;
     const soldAt = new Date(r.closed).getTime();
     const relistAt = r.relistAt ? new Date(r.relistAt).getTime() : null;
     const rentalAt = r.rentalAt ? new Date(r.rentalAt).getTime() : null;
-    const kind = classifyInvestorBuy({ soldAt, relistAt, rentalAt }, now);
+    const kind = classifyInvestorBuy({ soldAt, relistAt, rentalAt });
     if (!kind) continue;
     buys.push({
       id: r.id, propertyId: r.propertyId, lat: Number(r.lat), lng: Number(r.lng), sqft: Number(r.sqft),
