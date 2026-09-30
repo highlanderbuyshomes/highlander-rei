@@ -57,9 +57,11 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
       SELECT e."listDate", COALESCE(l2."soldPrice", l2."listPrice") AS price, l2."mlsStatus"
       FROM "MlsListing" l2
       -- ARMLS doesn't send a list date, so back it out of days on market:
-      -- from the close for a sale, from the last sync for a live listing.
+      -- from the close for a sale, else from ARMLS's last modification (not
+      -- our row's updatedAt, which is just when the sync last wrote it).
       CROSS JOIN LATERAL (SELECT COALESCE(l2."listDate",
-        COALESCE(l2."soldDate", l2."updatedAt") - make_interval(days => COALESCE(l2.dom, 0))) AS "listDate") e
+        COALESCE(l2."soldDate", (l2."rawJson"->>'ModificationTimestamp')::timestamptz AT TIME ZONE 'UTC', l2."updatedAt")
+          - make_interval(days => COALESCE(l2.dom, 0))) AS "listDate") e
       WHERE l2."propertyId" = b."propertyId" AND l2.id <> b.id AND e."listDate" > b.closed
       ORDER BY e."listDate" LIMIT 1
     ) nx ON true
