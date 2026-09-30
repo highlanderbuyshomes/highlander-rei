@@ -41,7 +41,10 @@ export function classifyInvestorBuy(e: { soldAt: number; relistAt: number | null
 }
 
 export type InvestorBuyRecord = {
+  /** MlsListing id of the purchase. */
   id: string;
+  /** Property id: search rows (and so the subject) are keyed by it. */
+  propertyId: string;
   lat: number;
   lng: number;
   sqft: number;
@@ -148,7 +151,7 @@ export function findInvestorComps(
   for (let dx = -span; dx <= span; dx++) {
     for (let dy = -span; dy <= span; dy++) {
       for (const b of index.cells.get(cellKey(cx + dx, cy + dy)) ?? []) {
-        if (b.id === subject.id || b.dwelling !== subject.dwellingType || b.soldAt < since) continue;
+        if (b.propertyId === subject.id || b.dwelling !== subject.dwellingType || b.soldAt < since) continue;
         const miles = milesBetween(lat, lng, b.lat, b.lng);
         if (miles > opts.radiusMiles) continue;
         if (attached && miles > ATTACHED_MAX_MILES && !(subKey && b.subdivision === subKey)) continue;

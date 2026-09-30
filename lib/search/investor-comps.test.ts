@@ -14,7 +14,7 @@ const subject: ArvSubject = {
 };
 
 const buy = (i: number, o: Partial<InvestorBuyRecord> = {}): InvestorBuyRecord => ({
-  id: `b${i}`, lat: 33.5 + 0.1 * MILE_LAT * i, lng: -112, sqft: 1500, beds: 3, baths: 2, yearBuilt: 1985,
+  id: `b${i}`, propertyId: `p${i}`, lat: 33.5 + 0.1 * MILE_LAT * i, lng: -112, sqft: 1500, beds: 3, baths: 2, yearBuilt: 1985,
   dwelling: "Single Family", subdivision: null, price: 300_000, soldAt: NOW - 60 * DAY,
   address: `${i} Buy St`, city: "Phoenix", kind: "Flipper", exit: null, rent: null, ...o,
 });
@@ -112,7 +112,7 @@ describe("findInvestorComps", () => {
       buy(2, { lat: 33.5 + 2.5 * MILE_LAT }), // beyond 2 mi
       buy(3, { soldAt: NOW - 400 * DAY }), // outside 12 months
       buy(4, { dwelling: "Condo" }),
-      buy(5, { id: "s" }), // the subject listing itself
+      buy(5, { propertyId: "s" }), // the subject property's own purchase
     ];
     const r = findInvestorComps(subject, buildInvestorIndex(buys), { ...opts, months: 12 }, NOW);
     expect(r.buys.map((b) => b.id)).toEqual(["b1"]);

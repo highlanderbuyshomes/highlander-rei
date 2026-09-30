@@ -14,7 +14,7 @@ const MIN_PPSF = 40;
 const MAX_PPSF = 2_000;
 
 type Row = {
-  id: string; lat: number; lng: number; sqft: number; beds: number | null; baths: number | null; yearBuilt: number | null;
+  id: string; propertyId: string; lat: number; lng: number; sqft: number; beds: number | null; baths: number | null; yearBuilt: number | null;
   dwelling: string; subdivision: string | null; price: number; closed: Date; address: string; city: string;
   relistAt: Date | null; exitPrice: number | null; exitStatus: string | null; rentalAt: Date | null; rent: number | null;
 };
@@ -49,7 +49,7 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
       WHERE status = 'Closed' AND cash AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
         AND price >= ${MIN_PRICE} AND sqft >= 300 AND price / sqft BETWEEN ${MIN_PPSF} AND ${MAX_PPSF}
     )
-    SELECT b.id, b.lat, b.lng, b.sqft, b.beds, b.baths, b."yearBuilt", b.dwelling, b.subdivision, b.price, b.closed,
+    SELECT b.id, b."propertyId", b.lat, b.lng, b.sqft, b.beds, b.baths, b."yearBuilt", b.dwelling, b.subdivision, b.price, b.closed,
       b.address, b.city, nx."listDate" AS "relistAt", nx.price AS "exitPrice", nx."mlsStatus" AS "exitStatus",
       r."listDate" AS "rentalAt", r.rent
     FROM buys b
@@ -82,7 +82,7 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
     const kind = classifyInvestorBuy({ soldAt, relistAt, rentalAt }, now);
     if (!kind) continue;
     buys.push({
-      id: r.id, lat: Number(r.lat), lng: Number(r.lng), sqft: Number(r.sqft),
+      id: r.id, propertyId: r.propertyId, lat: Number(r.lat), lng: Number(r.lng), sqft: Number(r.sqft),
       beds: r.beds == null ? null : Number(r.beds), baths: r.baths == null ? null : Number(r.baths),
       yearBuilt: r.yearBuilt == null ? null : Number(r.yearBuilt),
       dwelling: r.dwelling, subdivision: subdivisionKey(r.subdivision), price: Number(r.price), soldAt,
