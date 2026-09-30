@@ -58,14 +58,26 @@ Tried and dropped: an "investor-implied ARV" check (flipper price ÷ average
 % of resale). With few ARMLS-visible flips it false-alarmed on 2 of 4 samples
 (64th Dr, 82nd Dr), so it didn't ship.
 
-## Samples checked by hand
+## Hand-checked samples
 
-| Property | Actual | ARV | Miss | Notes |
-|---|---|---|---|---|
-| 4241 N 82nd Dr, 85033 | $410,000 (Steven's resale) | $404,183 ±10% | −1.4% | Flip resales, High, 6 comps |
-| 2437 E North Ln, 85028 | $1,025,000 (flip: bought $645k conventional, 5 mo) | $819,541 ±22% | −20.0% | Luxury finishes ($464/ft vs $312–381/ft renovated comps); outside range |
-| 4902 E Granada Rd, 85008 | — | $392,107 ±10% | — | Medium, 3 comps; flippers pay 85% of it and as-is ≈ ARV → ARV likely low |
-| 2847 S 64th Dr, 85043 | $355,000 clean (not remodeled; Steven's) | $394,368 ±10% | — | As-is $351k ±10% matches the clean sale; IB implied resale ~$396k |
+Kept as data in `data/arv-samples.json` and re-scored by the backtest on every
+run (today's engine). `condition: clean` is checked against the as-is value,
+`remodeled` against the ARV. `status: pending` (an accepted offer) is printed as
+a supporting fact only — never counted in accuracy or used to tune.
+
+As of 2026-09-30: 4241 N 82nd Dr −1.4% (sold $410k); 2847 S 64th Dr as-is
+−1.0% (sold clean $355k); 2437 E North Ln −20% (luxury flip, $1.025M);
+4902 E Granada Rd −13.8% vs a $450–460k pending offer (supporting; 3 comps,
+slower ZIP).
+
+## Supporting evidence — pending flip relists (not ground truth)
+
+Flips relisted and now pending/under contract, ARV vs their asking price.
+Contract prices are unknown until close and deals fall through, so this is
+context, not a target. 2026-09-30: under $700k, 76 homes, median miss 7.6%,
+bias −1.7% (agrees); $700k+, 54 homes, bias −13.5% (same luxury gap as sold
+data). The Comps panel shows nearby pending flips the same way: "N pending
+flips nearby · asking $X–Y/ft · not in ARV".
 
 ## Known gaps
 

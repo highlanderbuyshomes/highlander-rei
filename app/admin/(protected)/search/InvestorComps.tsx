@@ -43,6 +43,9 @@ export default function InvestorComps({ listingId }: { listingId: string }) {
       <PriceTile label="Flippers" value={data?.flipper} />
       <PriceTile label="Landlords" value={data?.landlord} />
     </div>
+    {data?.pendingFlips && <p className={styles.supportingFact} title="Accepted offers, price unknown until close — shown as support, never used in the ARV">
+      {data.pendingFlips.count} pending flip{data.pendingFlips.count === 1 ? "" : "s"} nearby · asking ${data.pendingFlips.lowPpsf}–{data.pendingFlips.highPpsf}/ft · not in ARV
+    </p>}
     <div className={styles.investorFilters}>
       <ButtonGroup label="Radius" options={RADII} value={radius} onChange={setRadius} format={(v) => `${v} mi`} />
       <ButtonGroup label="Period" options={PERIODS} value={months} onChange={setMonths} format={(v) => `${v / 12} yr`} />

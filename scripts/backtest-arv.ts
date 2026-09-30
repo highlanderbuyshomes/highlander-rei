@@ -4,8 +4,14 @@
 // anything in lib/search/comps.ts; read-only. The as-is section does the same
 // for clean sales (no remodel, flip or fixer wording) against estimateAsIs.
 //   npx tsx --env-file=.env.local scripts/backtest-arv.ts
+import { readFileSync } from "node:fs";
+import { prisma } from "../lib/prisma";
 import { buildCompIndex, estimateArv, estimateAsIs } from "../lib/search/comps";
 import { fetchComps } from "../lib/search/load-comps";
+import { loadInvestorIndex } from "../lib/search/load-investor-buys";
+import { loadRowsByIds } from "../lib/search/load";
+
+type Sample = { address: string; zip: string; status: "sold" | "pending"; price: number; priceHigh?: number; date?: string; condition: "remodeled" | "clean"; note?: string };
 
 const MONTH_MS = 30.44 * 24 * 3600_000;
 const pct = (values: number[], p: number) => { const s = [...values].sort((a, b) => a - b); return s[Math.floor((s.length - 1) * p)]; };
@@ -55,7 +61,47 @@ async function main() {
   groups.delete("as-is inside ± range");
   console.log(`${tests.length} flip resales, ${missing} without an estimate`);
   for (const [k, v] of [...groups].sort()) if (k !== "inside its ± range") report(k, v);
+  const current = buildCompIndex(sales);
+  await reportSamples(current);
+  await reportPendingFlips(current);
   console.log(`inside its own ± range: ${Math.round((100 * (groups.get("inside its ± range")?.length ?? 0)) / (groups.get("All")?.length ?? 1))}%`);
+}
+
+/** data/arv-samples.json, re-scored with today's engine. Pending = supporting only. */
+async function reportSamples(index: ReturnType<typeof buildCompIndex>) {
+  const { samples } = JSON.parse(readFileSync(new URL("../data/arv-samples.json", import.meta.url), "utf8")) as { samples: Sample[] };
+  console.log("\nHand-checked samples (current engine; pending = supporting fact, not counted):");
+  for (const s of samples) {
+    const [p] = await prisma.$queryRaw<{ id: string }[]>`SELECT id FROM "Property" WHERE "streetAddress" ILIKE ${s.address + "%"} AND zip = ${s.zip} LIMIT 1`;
+    const [row] = p ? await loadRowsByIds([p.id]) : [];
+    const est = row && (s.condition === "clean" ? estimateAsIs(row, index) : estimateArv(row, index));
+    const value = est ? ("value" in est ? est.value : est.arv) : null;
+    const mid = s.priceHigh ? (s.price + s.priceHigh) / 2 : s.price;
+    const miss = value ? `${((value / mid - 1) * 100).toFixed(1)}% vs ${s.status}` : "no estimate";
+    console.log(`  ${s.status === "pending" ? "(supporting) " : ""}${s.address}, ${s.zip}: ${s.condition === "clean" ? "as-is" : "ARV"} ${value ?? "—"} ±${est?.rangePct ?? "—"}% | ${s.status} ${s.price}${s.priceHigh ? `–${s.priceHigh}` : ""} | ${miss}`);
+  }
+}
+
+/**
+ * Flips relisted and now pending/under contract, ARV vs their asking price.
+ * Supporting evidence only — contract prices are unknown and deals fall
+ * through — so never a tuning target.
+ */
+async function reportPendingFlips(index: ReturnType<typeof buildCompIndex>) {
+  const pending = [...(await loadInvestorIndex()).cells.values()].flat()
+    .filter((b) => b.kind === "Flipper" && b.exit?.price && /^(Pending|Under Contract)$/.test(b.exit.status));
+  const rows = new Map((await loadRowsByIds(pending.map((b) => b.propertyId))).map((r) => [r.id, r]));
+  const errs: number[] = [], high: number[] = [];
+  for (const b of pending) {
+    const row = rows.get(b.propertyId);
+    const est = row && estimateArv(row, index);
+    if (!est) continue;
+    const e = est.arv / b.exit!.price! - 1;
+    (b.exit!.price! >= 700e3 ? high : errs).push(e);
+  }
+  console.log("\nSupporting (not ground truth): ARV vs asking price of pending flip relists");
+  report("pending flips <700k ask", errs);
+  report("pending flips 700k+ ask", high);
 }
 
 main().then(() => process.exit(0), (err) => { console.error(err); process.exit(1); });

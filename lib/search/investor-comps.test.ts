@@ -198,3 +198,21 @@ describe("findInvestorComps", () => {
   });
 });
 
+
+describe("pending flips (supporting facts, never ARV input)", () => {
+  it("summarizes nearby flips relisted and now pending/under contract by their asking $/sqft", () => {
+    const at = NOW - 5 * DAY;
+    const buys = [
+      buy(1, { exit: { price: 1500 * 260, at, status: "Pending" } }),
+      buy(2, { exit: { price: 1500 * 290, at, status: "Under Contract" } }),
+      buy(3, { exit: { price: 1500 * 275, at, status: "Pending" } }),
+      buy(4, { exit: { price: 1500 * 400, at, status: "Active" } }), // still asking, no accepted offer
+      buy(5, { exit: { price: 1500 * 300, at, status: "Closed" } }), // a real sale, not pending
+    ];
+    const r = findInvestorComps(subject, buildInvestorIndex(buys), opts, NOW);
+    expect(r.pendingFlips).toEqual({ count: 3, lowPpsf: 260, highPpsf: 290, medianPpsf: 275 });
+  });
+  it("is null when none are pending", () => {
+    expect(findInvestorComps(subject, buildInvestorIndex([buy(1)]), opts, NOW).pendingFlips).toBeNull();
+  });
+});
