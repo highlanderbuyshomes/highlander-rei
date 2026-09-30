@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { dwellingSql, RESIDENTIAL_CLASSES, statusSql } from "./classify";
 import { subdivisionKey } from "./comps";
-import { buildInvestorIndex, classifyInvestorBuy, type InvestorBuyRecord, type InvestorIndex } from "./investor-comps";
+import { buildInvestorIndex, classifyInvestorBuy, FINANCED_FLIP_MARKUP, isInvestorBuy, type InvestorBuyRecord, type InvestorIndex } from "./investor-comps";
 import { leasedLandSql, sqftSql } from "./load";
 import { normalizeStatus } from "./score-deals";
 
@@ -14,7 +14,7 @@ const MIN_PPSF = 40;
 const MAX_PPSF = 2_000;
 
 type Row = {
-  id: string; propertyId: string; lat: number; lng: number; sqft: number; beds: number | null; baths: number | null; yearBuilt: number | null;
+  id: string; propertyId: string; investor: boolean; lat: number; lng: number; sqft: number; beds: number | null; baths: number | null; yearBuilt: number | null;
   dwelling: string; subdivision: string | null; price: number; closed: Date; address: string; city: string;
   relistAt: Date | null; exitPrice: number | null; exitStatus: string | null; rentalAt: Date | null; rent: number | null;
 };
@@ -26,7 +26,7 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - LOOKBACK_MONTHS);
 
-  // Cash closed sales, then what the same house did next: its first later MLS
+  // Closed sales, then what the same house did next: its first later MLS
   // listing (a flip's relist) and its first later rental listing.
   const rows = await prisma.$queryRaw<Row[]>`
     WITH s AS (
@@ -37,7 +37,9 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
         ${statusSql(`l."mlsStatus"`)} AS status,
         COALESCE(l."soldPrice", (src->>'ClosePrice')::float8) AS price,
         l."soldDate" AS closed,
-        lower(COALESCE(src->>'BuyerFinancing', '')) LIKE '%cash%' AS cash,
+        -- Cash, or "Other" (in ARMLS usually hard money): how investors buy.
+        -- Conventional/FHA/VA buyers are almost always owner-occupants.
+        lower(COALESCE(src->>'BuyerFinancing', '')) ~ '(cash|other)' AS investor,
         lower(COALESCE(src->>'PropertyType', '')) LIKE '%lease%' AS lease,
         ${leasedLandSql("src", 'p."rawJson"')} AS "leasedLand"
       FROM "MlsListing" l
@@ -46,10 +48,10 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
       WHERE l."soldDate" >= ${cutoff} AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
     ), buys AS (
       SELECT * FROM s
-      WHERE status = 'Closed' AND cash AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
+      WHERE status = 'Closed' AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
         AND price >= ${MIN_PRICE} AND sqft >= 300 AND price / sqft BETWEEN ${MIN_PPSF} AND ${MAX_PPSF}
     )
-    SELECT b.id, b."propertyId", b.lat, b.lng, b.sqft, b.beds, b.baths, b."yearBuilt", b.dwelling, b.subdivision, b.price, b.closed,
+    SELECT b.id, b."propertyId", b.investor, b.lat, b.lng, b.sqft, b.beds, b.baths, b."yearBuilt", b.dwelling, b.subdivision, b.price, b.closed,
       b.address, b.city, nx."listDate" AS "relistAt", nx.price AS "exitPrice", nx."mlsStatus" AS "exitStatus",
       r."listDate" AS "rentalAt", r.rent
     FROM buys b
@@ -70,17 +72,18 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
       FROM "RentalListing" rl
       WHERE b.fp IS NOT NULL AND rl."addressFingerprint" = b.fp AND rl."listDate" > b.closed
       ORDER BY rl."listDate" LIMIT 1
-    ) r ON true`;
+    ) r ON true
+    -- Loan-financed buys only when a marked-up relist or a rental follows (see isInvestorBuy).
+    WHERE b.investor OR r."listDate" IS NOT NULL OR nx.price >= b.price * ${FINANCED_FLIP_MARKUP}`;
 
-  const now = Date.now();
   const buys: InvestorBuyRecord[] = [];
   for (const r of rows) {
     if (!RESIDENTIAL_CLASSES.includes(r.dwelling)) continue;
     const soldAt = new Date(r.closed).getTime();
     const relistAt = r.relistAt ? new Date(r.relistAt).getTime() : null;
     const rentalAt = r.rentalAt ? new Date(r.rentalAt).getTime() : null;
-    const kind = classifyInvestorBuy({ soldAt, relistAt, rentalAt }, now);
-    if (!kind) continue;
+    const kind = classifyInvestorBuy({ soldAt, relistAt, rentalAt });
+    if (!kind || !isInvestorBuy({ investorFinancing: r.investor, kind, price: Number(r.price), exitPrice: r.exitPrice == null ? null : Number(r.exitPrice) })) continue;
     buys.push({
       id: r.id, propertyId: r.propertyId, lat: Number(r.lat), lng: Number(r.lng), sqft: Number(r.sqft),
       beds: r.beds == null ? null : Number(r.beds), baths: r.baths == null ? null : Number(r.baths),

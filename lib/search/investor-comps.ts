@@ -1,11 +1,11 @@
 /**
  * Investor comps: what flippers and landlords have paid near a subject.
- * Deterministic, ARMLS-only (no model). An investor buy is a closed cash MLS
- * sale; what happened to the house next says who bought it:
+ * Deterministic, ARMLS-only (no model). An investor buy is a closed MLS sale
+ * paid in cash or "Other" (hard money) financing; what happened to the house next says who bought it:
  *   - back on the MLS for sale 30–365 days later → Flipper
  *   - listed for rent within a year (before any sale relist) → Landlord
- *   - held a year or more with no sale relist → Landlord
- * Anything else is too early to call and left out.
+ * Anything else is left out — including buys simply held, since a cash buyer
+ * who moves in holds too.
  */
 import { ATTACHED_CLASSES, ATTACHED_MAX_MILES, milesBetween, percentile, subdivisionKey, type ArvSubject } from "./comps";
 
@@ -14,9 +14,11 @@ export type InvestorKind = "Flipper" | "Landlord";
 export const FLIP_MIN_DAYS = 30;
 export const FLIP_MAX_DAYS = 365;
 export const RENTAL_MAX_DAYS = 365;
-export const HOLD_DAYS = 365;
 export const INVESTOR_RADII = [0.5, 1, 2] as const;
 export const INVESTOR_PERIODS = [12, 24] as const;
+/** "same": only the subject's dwelling class (like retail comps); "any": every
+ *  residential class, as investors buy across types (InvestorBase's default). */
+export type InvestorTypes = "same" | "any";
 /** Buys of a kind needed before that kind gets a price. */
 export const MIN_PRICED_BUYS = 3;
 /** The price is the median of this many best matches. */
@@ -29,15 +31,28 @@ const DAY_MS = 24 * 3600_000;
 const MONTH_MS = 30.44 * DAY_MS;
 const CELL = 0.01; // degrees ≈ 0.7 mi of latitude
 
-export function classifyInvestorBuy(e: { soldAt: number; relistAt: number | null; rentalAt: number | null }, now: number): InvestorKind | null {
+export function classifyInvestorBuy(e: { soldAt: number; relistAt: number | null; rentalAt: number | null }): InvestorKind | null {
   const relistDays = e.relistAt == null ? null : (e.relistAt - e.soldAt) / DAY_MS;
   const rentalDays = e.rentalAt == null ? null : (e.rentalAt - e.soldAt) / DAY_MS;
   if (relistDays != null && relistDays < FLIP_MIN_DAYS) return null;
   const rentalFirst = rentalDays != null && rentalDays <= RENTAL_MAX_DAYS && (relistDays == null || rentalDays < relistDays);
   if (rentalFirst) return "Landlord";
   if (relistDays != null && relistDays <= FLIP_MAX_DAYS) return "Flipper";
-  if (now - e.soldAt >= HOLD_DAYS * DAY_MS) return "Landlord";
   return null;
+}
+
+/** A loan-financed purchase counts as a flip when it resold (or relisted) at least this much higher. */
+export const FINANCED_FLIP_MARKUP = 1.2;
+
+/**
+ * Cash / hard-money buys are investors. A buy on an ordinary loan counts only
+ * when what happened next proves it: a marked-up resale (a flipper on a
+ * conventional loan) or a rental listing (a DSCR-loan landlord).
+ */
+export function isInvestorBuy(b: { investorFinancing: boolean; kind: InvestorKind; price: number; exitPrice: number | null }): boolean {
+  if (b.investorFinancing) return true;
+  if (b.kind === "Landlord") return true;
+  return b.exitPrice != null && b.exitPrice >= b.price * FINANCED_FLIP_MARKUP;
 }
 
 export type InvestorBuyRecord = {
@@ -108,6 +123,7 @@ export type InvestorBuy = {
   city: string;
   buyPrice: number;
   buyDate: string;
+  dwelling: string;
   sqft: number;
   beds: number | null;
   baths: number | null;
@@ -116,10 +132,23 @@ export type InvestorBuy = {
   score: number;
   smartMatch: boolean;
   exit: { price: number | null; date: string; status: string } | null;
+  /** Flippers: purchase ÷ closed resale, %. */
+  pctOfResale: number | null;
   rent: number | null;
 };
 
-export type InvestorPrice = { price: number | null; pctArv: number | null; count: number };
+export type InvestorPrice = {
+  price: number | null;
+  pctArv: number | null;
+  count: number;
+  /** Median $/sqft behind `price`. */
+  ppsf: number | null;
+  /** 25th–75th percentile of what this kind paid. */
+  low: number | null;
+  high: number | null;
+  /** Flippers: average purchase ÷ closed resale (InvestorBase's "% of ARV paid"). */
+  pctOfResale: number | null;
+};
 
 export type InvestorCompsResponse = {
   flipper: InvestorPrice;
@@ -129,12 +158,18 @@ export type InvestorCompsResponse = {
   missing?: "location" | "sqft";
 };
 
-const EMPTY: InvestorPrice = { price: null, pctArv: null, count: 0 };
+const EMPTY: InvestorPrice = { price: null, pctArv: null, count: 0, ppsf: null, low: null, high: null, pctOfResale: null };
+
+/** Purchase as % of the flip's closed resale; an asking price isn't a sale. */
+function pctOfResale(b: InvestorBuyRecord): number | null {
+  if (b.kind !== "Flipper" || !b.exit?.price || b.exit.status !== "Closed") return null;
+  return Math.round((b.price / b.exit.price) * 100);
+}
 
 export function findInvestorComps(
   subject: ArvSubject,
   index: InvestorIndex,
-  opts: { radiusMiles: number; months: number; arv: number | null },
+  opts: { radiusMiles: number; months: number; arv: number | null; types: InvestorTypes },
   now: number = Date.now(),
 ): InvestorCompsResponse {
   if (subject.latitude == null || subject.longitude == null) return { flipper: EMPTY, landlord: EMPTY, buys: [], missing: "location" };
@@ -142,7 +177,8 @@ export function findInvestorComps(
   const lat = subject.latitude, lng = subject.longitude, sqft = subject.sqft;
 
   const subKey = subdivisionKey(subject.subdivision);
-  const attached = ATTACHED_CLASSES.includes(subject.dwellingType);
+  const sameType = opts.types === "same";
+  const attached = sameType && ATTACHED_CLASSES.includes(subject.dwellingType);
   const since = now - opts.months * MONTH_MS;
   const span = Math.ceil(opts.radiusMiles / 69 / CELL) + 1;
   const cx = Math.floor(lat / CELL), cy = Math.floor(lng / CELL);
@@ -151,7 +187,7 @@ export function findInvestorComps(
   for (let dx = -span; dx <= span; dx++) {
     for (let dy = -span; dy <= span; dy++) {
       for (const b of index.cells.get(cellKey(cx + dx, cy + dy)) ?? []) {
-        if (b.propertyId === subject.id || b.dwelling !== subject.dwellingType || b.soldAt < since) continue;
+        if (b.propertyId === subject.id || (sameType && b.dwelling !== subject.dwellingType) || b.soldAt < since) continue;
         const miles = milesBetween(lat, lng, b.lat, b.lng);
         if (miles > opts.radiusMiles) continue;
         if (attached && miles > ATTACHED_MAX_MILES && !(subKey && b.subdivision === subKey)) continue;
@@ -163,10 +199,21 @@ export function findInvestorComps(
 
   const priceOf = (kind: InvestorKind): InvestorPrice => {
     const ofKind = hits.filter((h) => h.buy.kind === kind);
-    if (ofKind.length < MIN_PRICED_BUYS) return { price: null, pctArv: null, count: ofKind.length };
+    const resale = ofKind.map((h) => pctOfResale(h.buy)).filter((p): p is number => p != null);
+    const pctOfResaleAvg = resale.length ? Math.round(resale.reduce((a, b) => a + b, 0) / resale.length) : null;
+    if (ofKind.length < MIN_PRICED_BUYS) return { ...EMPTY, count: ofKind.length, pctOfResale: pctOfResaleAvg };
     const ppsf = percentile(ofKind.slice(0, PRICE_TOP_N).map((h) => h.buy.price / h.buy.sqft), 0.5)!;
     const price = Math.round(ppsf * sqft);
-    return { price, pctArv: opts.arv ? Math.round((price / opts.arv) * 100) : null, count: ofKind.length };
+    const paid = ofKind.map((h) => h.buy.price);
+    return {
+      price,
+      pctArv: opts.arv ? Math.round((price / opts.arv) * 100) : null,
+      count: ofKind.length,
+      ppsf: Math.round(ppsf),
+      low: Math.round(percentile(paid, 0.25)!),
+      high: Math.round(percentile(paid, 0.75)!),
+      pctOfResale: pctOfResaleAvg,
+    };
   };
 
   const buys: InvestorBuy[] = hits.slice(0, MAX_BUYS).map(({ buy: b, miles, score }, i) => ({
@@ -175,6 +222,7 @@ export function findInvestorComps(
     city: b.city,
     buyPrice: b.price,
     buyDate: new Date(b.soldAt).toISOString(),
+    dwelling: b.dwelling,
     sqft: b.sqft,
     beds: b.beds,
     baths: b.baths,
@@ -183,6 +231,7 @@ export function findInvestorComps(
     score,
     smartMatch: i < SMART_MATCH_TOP_N && score >= SMART_MATCH_MIN_SCORE,
     exit: b.exit && { price: b.exit.price, date: new Date(b.exit.at).toISOString(), status: b.exit.status },
+    pctOfResale: pctOfResale(b),
     rent: b.rent,
   }));
 

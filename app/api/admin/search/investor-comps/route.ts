@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "id query parameter is required" }, { status: 400 });
 
   try {
-    const result = await loadInvestorComps(id, Number(params.get("radius") ?? 2), Number(params.get("months") ?? 24));
+    const types = params.get("types") === "same" ? "same" : "any";
+    const result = await loadInvestorComps(id, Number(params.get("radius") ?? 2), Number(params.get("months") ?? 24), types);
     if (!result) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(result);
   } catch (err) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ArvSubject } from "./comps";
 import {
-  buildInvestorIndex, classifyInvestorBuy, findInvestorComps, smartMatchScore, type InvestorBuyRecord,
+  buildInvestorIndex, classifyInvestorBuy, isInvestorBuy, findInvestorComps, smartMatchScore, type InvestorBuyRecord,
 } from "./investor-comps";
 
 const NOW = Date.parse("2026-09-30T00:00:00Z");
@@ -19,39 +19,56 @@ const buy = (i: number, o: Partial<InvestorBuyRecord> = {}): InvestorBuyRecord =
   address: `${i} Buy St`, city: "Phoenix", kind: "Flipper", exit: null, rent: null, ...o,
 });
 
-const opts = { radiusMiles: 2, months: 24, arv: 500_000 };
+const opts = { radiusMiles: 2, months: 24, arv: 500_000, types: "same" as const };
 
 describe("classifyInvestorBuy", () => {
   const soldAt = NOW - 400 * DAY;
   const at = (days: number) => soldAt + days * DAY;
 
   it("relist 30–365 days after purchase is a flipper", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(30), rentalAt: null }, NOW)).toBe("Flipper");
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(365), rentalAt: null }, NOW)).toBe("Flipper");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(30), rentalAt: null })).toBe("Flipper");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(365), rentalAt: null })).toBe("Flipper");
   });
   it("relist under 30 days is unclassified", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(29), rentalAt: null }, NOW)).toBeNull();
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(10), rentalAt: at(5) }, NOW)).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(29), rentalAt: null })).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(10), rentalAt: at(5) })).toBeNull();
   });
   it("rental listing within a year is a landlord", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 90 * DAY, relistAt: null, rentalAt: NOW - 40 * DAY }, NOW)).toBe("Landlord");
+    expect(classifyInvestorBuy({ soldAt: NOW - 90 * DAY, relistAt: null, rentalAt: NOW - 40 * DAY })).toBe("Landlord");
   });
   it("rental before a sale relist is a landlord", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(200), rentalAt: at(60) }, NOW)).toBe("Landlord");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(200), rentalAt: at(60) })).toBe("Landlord");
   });
   it("sale relist before a rental is a flipper", () => {
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(60), rentalAt: at(200) }, NOW)).toBe("Flipper");
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(60), rentalAt: at(200) })).toBe("Flipper");
   });
-  it("held a year without relist is a landlord", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 365 * DAY, relistAt: null, rentalAt: null }, NOW)).toBe("Landlord");
-    expect(classifyInvestorBuy({ soldAt, relistAt: at(500), rentalAt: null }, NOW)).toBe("Landlord");
+  it("holding without a rental listing is not evidence of a landlord", () => {
+    // A cash buyer who moves in holds too; only a rental listing says landlord.
+    expect(classifyInvestorBuy({ soldAt: NOW - 700 * DAY, relistAt: null, rentalAt: null })).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: at(500), rentalAt: null })).toBeNull();
   });
   it("recent buy with no signal is unclassified", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null }, NOW)).toBeNull();
+    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null })).toBeNull();
   });
   it("rental more than a year later does not count", () => {
-    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null }, NOW)).toBeNull();
-    expect(classifyInvestorBuy({ soldAt, relistAt: null, rentalAt: at(380) }, NOW)).toBe("Landlord"); // held
+    expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null })).toBeNull();
+    expect(classifyInvestorBuy({ soldAt, relistAt: null, rentalAt: at(380) })).toBeNull();
+  });
+});
+
+describe("isInvestorBuy", () => {
+  it("counts cash and hard-money buys of either kind", () => {
+    expect(isInvestorBuy({ investorFinancing: true, kind: "Flipper", price: 300_000, exitPrice: 310_000 })).toBe(true);
+    expect(isInvestorBuy({ investorFinancing: true, kind: "Landlord", price: 300_000, exitPrice: null })).toBe(true);
+  });
+  it("counts a loan-financed buy the resale proves was a flip (20%+ markup)", () => {
+    // 2437 E North Ln: bought $645k conventional, resold $1.025M five months later
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Flipper", price: 645_000, exitPrice: 1_025_000 })).toBe(true);
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Flipper", price: 500_000, exitPrice: 590_000 })).toBe(false);
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Flipper", price: 500_000, exitPrice: null })).toBe(false);
+  });
+  it("counts a loan-financed buy listed for rent (DSCR landlords)", () => {
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Landlord", price: 400_000, exitPrice: null })).toBe(true);
   });
 });
 
@@ -82,13 +99,16 @@ describe("findInvestorComps", () => {
     // top 5 by score are the nearest (b1–b5): prices 280k..320k, median 300k
     expect(r.flipper.price).toBe(300_000);
     expect(r.flipper.pctArv).toBe(60);
-    expect(r.landlord).toEqual({ price: 330_000, pctArv: 66, count: 3 });
+    expect(r.flipper.ppsf).toBe(200);
+    // 25th–75th percentile of all six flip buys (280k..330k)
+    expect([r.flipper.low, r.flipper.high]).toEqual([292_500, 317_500]);
+    expect(r.landlord).toMatchObject({ price: 330_000, pctArv: 66, count: 3, ppsf: 220, low: 330_000, high: 330_000 });
     expect(r.buys.map((b) => b.id).slice(0, 2)).toEqual(["b1", "b2"]);
   });
 
   it("fewer than 3 of a kind gives no price but keeps the count", () => {
     const r = findInvestorComps(subject, buildInvestorIndex([buy(1), buy(2, { kind: "Landlord" })]), opts, NOW);
-    expect(r.flipper).toEqual({ price: null, pctArv: null, count: 1 });
+    expect(r.flipper).toMatchObject({ price: null, pctArv: null, count: 1, ppsf: null, low: null, high: null });
     expect(r.landlord.count).toBe(1);
   });
 
@@ -118,6 +138,18 @@ describe("findInvestorComps", () => {
     expect(r.buys.map((b) => b.id)).toEqual(["b1"]);
   });
 
+  it("Any type mixes residential classes and drops the attached distance cap", () => {
+    const buys = [
+      buy(1),
+      buy(2, { dwelling: "Townhouse", lat: 33.5 + 1 * MILE_LAT }),
+      buy(3, { dwelling: "Condo" }),
+    ];
+    const r = findInvestorComps(subject, buildInvestorIndex(buys), { ...opts, types: "any" }, NOW);
+    expect(r.buys.map((b) => b.id).sort()).toEqual(["b1", "b2", "b3"]);
+    const same = findInvestorComps(subject, buildInvestorIndex(buys), opts, NOW);
+    expect(same.buys.map((b) => b.id)).toEqual(["b1"]);
+  });
+
   it("attached homes beyond 0.5 mi only count in the same subdivision", () => {
     const condo: ArvSubject = { ...subject, dwellingType: "Condo", subdivision: "The Palms" };
     const buys = [
@@ -136,6 +168,23 @@ describe("findInvestorComps", () => {
     expect(findInvestorComps({ ...subject, sqft: null }, index, opts, NOW).buys).toEqual([]);
   });
 
+  it("% of resale per flip and on average, from closed resales only (InvestorBase's % of ARV paid)", () => {
+    const at = NOW - 10 * DAY;
+    const buys = [
+      buy(1, { price: 300_000, exit: { price: 400_000, at, status: "Closed" } }), // 75%
+      buy(2, { price: 260_000, exit: { price: 400_000, at, status: "Closed" } }), // 65%
+      buy(3, { price: 250_000, exit: { price: 500_000, at, status: "Active" } }), // asking, not a sale
+      buy(4, { kind: "Landlord", rent: 2_000 }),
+    ];
+    const r = findInvestorComps(subject, buildInvestorIndex(buys), opts, NOW);
+    const row = (id: string) => r.buys.find((b) => b.id === id)!;
+    expect(row("b1").pctOfResale).toBe(75);
+    expect(row("b3").pctOfResale).toBeNull();
+    expect(row("b4").pctOfResale).toBeNull();
+    expect(r.flipper.pctOfResale).toBe(70);
+    expect(r.landlord.pctOfResale).toBeNull();
+  });
+
   it("carries flipper exits and landlord rents to the row", () => {
     const buys = [
       buy(1, { exit: { price: 450_000, at: NOW - 10 * DAY, status: "Closed" } }),
@@ -145,5 +194,6 @@ describe("findInvestorComps", () => {
     const b1 = r.buys.find((b) => b.id === "b1")!;
     expect(b1.exit).toEqual({ price: 450_000, date: new Date(NOW - 10 * DAY).toISOString(), status: "Closed" });
     expect(r.buys.find((b) => b.id === "b2")!.rent).toBe(2_100);
+    expect(b1.dwelling).toBe("Single Family");
   });
 });

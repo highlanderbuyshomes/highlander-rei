@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { buildFilter } from "./reso";
-import { resolveRentalPlan, toRentalRow } from "./rental-sync";
+import { isRecentRental, resolveRentalPlan, toRentalRow } from "./rental-sync";
 
 describe("buildFilter leaseOnly", () => {
   it("selects residential leases modified since the watermark", () => {
@@ -73,5 +73,18 @@ describe("resolveRentalPlan", () => {
 
   it("bootstraps again when a partial run lost its resume point", () => {
     expect(resolveRentalPlan({ status: "partial", rawMeta: { watermark: "2026-09-30T10:00:00.000Z" } }, now).kind).toBe("bootstrap");
+  });
+});
+
+describe("isRecentRental", () => {
+  const now = new Date("2026-09-30T00:00:00Z");
+  const row = (listDate: string | null) => ({ mlsNumber: "m", addressFingerprint: "f", listDate, rent: 2000 });
+  it("keeps rentals listed within the last 24 months", () => {
+    expect(isRecentRental(row("2024-10-01T00:00:00.000Z"), now)).toBe(true);
+    expect(isRecentRental(row("2026-09-01T00:00:00.000Z"), now)).toBe(true);
+  });
+  it("drops older or undated rentals — they can't follow a purchase in the window", () => {
+    expect(isRecentRental(row("2001-03-30T00:00:00.000Z"), now)).toBe(false);
+    expect(isRecentRental(row(null), now)).toBe(false);
   });
 });
