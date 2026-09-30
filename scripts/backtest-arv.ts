@@ -28,7 +28,7 @@ async function main() {
     const start = now - m * MONTH_MS;
     const index = buildCompIndex(sales.filter((c) => c.closedAt < start));
     for (const t of tests.filter((c) => c.closedAt >= start && c.closedAt < start + MONTH_MS)) {
-      const est = estimateArv({ id: t.id, latitude: t.lat, longitude: t.lng, sqft: t.sqft, beds: t.beds, yearBuilt: t.yearBuilt, dwellingType: t.dwelling, zip: t.zip, subdivision: t.subdivision, lotSqft: t.lotSqft }, index, start);
+      const est = estimateArv({ id: t.propertyId ?? t.id, latitude: t.lat, longitude: t.lng, sqft: t.sqft, beds: t.beds, yearBuilt: t.yearBuilt, dwellingType: t.dwelling, zip: t.zip, subdivision: t.subdivision, lotSqft: t.lotSqft }, index, start);
       if (!est) { missing++; continue; }
       const e = est.arv / t.price - 1;
       for (const k of ["All", `ARV ${tier(est.arv)}`, `confidence ${est.confidence}`, `basis ${est.basis}`]) add(k, e);

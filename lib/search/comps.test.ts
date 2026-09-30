@@ -156,6 +156,13 @@ describe("backtest-tuned ARV", () => {
     expect(estimateArv(subject, buildCompIndex(comps), NOW)!.compCount).toBe(5);
   });
 
+  it("never comps the subject property's own sales (search rows are keyed by property id)", () => {
+    const own = [comp(1, { propertyId: "s", price: 1500 * 235, flipResale: true }), comp(2, { propertyId: "s", price: 1500 * 245, flipResale: true })];
+    const others = [3, 4, 5].map((i) => comp(i, { propertyId: `p${i}`, flipResale: true }));
+    const e = estimateArv(subject, buildCompIndex([...own, ...others]), NOW)!;
+    expect(e.comps.map((c) => c.id).sort()).toEqual(["c3", "c4", "c5"]);
+  });
+
   it("gives each estimate the ±% range 7 in 10 backtested resales fell within", () => {
     expect(arvRangePct(250_000, "High")).toBe(14);
     expect(arvRangePct(400_000, "High")).toBe(10);

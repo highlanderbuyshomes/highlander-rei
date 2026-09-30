@@ -18,7 +18,7 @@ const MIN_PPSF = 40;
 const MAX_PPSF = 2_000;
 
 type Row = {
-  id: string; lat: number; lng: number; sqft: number; beds: number | null; yearBuilt: number | null;
+  id: string; propertyId: string; lat: number; lng: number; sqft: number; beds: number | null; yearBuilt: number | null;
   dwelling: string; zip: string; subdivision: string | null; price: number; closed: Date; address: string; city: string;
   flip: boolean; renovated: boolean; lot: number | null;
 };
@@ -59,7 +59,7 @@ export async function fetchComps(lookbackMonths: number = LOOKBACK_MONTHS): Prom
         LAG(cash) OVER (PARTITION BY "propertyId" ORDER BY closed) AS "priorCash"
       FROM s WHERE status = 'Closed'
     )
-    SELECT id, lat, lng, sqft, beds, "yearBuilt", lot, dwelling, zip, subdivision, price, closed, address, city, renovated,
+    SELECT id, "propertyId", lat, lng, sqft, beds, "yearBuilt", lot, dwelling, zip, subdivision, price, closed, address, city, renovated,
       COALESCE("priorCash" AND closed - "priorClosed" BETWEEN make_interval(days => ${FLIP_MIN_DAYS}) AND make_interval(days => ${FLIP_MAX_DAYS}), false) AS flip
     FROM sales
     WHERE closed >= ${cutoff} AND located AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
@@ -68,7 +68,7 @@ export async function fetchComps(lookbackMonths: number = LOOKBACK_MONTHS): Prom
   return rows
     .filter((r) => RESIDENTIAL_CLASSES.includes(r.dwelling))
     .map((r) => ({
-      id: r.id, lat: Number(r.lat), lng: Number(r.lng), sqft: Number(r.sqft),
+      id: r.id, propertyId: r.propertyId, lat: Number(r.lat), lng: Number(r.lng), sqft: Number(r.sqft),
       beds: r.beds == null ? null : Number(r.beds), yearBuilt: r.yearBuilt == null ? null : Number(r.yearBuilt),
       dwelling: r.dwelling, zip: r.zip, subdivision: subdivisionKey(r.subdivision), price: Number(r.price), closedAt: new Date(r.closed).getTime(),
       address: r.address, city: r.city, flipResale: r.flip, renovated: r.renovated,

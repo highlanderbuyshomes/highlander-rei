@@ -15,6 +15,8 @@
 
 export type ClosedComp = {
   id: string;
+  /** The sold property; search rows (and so ARV subjects) are keyed by it. */
+  propertyId?: string;
   lat: number;
   lng: number;
   sqft: number;
@@ -209,7 +211,7 @@ export function estimateArv(subject: ArvSubject, index: CompIndex, now: number =
     for (let dx = -span; dx <= span; dx++) {
       for (let dy = -span; dy <= span; dy++) {
         for (const c of index.cells.get(cellKey(cx + dx, cy + dy)) ?? []) {
-          if (c.id === subject.id || !similar(subject, c)) continue;
+          if (c.id === subject.id || c.propertyId === subject.id || !similar(subject, c)) continue;
           const miles = milesBetween(lat, lng, c.lat, c.lng);
           if (miles <= widest.miles) pool.push({ comp: c, miles });
         }
