@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCompIndex, estimateArv, milesBetween, percentile, subdivisionKey, type ArvSubject, type ClosedComp } from "./comps";
+import { arvRangePct, buildCompIndex, estimateArv, milesBetween, percentile, subdivisionKey, type ArvSubject, type ClosedComp } from "./comps";
 
 const NOW = Date.parse("2026-09-22T00:00:00Z");
 const DAY = 24 * 3600_000;
@@ -125,5 +125,51 @@ describe("subdivisionKey", () => {
     expect(e.basis).toBe("Renovated comps");
     expect(e.compCount).toBe(5); // a lone flip resale still counts as renovated
     expect(e.confidence).toBe("High");
+  });
+});
+
+describe("backtest-tuned ARV", () => {
+  it("scales a smaller comp's $/sqft down to the subject's size", () => {
+    // 1,200 sqft comps at $250/sqft; subject 1,500 sqft: 250 × (1200/1500)^0.4 ≈ 228.7
+    const index = buildCompIndex([1, 2, 3].map((i) => comp(i, { sqft: 1200, price: 1200 * 250, flipResale: true })));
+    const e = estimateArv(subject, index, NOW)!;
+    expect(e.pricePerSqft).toBeCloseTo(250 * Math.pow(1200 / 1500, 0.4), 6);
+    expect(e.arv).toBe(Math.round(e.pricePerSqft * 1500));
+  });
+
+  it("prices keyword-renovated comps at the 65th percentile (they include half-updated homes)", () => {
+    const reno = [1, 2, 3, 4, 5, 6].map((i) => comp(i, { lat: 33.5 + i * 0.0005, renovated: true, price: 1500 * (190 + i * 10) }));
+    const e = estimateArv(subject, buildCompIndex(reno), NOW)!;
+    expect(e.basis).toBe("Renovated comps");
+    // $/sqft 200..250 step 10 -> P65 = 232.5
+    expect(e.pricePerSqft).toBeCloseTo(232.5, 6);
+  });
+
+  it("only comps lots within ±50% of the subject's (unknown lots still count)", () => {
+    const comps = [
+      comp(1, { lotSqft: 7_500 }), comp(2, { lotSqft: 20_000 }), comp(3, { lotSqft: null }),
+      comp(4, { lotSqft: 9_000 }), comp(5, { lotSqft: 3_000 }),
+    ].map((c) => ({ ...c, flipResale: true }));
+    const e = estimateArv({ ...subject, lotSqft: 7_000 }, buildCompIndex(comps), NOW)!;
+    expect(e.comps.map((c) => c.id).sort()).toEqual(["c1", "c3", "c4"]);
+    // No subject lot: lot size isn't used
+    expect(estimateArv(subject, buildCompIndex(comps), NOW)!.compCount).toBe(5);
+  });
+
+  it("never comps the subject property's own sales (search rows are keyed by property id)", () => {
+    const own = [comp(1, { propertyId: "s", price: 1500 * 235, flipResale: true }), comp(2, { propertyId: "s", price: 1500 * 245, flipResale: true })];
+    const others = [3, 4, 5].map((i) => comp(i, { propertyId: `p${i}`, flipResale: true }));
+    const e = estimateArv(subject, buildCompIndex([...own, ...others]), NOW)!;
+    expect(e.comps.map((c) => c.id).sort()).toEqual(["c3", "c4", "c5"]);
+  });
+
+  it("gives each estimate the ±% range 7 in 10 backtested resales fell within", () => {
+    expect(arvRangePct(250_000, "High")).toBe(14);
+    expect(arvRangePct(400_000, "High")).toBe(10);
+    expect(arvRangePct(600_000, "Medium")).toBe(13);
+    expect(arvRangePct(900_000, "High")).toBe(22);
+    expect(arvRangePct(400_000, "Low")).toBe(25);
+    const e = estimateArv(subject, buildCompIndex([1, 2, 3].map((i) => comp(i, { flipResale: true, price: 1500 * 260 }))), NOW)!;
+    expect(e.rangePct).toBe(10); // $390k, Medium
   });
 });
