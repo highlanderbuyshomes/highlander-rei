@@ -519,3 +519,17 @@ model OutboxEvent {
   @@index([status, availableAt])
   @@index([aggregateType, aggregateId])
 }
+
+/// ARMLS rental (Residential Lease) listings, kept minimal: only what tells
+/// Investor comps that a cash buyer rented the house out, and for how much.
+model RentalListing {
+  id                 String    @id @default(cuid())
+  mlsNumber          String    @unique
+  addressFingerprint String
+  listDate           DateTime?
+  rent               Float?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([addressFingerprint])
+}

@@ -25,11 +25,11 @@ export type ResoSyncControl = {
   meta?: Record<string, unknown>;
 };
 
-function normalizeAddressFingerprint(streetAddress: string, zip: string): string {
+export function normalizeAddressFingerprint(streetAddress: string, zip: string): string {
   return `${streetAddress}|${zip}`.toLowerCase().replace(/[^a-z0-9|]/g, "");
 }
 
-function formatStreetAddress(listing: ResoListing): string {
+export function formatStreetAddress(listing: ResoListing): string {
   if (listing.UnparsedAddress) return listing.UnparsedAddress;
   const parts = [listing.StreetNumber, listing.StreetDirPrefix, listing.StreetName, listing.StreetSuffix].filter(Boolean);
   const base = parts.join(" ");
