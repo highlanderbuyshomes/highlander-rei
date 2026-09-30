@@ -7,6 +7,7 @@ import { mlsLinks } from "@/lib/search/mls-links";
 import { normalizeStatus } from "@/lib/search/score-deals";
 import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, ListingRecord, SearchResponse } from "@/lib/search/types";
 import GoogleMapStage from "./GoogleMapStage";
+import InvestorComps from "./InvestorComps";
 import styles from "./search.module.css";
 
 type WorkspaceView = "map" | "list" | "detail";
@@ -334,9 +335,27 @@ function ListingDetail({ listing, comps, threshold }: { listing: DealCandidate |
     <MlsSiteLinks listing={listing} className={styles.detailLinks} />
     <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", money(listing.arv)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore}/99 · Higher is better · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     <div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Square feet", listing.sqft?.toLocaleString() ?? "—"], ["Year built", listing.yearBuilt ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
-    {comps == null ? <p className={styles.previewNote}>Loading sold comps…</p> : comps.length === 0 ? <p className={styles.previewNote}>No nearby sold comps — ARV is {listing.arvSource === "Insufficient data" ? "unavailable" : `from ${listing.arvSource}`}; verify before offering.</p> :
-      <div className={styles.resultsTable}><table><thead><tr><th>Sold comp</th><th>Sold</th><th>Price</th><th>Sq Ft</th><th>$/sqft</th><th>Beds</th><th>Built</th><th>Distance</th></tr></thead><tbody>{comps.map((c) => <tr key={c.id}><td><strong>{c.address}</strong><small>{c.city}</small></td><td>{shortDate(c.closedDate)}</td><td>{money(c.price)}</td><td>{c.sqft.toLocaleString()}</td><td>{money(c.pricePerSqft)}</td><td>{c.beds ?? "—"}</td><td>{c.yearBuilt ?? "—"}</td><td>{c.distanceMiles == null ? "—" : `${c.distanceMiles} mi`}</td></tr>)}</tbody></table></div>}
+    <CompsSection key={listing.id} listing={listing} comps={comps} />
   </div>;
+}
+
+// Retail comps (sold comps behind the ARV) are the default; Investor comps
+// only mounts, and so only fetches, once its tab is clicked.
+function CompsSection({ listing, comps }: { listing: DealCandidate; comps: CompSale[] | null }) {
+  const [tab, setTab] = useState<"retail" | "investor">("retail");
+  const [investorOpened, setInvestorOpened] = useState(false);
+  const open = (next: "retail" | "investor") => { setTab(next); if (next === "investor") setInvestorOpened(true); };
+  return <>
+    <div className={`${styles.compTabs} ${styles.compTabsMain}`} role="tablist">
+      <button type="button" role="tab" aria-selected={tab === "retail"} className={tab === "retail" ? styles.compTabActive : ""} onClick={() => open("retail")}>Retail comps · ARV {money(listing.arv)}</button>
+      <button type="button" role="tab" aria-selected={tab === "investor"} className={tab === "investor" ? styles.compTabActive : ""} onClick={() => open("investor")}>Investor comps</button>
+    </div>
+    <div hidden={tab !== "retail"}>
+      {comps == null ? <p className={styles.previewNote}>Loading sold comps…</p> : comps.length === 0 ? <p className={styles.previewNote}>No nearby sold comps — ARV is {listing.arvSource === "Insufficient data" ? "unavailable" : `from ${listing.arvSource}`}; verify before offering.</p> :
+        <div className={styles.resultsTable}><table><thead><tr><th>Sold comp</th><th>Sold</th><th>Price</th><th>Sq Ft</th><th>$/sqft</th><th>Beds</th><th>Built</th><th>Distance</th></tr></thead><tbody>{comps.map((c) => <tr key={c.id}><td><strong>{c.address}</strong><small>{c.city}</small></td><td>{shortDate(c.closedDate)}</td><td>{money(c.price)}</td><td>{c.sqft.toLocaleString()}</td><td>{money(c.pricePerSqft)}</td><td>{c.beds ?? "—"}</td><td>{c.yearBuilt ?? "—"}</td><td>{c.distanceMiles == null ? "—" : `${c.distanceMiles} mi`}</td></tr>)}</tbody></table></div>}
+    </div>
+    {investorOpened && <div hidden={tab !== "investor"}><InvestorComps listingId={listing.id} /></div>}
+  </>;
 }
 
 // CurbView opens the listing directly; Flexmls has no public listing URL, so it

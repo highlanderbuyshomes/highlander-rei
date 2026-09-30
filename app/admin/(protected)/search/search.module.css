@@ -457,3 +457,18 @@
 .dealActions a { width: 100%; min-height: 30px; box-sizing: border-box; text-align: center; }
 .detailLinks { align-items: stretch; flex-wrap: wrap; }
 .detailLinks a { min-width: 100px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Retail / Investor comps */
+.compTabs { display: flex; flex-wrap: wrap; gap: 5px; }
+.compTabs button { height: 29px; padding: 0 10px; border: 1px solid #d2d8d4; border-radius: 4px; background: #fff; color: #5d6862; font: 700 9px var(--font-body); cursor: pointer; }
+.compTabs .compTabActive { border-color: #2478c5; background: #2478c5; color: #fff; }
+.compTabsMain { margin: 25px 0 10px; }
+.compTabsMain button { height: 32px; font-size: 10px; }
+.investorComps .detailGrid { grid-template-columns: repeat(2, 1fr); margin-top: 0; }
+.investorComps .detailGrid strong { font-size: 18px; }
+.investorFilters { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0 10px; }
+.flipperTag, .landlordTag, .smartTag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 8px; font-weight: 700; }
+.flipperTag { background: #e3f1fc; color: #1a6fb0; }
+.landlordTag { background: #e2f5ea; color: #1f7a48; }
+.smartTag { background: #fdf1d8; color: #9a6a0c; }
+.inlineButton { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }

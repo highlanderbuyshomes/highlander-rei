@@ -100,9 +100,12 @@ export type ResoScopeOpts = {
    *  expirations and price/status changes all flow through) — statuses and
    *  the closed window are ignored. */
   modifiedSince?: string;
+  /** Rental listings only (ARMLS "Residential Lease") instead of sales. Pair
+   *  with modifiedSince; statuses and the closed window are ignored. */
+  leaseOnly?: boolean;
 };
 
-function buildFilter(opts: ResoScopeOpts): string {
+export function buildFilter(opts: ResoScopeOpts): string {
   const statuses = opts.statuses ?? DEFAULT_STATUSES;
 
   // zips/cities are optional restrictions; with neither set there is no area
@@ -116,6 +119,11 @@ function buildFilter(opts: ResoScopeOpts): string {
   // Deal Search is for sales; skip lease/rental listings at the source.
   // ARMLS labels commercial rentals "Comm/Industry Lease" (not the RESO "Commercial Lease").
   const salesOnly = `PropertyType ne 'Residential Lease' and PropertyType ne 'Commercial Lease' and PropertyType ne 'Comm/Industry Lease'`;
+  if (opts.leaseOnly) {
+    const lease = `PropertyType eq 'Residential Lease'`;
+    const parts = [areaFilter, opts.modifiedSince ? `ModificationTimestamp gt ${opts.modifiedSince}` : null, lease].filter(Boolean);
+    return parts.join(" and ");
+  }
   const withArea = (f: string) => (areaFilter ? `${areaFilter} and ${f} and ${salesOnly}` : `${f} and ${salesOnly}`);
 
   if (opts.modifiedSince) return withArea(`ModificationTimestamp gt ${opts.modifiedSince}`);
