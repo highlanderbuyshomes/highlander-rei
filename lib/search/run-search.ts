@@ -1,5 +1,5 @@
 import { isPointInsideShape } from "@/lib/filter-listings";
-import { estimateArv, type CompIndex } from "./comps";
+import { estimateArv, estimateAsIs, type CompIndex } from "./comps";
 import { loadCandidates, loadRowsByIds } from "./load";
 import { loadCompIndex } from "./load-comps";
 import { findInvestorComps, type InvestorCompsResponse, type InvestorTypes } from "./investor-comps";
@@ -74,7 +74,9 @@ export async function loadListingDetail(id: string, arvThreshold: number): Promi
     if (!c) return [];
     return [{ id: c.id, address: c.address, city: c.city, price: c.price, sqft: c.sqft, pricePerSqft: c.price / c.sqft, beds: c.beds, yearBuilt: c.yearBuilt, closedDate: new Date(c.closedAt).toISOString(), distanceMiles }];
   });
-  return { ...scored, comps };
+  const asIsEst = estimateAsIs(row, index);
+  const asIs = asIsEst && { value: asIsEst.value, rangePct: asIsEst.rangePct, compCount: asIsEst.compCount, radiusMiles: asIsEst.radiusMiles };
+  return { ...scored, comps, asIs };
 }
 
 /** What flippers and landlords paid near one listing (Investor comps). */

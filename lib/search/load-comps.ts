@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { dwellingSql, RESIDENTIAL_CLASSES, statusSql } from "./classify";
 import { buildCompIndex, subdivisionKey, type ClosedComp, type CompIndex } from "./comps";
 import { leasedLandSql, sqftSql } from "./load";
-import { pgPhraseRegex, RENOVATED_PHRASES } from "@/lib/distress";
+import { CONDITION_PHRASES, pgPhraseRegex, RENOVATED_PHRASES } from "@/lib/distress";
 import { plausibleLotSqft } from "./plausible";
 
 const TTL_MS = 15 * 60_000;
@@ -12,6 +12,7 @@ const LOOKBACK_MONTHS = 12;
 const FLIP_MIN_DAYS = 30;
 const FLIP_MAX_DAYS = 365;
 const RENOVATED_REGEX = pgPhraseRegex(RENOVATED_PHRASES);
+const FIXER_REGEX = pgPhraseRegex(CONDITION_PHRASES);
 // Sanity bounds that drop data-entry errors and non-arm's-length transfers.
 const MIN_PRICE = 30_000;
 const MIN_PPSF = 40;
@@ -20,7 +21,7 @@ const MAX_PPSF = 2_000;
 type Row = {
   id: string; propertyId: string; lat: number; lng: number; sqft: number; beds: number | null; yearBuilt: number | null;
   dwelling: string; zip: string; subdivision: string | null; price: number; closed: Date; address: string; city: string;
-  flip: boolean; renovated: boolean; lot: number | null;
+  flip: boolean; renovated: boolean; fixer: boolean; lot: number | null;
 };
 
 // Fluid Compute reuses instances, so one load serves many searches.
@@ -46,6 +47,7 @@ export async function fetchComps(lookbackMonths: number = LOOKBACK_MONTHS): Prom
         l."soldDate" AS closed,
         lower(COALESCE(src->>'BuyerFinancing', '')) LIKE '%cash%' AS cash,
         COALESCE(COALESCE(src->>'PublicRemarks', src->>'Remarks', src->>'MarketingRemarks') ~* ${RENOVATED_REGEX}, false) AS renovated,
+        COALESCE(COALESCE(src->>'PublicRemarks', src->>'Remarks', src->>'MarketingRemarks') ~* ${FIXER_REGEX}, false) AS fixer,
         lower(COALESCE(src->>'PropertyType', '')) LIKE '%lease%' AS lease,
         ${leasedLandSql("src", 'p."rawJson"')} AS "leasedLand",
         p.latitude IS NOT NULL AND p.longitude IS NOT NULL AS located
@@ -59,7 +61,7 @@ export async function fetchComps(lookbackMonths: number = LOOKBACK_MONTHS): Prom
         LAG(cash) OVER (PARTITION BY "propertyId" ORDER BY closed) AS "priorCash"
       FROM s WHERE status = 'Closed'
     )
-    SELECT id, "propertyId", lat, lng, sqft, beds, "yearBuilt", lot, dwelling, zip, subdivision, price, closed, address, city, renovated,
+    SELECT id, "propertyId", lat, lng, sqft, beds, "yearBuilt", lot, dwelling, zip, subdivision, price, closed, address, city, renovated, fixer,
       COALESCE("priorCash" AND closed - "priorClosed" BETWEEN make_interval(days => ${FLIP_MIN_DAYS}) AND make_interval(days => ${FLIP_MAX_DAYS}), false) AS flip
     FROM sales
     WHERE closed >= ${cutoff} AND located AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
@@ -71,7 +73,7 @@ export async function fetchComps(lookbackMonths: number = LOOKBACK_MONTHS): Prom
       id: r.id, propertyId: r.propertyId, lat: Number(r.lat), lng: Number(r.lng), sqft: Number(r.sqft),
       beds: r.beds == null ? null : Number(r.beds), yearBuilt: r.yearBuilt == null ? null : Number(r.yearBuilt),
       dwelling: r.dwelling, zip: r.zip, subdivision: subdivisionKey(r.subdivision), price: Number(r.price), closedAt: new Date(r.closed).getTime(),
-      address: r.address, city: r.city, flipResale: r.flip, renovated: r.renovated,
+      address: r.address, city: r.city, flipResale: r.flip, renovated: r.renovated, fixer: r.fixer,
       lotSqft: plausibleLotSqft(r.lot == null ? null : Number(r.lot)),
     }));
 }

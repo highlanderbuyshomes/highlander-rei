@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arvRangePct, buildCompIndex, estimateArv, milesBetween, percentile, subdivisionKey, type ArvSubject, type ClosedComp } from "./comps";
+import { arvRangePct, asIsRangePct, buildCompIndex, estimateArv, estimateAsIs, milesBetween, percentile, subdivisionKey, type ArvSubject, type ClosedComp } from "./comps";
 
 const NOW = Date.parse("2026-09-22T00:00:00Z");
 const DAY = 24 * 3600_000;
@@ -171,5 +171,41 @@ describe("backtest-tuned ARV", () => {
     expect(arvRangePct(400_000, "Low")).toBe(25);
     const e = estimateArv(subject, buildCompIndex([1, 2, 3].map((i) => comp(i, { flipResale: true, price: 1500 * 260 }))), NOW)!;
     expect(e.rangePct).toBe(10); // $390k, Medium
+  });
+});
+
+describe("estimateAsIs (clean, maintained value)", () => {
+  it("prices from clean sales only — not renovated, not flip resales, not fixers — at the median", () => {
+    const clean = [1, 2, 3].map((i) => comp(i, { price: 1500 * (220 + i * 10) })); // 230, 240, 250
+    const other = [
+      comp(4, { renovated: true, price: 1500 * 300 }),
+      comp(5, { flipResale: true, price: 1500 * 320 }),
+      comp(6, { fixer: true, price: 1500 * 150 }),
+    ];
+    const v = estimateAsIs(subject, buildCompIndex([...clean, ...other]), NOW)!;
+    expect(v.compCount).toBe(3);
+    expect(v.pricePerSqft).toBeCloseTo(240, 6);
+    expect(v.value).toBe(360_000);
+  });
+
+  it("never uses the subject property's own sales", () => {
+    const comps = [comp(1, { propertyId: "s", price: 1500 * 240 }), ...[2, 3, 4].map((i) => comp(i, { price: 1500 * 230 }))];
+    expect(estimateAsIs(subject, buildCompIndex(comps), NOW)!.compCount).toBe(3);
+  });
+
+  it("ranges from the clean-sale backtest (30k sales), by value", () => {
+    expect(asIsRangePct(250_000)).toBe(15);
+    expect(asIsRangePct(360_000)).toBe(10);
+    expect(asIsRangePct(500_000)).toBe(12);
+    expect(asIsRangePct(900_000)).toBe(20);
+    const v = estimateAsIs(subject, buildCompIndex([1, 2, 3].map((i) => comp(i, { price: 1500 * 240 }))), NOW)!;
+    expect(v.rangePct).toBe(10); // $360k
+  });
+
+  it("returns null with fewer than 3 clean sales or no location/sqft", () => {
+    const index = buildCompIndex([comp(1), comp(2), comp(3, { renovated: true })]);
+    expect(estimateAsIs(subject, index, NOW)).toBeNull();
+    expect(estimateAsIs({ ...subject, latitude: null }, buildCompIndex([1, 2, 3].map((i) => comp(i))), NOW)).toBeNull();
+    expect(estimateAsIs({ ...subject, sqft: null }, buildCompIndex([1, 2, 3].map((i) => comp(i))), NOW)).toBeNull();
   });
 });
