@@ -41,6 +41,20 @@ export function classifyInvestorBuy(e: { soldAt: number; relistAt: number | null
   return null;
 }
 
+/** A loan-financed purchase counts as a flip when it resold (or relisted) at least this much higher. */
+export const FINANCED_FLIP_MARKUP = 1.2;
+
+/**
+ * Cash / hard-money buys are investors. A buy on an ordinary loan counts only
+ * when what happened next proves it: a marked-up resale (a flipper on a
+ * conventional loan) or a rental listing (a DSCR-loan landlord).
+ */
+export function isInvestorBuy(b: { investorFinancing: boolean; kind: InvestorKind; price: number; exitPrice: number | null }): boolean {
+  if (b.investorFinancing) return true;
+  if (b.kind === "Landlord") return true;
+  return b.exitPrice != null && b.exitPrice >= b.price * FINANCED_FLIP_MARKUP;
+}
+
 export type InvestorBuyRecord = {
   /** MlsListing id of the purchase. */
   id: string;

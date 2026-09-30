@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ArvSubject } from "./comps";
 import {
-  buildInvestorIndex, classifyInvestorBuy, findInvestorComps, smartMatchScore, type InvestorBuyRecord,
+  buildInvestorIndex, classifyInvestorBuy, isInvestorBuy, findInvestorComps, smartMatchScore, type InvestorBuyRecord,
 } from "./investor-comps";
 
 const NOW = Date.parse("2026-09-30T00:00:00Z");
@@ -53,6 +53,22 @@ describe("classifyInvestorBuy", () => {
   it("rental more than a year later does not count", () => {
     expect(classifyInvestorBuy({ soldAt: NOW - 100 * DAY, relistAt: null, rentalAt: null })).toBeNull();
     expect(classifyInvestorBuy({ soldAt, relistAt: null, rentalAt: at(380) })).toBeNull();
+  });
+});
+
+describe("isInvestorBuy", () => {
+  it("counts cash and hard-money buys of either kind", () => {
+    expect(isInvestorBuy({ investorFinancing: true, kind: "Flipper", price: 300_000, exitPrice: 310_000 })).toBe(true);
+    expect(isInvestorBuy({ investorFinancing: true, kind: "Landlord", price: 300_000, exitPrice: null })).toBe(true);
+  });
+  it("counts a loan-financed buy the resale proves was a flip (20%+ markup)", () => {
+    // 2437 E North Ln: bought $645k conventional, resold $1.025M five months later
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Flipper", price: 645_000, exitPrice: 1_025_000 })).toBe(true);
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Flipper", price: 500_000, exitPrice: 590_000 })).toBe(false);
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Flipper", price: 500_000, exitPrice: null })).toBe(false);
+  });
+  it("counts a loan-financed buy listed for rent (DSCR landlords)", () => {
+    expect(isInvestorBuy({ investorFinancing: false, kind: "Landlord", price: 400_000, exitPrice: null })).toBe(true);
   });
 });
 
