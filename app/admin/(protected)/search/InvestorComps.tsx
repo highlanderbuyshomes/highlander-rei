@@ -63,7 +63,7 @@ export default function InvestorComps({ listingId }: { listingId: string }) {
           <td>{b.beds ?? "—"} / {b.baths ?? "—"}</td>
           <td>{b.sqft.toLocaleString()}</td>
           <td>{b.kind === "Flipper"
-            ? (b.exit ? <><strong>{money(b.exit.price)}</strong><small>{b.exit.status} · {shortDate(b.exit.date)}</small></> : "—")
+            ? (b.exit ? <><strong>{money(b.exit.price)}{b.pctOfResale != null && ` · ${b.pctOfResale}%`}</strong><small>{b.exit.status} · {shortDate(b.exit.date)}</small></> : "—")
             : (b.rent != null ? `${money(b.rent)}/mo` : "—")}</td>
           <td>{b.distanceMiles} mi</td>
           <td>{b.smartMatch ? <span className={styles.smartTag}>Smart Match</span> : b.score}</td>
@@ -73,8 +73,16 @@ export default function InvestorComps({ listingId }: { listingId: string }) {
 }
 
 function PriceTile({ label, value }: { label: string; value: InvestorPrice | undefined }) {
-  const detail = value == null ? "…" : [value.pctArv == null ? null : `${value.pctArv}% ARV`, `${value.count} buys`].filter(Boolean).join(" · ");
-  return <div><small>{label}</small><strong>{value == null ? "…" : money(value.price)}</strong><small>{detail}</small></div>;
+  if (value == null) return <div><small>{label}</small><strong>…</strong></div>;
+  const k = (v: number) => `$${Math.round(v / 1000)}k`;
+  const line1 = [value.ppsf == null ? null : `$${value.ppsf}/ft`, value.pctArv == null ? null : `${value.pctArv}% ARV`, `${value.count} buys`];
+  const line2 = [value.low == null || value.high == null ? null : `${k(value.low)}–${k(value.high)}`, value.pctOfResale == null ? null : `${value.pctOfResale}% of resale`];
+  return <div>
+    <small>{label}</small>
+    <strong>{money(value.price)}</strong>
+    <small>{line1.filter(Boolean).join(" · ")}</small>
+    {line2.some(Boolean) && <small>{line2.filter(Boolean).join(" · ")}</small>}
+  </div>;
 }
 
 function KindTag({ kind }: { kind: InvestorKind }) {

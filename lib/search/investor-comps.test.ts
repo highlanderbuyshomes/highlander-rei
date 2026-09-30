@@ -83,13 +83,16 @@ describe("findInvestorComps", () => {
     // top 5 by score are the nearest (b1–b5): prices 280k..320k, median 300k
     expect(r.flipper.price).toBe(300_000);
     expect(r.flipper.pctArv).toBe(60);
-    expect(r.landlord).toEqual({ price: 330_000, pctArv: 66, count: 3 });
+    expect(r.flipper.ppsf).toBe(200);
+    // 25th–75th percentile of all six flip buys (280k..330k)
+    expect([r.flipper.low, r.flipper.high]).toEqual([292_500, 317_500]);
+    expect(r.landlord).toMatchObject({ price: 330_000, pctArv: 66, count: 3, ppsf: 220, low: 330_000, high: 330_000 });
     expect(r.buys.map((b) => b.id).slice(0, 2)).toEqual(["b1", "b2"]);
   });
 
   it("fewer than 3 of a kind gives no price but keeps the count", () => {
     const r = findInvestorComps(subject, buildInvestorIndex([buy(1), buy(2, { kind: "Landlord" })]), opts, NOW);
-    expect(r.flipper).toEqual({ price: null, pctArv: null, count: 1 });
+    expect(r.flipper).toMatchObject({ price: null, pctArv: null, count: 1, ppsf: null, low: null, high: null });
     expect(r.landlord.count).toBe(1);
   });
 
@@ -147,6 +150,23 @@ describe("findInvestorComps", () => {
     expect(findInvestorComps({ ...subject, latitude: null }, index, opts, NOW).missing).toBe("location");
     expect(findInvestorComps({ ...subject, sqft: null }, index, opts, NOW).missing).toBe("sqft");
     expect(findInvestorComps({ ...subject, sqft: null }, index, opts, NOW).buys).toEqual([]);
+  });
+
+  it("% of resale per flip and on average, from closed resales only (InvestorBase's % of ARV paid)", () => {
+    const at = NOW - 10 * DAY;
+    const buys = [
+      buy(1, { price: 300_000, exit: { price: 400_000, at, status: "Closed" } }), // 75%
+      buy(2, { price: 260_000, exit: { price: 400_000, at, status: "Closed" } }), // 65%
+      buy(3, { price: 250_000, exit: { price: 500_000, at, status: "Active" } }), // asking, not a sale
+      buy(4, { kind: "Landlord", rent: 2_000 }),
+    ];
+    const r = findInvestorComps(subject, buildInvestorIndex(buys), opts, NOW);
+    const row = (id: string) => r.buys.find((b) => b.id === id)!;
+    expect(row("b1").pctOfResale).toBe(75);
+    expect(row("b3").pctOfResale).toBeNull();
+    expect(row("b4").pctOfResale).toBeNull();
+    expect(r.flipper.pctOfResale).toBe(70);
+    expect(r.landlord.pctOfResale).toBeNull();
   });
 
   it("carries flipper exits and landlord rents to the row", () => {

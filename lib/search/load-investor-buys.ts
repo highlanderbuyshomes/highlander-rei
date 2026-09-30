@@ -26,7 +26,7 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - LOOKBACK_MONTHS);
 
-  // Cash closed sales, then what the same house did next: its first later MLS
+  // Cash/hard-money closed sales, then what the same house did next: its first later MLS
   // listing (a flip's relist) and its first later rental listing.
   const rows = await prisma.$queryRaw<Row[]>`
     WITH s AS (
@@ -37,7 +37,9 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
         ${statusSql(`l."mlsStatus"`)} AS status,
         COALESCE(l."soldPrice", (src->>'ClosePrice')::float8) AS price,
         l."soldDate" AS closed,
-        lower(COALESCE(src->>'BuyerFinancing', '')) LIKE '%cash%' AS cash,
+        -- Cash, or "Other" (in ARMLS usually hard money): how investors buy.
+        -- Conventional/FHA/VA buyers are almost always owner-occupants.
+        lower(COALESCE(src->>'BuyerFinancing', '')) ~ '(cash|other)' AS investor,
         lower(COALESCE(src->>'PropertyType', '')) LIKE '%lease%' AS lease,
         ${leasedLandSql("src", 'p."rawJson"')} AS "leasedLand"
       FROM "MlsListing" l
@@ -46,7 +48,7 @@ async function fetchBuys(): Promise<InvestorBuyRecord[]> {
       WHERE l."soldDate" >= ${cutoff} AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
     ), buys AS (
       SELECT * FROM s
-      WHERE status = 'Closed' AND cash AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
+      WHERE status = 'Closed' AND investor AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
         AND price >= ${MIN_PRICE} AND sqft >= 300 AND price / sqft BETWEEN ${MIN_PPSF} AND ${MAX_PPSF}
     )
     SELECT b.id, b."propertyId", b.lat, b.lng, b.sqft, b.beds, b.baths, b."yearBuilt", b.dwelling, b.subdivision, b.price, b.closed,
