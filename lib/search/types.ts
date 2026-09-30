@@ -51,6 +51,10 @@ export type DealCandidate = ListingRecord & {
   arvSameSubdivision: boolean;
   /** What the sold comps were: flip resales, renovated sales, or all sales. */
   arvCompBasis: import("./comps").ArvBasis | null;
+  /** ±% range of a sold-comps ARV (backtest-calibrated); null otherwise. */
+  arvRangePct: number | null;
+  /** ARV marked down for a range wider than normal; drives scoring and max offer. */
+  conservativeArv: number | null;
   listToArvPct: number | null;
   rule70Price: number | null;
   rule70Spread: number | null;

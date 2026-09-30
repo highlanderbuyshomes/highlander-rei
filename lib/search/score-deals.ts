@@ -10,6 +10,10 @@ export { normalizeStatus };
 export const SUSPECT_ARV_PCT = 35;
 export const MAX_ARV_PCT = 300;
 
+/** An ARV range up to ±this % is normal; each point beyond it marks the
+ *  ARV down a point for scoring and max offer (wide = conservative end). */
+export const NORMAL_ARV_RANGE_PCT = 10;
+
 /** "Target now" needs at least this many sold comps behind its ARV. */
 export const MIN_TARGET_COMPS = 5;
 
@@ -71,9 +75,13 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     const arvSource: DealCandidate["arvSource"] = !arv ? "Insufficient data" : comps ? comps.method : listing.estimatedArv ? "Property estimate" : "Pocket $/sqft model";
     const arvConfidence: DealCandidate["arvConfidence"] = !arv ? null : comps ? comps.confidence : listing.estimatedArv ? "Medium" : "Low";
     const listToArvPct = implausible ? null : rawPct;
+    const arvRangePct = arv && comps ? comps.rangePct : null;
+    const conservativeArv = !arv ? null : Math.round(arv * (1 - Math.max(0, (arvRangePct ?? 0) - NORMAL_ARV_RANGE_PCT) / 100));
+    // Scoring and max offer use the conservative ARV; the shown % stays the plain one.
+    const dealPct = price && conservativeArv && listToArvPct != null ? (price / conservativeArv) * 100 : null;
     // Only a sold-comps ARV backed by enough sales can drive "Target now".
     const actionableArv = (arvConfidence === "High" || arvConfidence === "Medium") && (comps == null || comps.compCount >= MIN_TARGET_COMPS);
-    const rule70Price = arv ? arv * (threshold / 100) : null;
+    const rule70Price = conservativeArv ? Math.round(conservativeArv * (threshold / 100)) : null;
     const rule70Spread = rule70Price != null && listing.listPrice != null ? rule70Price - listing.listPrice : null;
     const rawPpsfDiscount = pricePerSqft && pocketPricePerSqft ? ((pocketPricePerSqft - pricePerSqft) / pocketPricePerSqft) * 100 : null;
     const ppsfDiscountPct = rawPpsfDiscount != null && rawPpsfDiscount >= -200 ? rawPpsfDiscount : null;
@@ -83,7 +91,7 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     const priceReductionPct = listing.originalListPrice && listing.listPrice && listing.originalListPrice > listing.listPrice ? ((listing.originalListPrice - listing.listPrice) / listing.originalListPrice) * 100 : 0;
     const reasons: string[] = [];
     let score = 0;
-    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: arv && comps ? comps.compCount : null, arvRadiusMiles: arv && comps ? comps.radiusMiles : null, arvSameSubdivision: Boolean(arv && comps?.sameSubdivision), arvCompBasis: arv && comps ? comps.basis : null, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
+    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: arv && comps ? comps.compCount : null, arvRadiusMiles: arv && comps ? comps.radiusMiles : null, arvSameSubdivision: Boolean(arv && comps?.sameSubdivision), arvCompBasis: arv && comps ? comps.basis : null, arvRangePct, conservativeArv, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
 
     if (status === "Closed") {
       // Sold listings are comps, not opportunities; say what it sold at.
@@ -92,10 +100,12 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     }
 
     const arvLabel = actionableArv ? "projected ARV" : "rough ARV (verify)";
-    if (listToArvPct != null) {
-      if (listToArvPct <= threshold) { score += 50 + Math.min(15, threshold - listToArvPct); reasons.push(`${Math.round(listToArvPct)}% of ${arvLabel}`); }
-      else if (listToArvPct <= threshold + 10) { score += 32; reasons.push(`${Math.round(listToArvPct)}% of ${arvLabel}`); }
-      else if (listToArvPct <= threshold + 20) score += 15;
+    if (listToArvPct != null && dealPct != null) {
+      const lowEnd = Math.round(dealPct) !== Math.round(listToArvPct) ? ` (${Math.round(dealPct)}% at the low end)` : "";
+      const reason = `${Math.round(listToArvPct)}% of ${arvLabel}${lowEnd}`;
+      if (dealPct <= threshold) { score += 50 + Math.min(15, threshold - dealPct); reasons.push(reason); }
+      else if (dealPct <= threshold + 10) { score += 32; reasons.push(reason); }
+      else if (dealPct <= threshold + 20) score += 15;
     }
     if (ppsfDiscountPct != null && ppsfDiscountPct >= 15) { score += Math.min(16, Math.round(ppsfDiscountPct / 2)); reasons.push(`${Math.round(ppsfDiscountPct)}% below pocket $/sqft`); }
     if (["Expired", "Canceled"].includes(status)) { score += 14; reasons.push(`${status} listing`); }
@@ -109,7 +119,7 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     if (UNAVAILABLE.includes(status)) reasons.push(`${status} — backup offer only`);
 
     score = Math.min(99, Math.round(score));
-    const meetsRule = listToArvPct != null && listToArvPct <= threshold;
+    const meetsRule = dealPct != null && dealPct <= threshold;
     let priority: DealCandidate["priority"] = meetsRule && actionableArv ? "Target now" : score >= 65 ? "High" : score >= 38 ? "Watch" : "Low";
     if (UNAVAILABLE.includes(status) && (priority === "Target now" || priority === "High")) priority = "Watch";
     return { ...listing, ...scoreFields, dealScore: score, priority, reasons: reasons.slice(0, 4) };

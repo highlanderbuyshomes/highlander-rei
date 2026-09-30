@@ -53,6 +53,11 @@ function arvBasis(d: Pick<DealCandidate, "arvSource" | "arvConfidence" | "arvCom
   return d.arvSource;
 }
 
+/** "$417,000 ±10%" — the range 7 in 10 backtested resales fell within. */
+function arvWithRange(d: Pick<DealCandidate, "arv" | "arvRangePct">, compact = false) {
+  return d.arv == null ? "—" : d.arvRangePct == null ? money(d.arv, compact) : `${money(d.arv, compact)} ±${d.arvRangePct}%`;
+}
+
 function shortDate(value?: string | null) {
   return value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 }
@@ -323,7 +328,7 @@ function MinSelect({ value, update, options, exact = false }: { value: string; u
 }
 
 function ResultsList({ listings, total, loading, loadingMore, onLoadMore, onSelect }: { listings: DealCandidate[]; total: number; loading: boolean; loadingMore: boolean; onLoadMore: () => void; onSelect: (id: string) => void }) {
-  return <div className={styles.resultsTable}><table><thead><tr><th>Status</th><th>Closed date</th><th>MLS #</th><th>Address</th><th>Price</th><th>ARV</th><th>% ARV</th><th>Type</th><th>Bed/Bath</th><th>Sq Ft</th><th>Lot</th><th>Pool</th><th>Levels</th><th>ZIP</th></tr></thead><tbody>{listings.map((listing) => <tr key={listing.id} onClick={() => onSelect(listing.id)}><td>{normalizeStatus(listing.status)}</td><td>{shortDate(listing.closedDate)}</td><td>{listing.mlsNumber}</td><td><strong>{listing.address}</strong><small>{listing.city}</small></td><td>{money(priceOf(listing))}</td><td title={arvBasis(listing)}>{money(listing.arv)}</td><td>{pct(listing.listToArvPct)}</td><td>{listing.dwellingType}</td><td>{listing.beds ?? "—"} / {listing.baths ?? "—"}</td><td>{listing.sqft?.toLocaleString() ?? "—"}</td><td>{listing.lotSqft?.toLocaleString() ?? "—"}</td><td>{listing.pool == null ? "—" : listing.pool ? "Yes" : "No"}</td><td>{listing.interiorLevels ?? "—"}</td><td>{listing.zip}</td></tr>)}</tbody></table>
+  return <div className={styles.resultsTable}><table><thead><tr><th>Status</th><th>Closed date</th><th>MLS #</th><th>Address</th><th>Price</th><th>ARV</th><th>% ARV</th><th>Type</th><th>Bed/Bath</th><th>Sq Ft</th><th>Lot</th><th>Pool</th><th>Levels</th><th>ZIP</th></tr></thead><tbody>{listings.map((listing) => <tr key={listing.id} onClick={() => onSelect(listing.id)}><td>{normalizeStatus(listing.status)}</td><td>{shortDate(listing.closedDate)}</td><td>{listing.mlsNumber}</td><td><strong>{listing.address}</strong><small>{listing.city}</small></td><td>{money(priceOf(listing))}</td><td title={arvBasis(listing)}>{arvWithRange(listing)}</td><td>{pct(listing.listToArvPct)}</td><td>{listing.dwellingType}</td><td>{listing.beds ?? "—"} / {listing.baths ?? "—"}</td><td>{listing.sqft?.toLocaleString() ?? "—"}</td><td>{listing.lotSqft?.toLocaleString() ?? "—"}</td><td>{listing.pool == null ? "—" : listing.pool ? "Yes" : "No"}</td><td>{listing.interiorLevels ?? "—"}</td><td>{listing.zip}</td></tr>)}</tbody></table>
     {listings.length < total && <div className={styles.criteriaFooter}><button type="button" className={styles.applyButton} onClick={onLoadMore} disabled={loadingMore || loading}>{loadingMore ? "Loading…" : `Load more — ${listings.length.toLocaleString()} of ${total.toLocaleString()}`}</button></div>}
     {listings.length === 0 && <PlaceholderView title="No results" detail="Change or reset the selected criteria." />}</div>;
 }
@@ -333,7 +338,7 @@ function ListingDetail({ listing, comps, threshold }: { listing: DealCandidate |
   const closed = normalizeStatus(listing.status) === "Closed";
   return <div className={styles.detailView}><span>{normalizeStatus(listing.status)} · MLS #{listing.mlsNumber}</span><h2><a className={styles.linkButton} href={mlsLinks(listing).rpr.href} target="_blank" rel="noopener noreferrer" title={`Underwrite MLS # ${listing.mlsNumber} in RPR`}>{listing.address}</a></h2><p>{listing.city}, {listing.state} {listing.zip}</p>
     <MlsSiteLinks listing={listing} className={styles.detailLinks} />
-    <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", money(listing.arv)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore}/99 · Higher is better · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
+    <div className={styles.detailGrid}>{[[closed ? "Sold price" : "List price", money(priceOf(listing))], ["Projected ARV", arvWithRange(listing)], [closed ? "Sold / ARV" : "List / ARV", pct(listing.listToArvPct)], [`${threshold}% of ARV`, money(listing.rule70Price)], ["ARV basis", arvBasis(listing)], ["Deal score", closed ? "—" : `${listing.dealScore}/99 · Higher is better · ${listing.priority}`]].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     <div className={styles.detailGrid}>{[["List price", money(listing.listPrice)], ["Closed date", shortDate(listing.closedDate)], ["Dwelling type", listing.dwellingType], ["Bedrooms", listing.beds ?? "—"], ["Bathrooms", listing.baths ?? "—"], ["Square feet", listing.sqft?.toLocaleString() ?? "—"], ["Year built", listing.yearBuilt ?? "—"], ["Lot size", listing.lotSqft?.toLocaleString() ?? "—"], ["Private pool", listing.pool == null ? "Unknown" : listing.pool ? "Yes" : "No"], ["Interior levels", listing.interiorLevels ?? "—"], ["Zip code", listing.zip], ["Owner", listing.ownerName ?? "Not enriched"]].map(([label,value]) => <div key={String(label)}><small>{label}</small><strong>{value}</strong></div>)}</div>
     <CompsSection key={listing.id} listing={listing} comps={comps} />
   </div>;
@@ -347,7 +352,7 @@ function CompsSection({ listing, comps }: { listing: DealCandidate; comps: CompS
   const open = (next: "retail" | "investor") => { setTab(next); if (next === "investor") setInvestorOpened(true); };
   return <>
     <div className={`${styles.compTabs} ${styles.compTabsMain}`} role="tablist">
-      <button type="button" role="tab" aria-selected={tab === "retail"} className={tab === "retail" ? styles.compTabActive : ""} onClick={() => open("retail")}>Retail comps · ARV {money(listing.arv)}</button>
+      <button type="button" role="tab" aria-selected={tab === "retail"} className={tab === "retail" ? styles.compTabActive : ""} onClick={() => open("retail")}>Retail comps · ARV {arvWithRange(listing)}</button>
       <button type="button" role="tab" aria-selected={tab === "investor"} className={tab === "investor" ? styles.compTabActive : ""} onClick={() => open("investor")}>Investor comps</button>
     </div>
     <div hidden={tab !== "retail"}>
@@ -468,7 +473,7 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
               <td><div className={styles.propertyAddress}><a className={styles.linkButton} href={mlsLinks(candidate).rpr.href} target="_blank" rel="noopener noreferrer" title={`Underwrite MLS # ${candidate.mlsNumber} in RPR`}><strong>{candidate.address}</strong></a><CopyAddress listing={candidate} /></div><small>{candidate.city}, {candidate.zip} · MLS {candidate.mlsNumber}</small></td>
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
-              <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{pct(candidate.listToArvPct)}</strong><small>ARV {money(candidate.arv, true)} · {arvBasis(candidate)}</small></td>
+              <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{pct(candidate.listToArvPct)}</strong><small>ARV {arvWithRange(candidate, true)} · {arvBasis(candidate)}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
               <td><div className={styles.dealActions}><MlsSiteLinks listing={candidate} /><a className={styles.offerButton} href={`/admin/offers?mls=${encodeURIComponent(candidate.mlsNumber)}`}>Submit an Offer</a></div></td>
             </tr>;

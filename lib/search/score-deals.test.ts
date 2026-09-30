@@ -27,7 +27,7 @@ describe("normalizeStatus", () => {
   });
 });
 
-const est = (arv: number, confidence: "High" | "Medium" | "Low"): ArvEstimate => ({ arv, pricePerSqft: arv / 1000, method: "Sold comps", basis: "All sales", confidence, compCount: 6, radiusMiles: 0.5, sameSubdivision: false, monthsBack: 6, comps: [] });
+const est = (arv: number, confidence: "High" | "Medium" | "Low", rangePct = 10): ArvEstimate => ({ arv, pricePerSqft: arv / 1000, method: "Sold comps", basis: "All sales", confidence, compCount: 6, radiusMiles: 0.5, sameSubdivision: false, monthsBack: 6, comps: [], rangePct });
 
 describe("scoreDeals with sold-comps ARV", () => {
   it("prefers the sold-comps ARV over a property estimate", () => {
@@ -131,5 +131,23 @@ describe("scoreDeals", () => {
   it("scores are whole numbers", () => {
     const [d] = scoreDeals([L({ listPrice: 263000, sqft: 1000 })], 70, () => est(400000, "High"));
     expect(Number.isInteger(d.dealScore)).toBe(true);
+  });
+
+  it("judges a wide-range ARV at its conservative end: 65% of a ±22% ARV is not Target now", () => {
+    const [d] = scoreDeals([L({ listPrice: 650_000, sqft: 1000 })], 70, () => est(1_000_000, "High", 22));
+    expect(d.listToArvPct).toBe(65); // what's shown stays the plain % of ARV
+    expect(d.arvRangePct).toBe(22);
+    expect(d.conservativeArv).toBe(880_000); // 12 points of range beyond the normal ±10%
+    expect(d.rule70Price).toBe(616_000); // max offer from the conservative ARV
+    expect(d.priority).not.toBe("Target now");
+    expect(d.reasons[0]).toBe("65% of projected ARV (74% at the low end)");
+  });
+
+  it("leaves a normal-range ARV alone", () => {
+    const [d] = scoreDeals([L({ listPrice: 270_000, sqft: 1000 })], 70, () => est(400_000, "High", 10));
+    expect(d.conservativeArv).toBe(400_000);
+    expect(d.rule70Price).toBe(280_000);
+    expect(d.priority).toBe("Target now");
+    expect(d.reasons[0]).toBe("68% of projected ARV");
   });
 });

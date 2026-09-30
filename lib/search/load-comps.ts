@@ -3,6 +3,7 @@ import { dwellingSql, RESIDENTIAL_CLASSES, statusSql } from "./classify";
 import { buildCompIndex, subdivisionKey, type ClosedComp, type CompIndex } from "./comps";
 import { leasedLandSql, sqftSql } from "./load";
 import { pgPhraseRegex, RENOVATED_PHRASES } from "@/lib/distress";
+import { plausibleLotSqft } from "./plausible";
 
 const TTL_MS = 15 * 60_000;
 const LOOKBACK_MONTHS = 12;
@@ -19,16 +20,17 @@ const MAX_PPSF = 2_000;
 type Row = {
   id: string; lat: number; lng: number; sqft: number; beds: number | null; yearBuilt: number | null;
   dwelling: string; zip: string; subdivision: string | null; price: number; closed: Date; address: string; city: string;
-  flip: boolean; renovated: boolean;
+  flip: boolean; renovated: boolean; lot: number | null;
 };
 
 // Fluid Compute reuses instances, so one load serves many searches.
 let cache: { at: number; index: CompIndex } | null = null;
 let inFlight: Promise<CompIndex> | null = null;
 
-async function fetchComps(): Promise<ClosedComp[]> {
+/** Closed-sale comps closed in the last `lookbackMonths` (the backtest loads 24). */
+export async function fetchComps(lookbackMonths: number = LOOKBACK_MONTHS): Promise<ClosedComp[]> {
   const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - LOOKBACK_MONTHS);
+  cutoff.setMonth(cutoff.getMonth() - lookbackMonths);
 
   // Every Closed MLS listing (not just each property's latest one) is a sale.
   // `prior` is the same property's previous closed sale (the sync keeps 24
@@ -37,7 +39,7 @@ async function fetchComps(): Promise<ClosedComp[]> {
     WITH s AS (
       SELECT l.id, l."propertyId", p.latitude AS lat, p.longitude AS lng,
         ${sqftSql("p.sqft", ["LivingArea", "LivingAreaSqFt", "ApproxSQFT"])} AS sqft,
-        p.beds, p."yearBuilt", p.zip, p.subdivision, p."streetAddress" AS address, p.city,
+        p.beds, p."yearBuilt", ${sqftSql('p."lotSqft"', ["LotSizeSquareFeet", "LotSqFt", "LotSize"])} AS lot, p.zip, p.subdivision, p."streetAddress" AS address, p.city,
         ${dwellingSql(`COALESCE(p."propertyType", src->>'PropertySubType', src->>'PropertyType')`)} AS dwelling,
         ${statusSql(`l."mlsStatus"`)} AS status,
         COALESCE(l."soldPrice", (src->>'ClosePrice')::float8) AS price,
@@ -57,7 +59,7 @@ async function fetchComps(): Promise<ClosedComp[]> {
         LAG(cash) OVER (PARTITION BY "propertyId" ORDER BY closed) AS "priorCash"
       FROM s WHERE status = 'Closed'
     )
-    SELECT id, lat, lng, sqft, beds, "yearBuilt", dwelling, zip, subdivision, price, closed, address, city, renovated,
+    SELECT id, lat, lng, sqft, beds, "yearBuilt", lot, dwelling, zip, subdivision, price, closed, address, city, renovated,
       COALESCE("priorCash" AND closed - "priorClosed" BETWEEN make_interval(days => ${FLIP_MIN_DAYS}) AND make_interval(days => ${FLIP_MAX_DAYS}), false) AS flip
     FROM sales
     WHERE closed >= ${cutoff} AND located AND lease IS NOT TRUE AND "leasedLand" IS NOT TRUE
@@ -70,6 +72,7 @@ async function fetchComps(): Promise<ClosedComp[]> {
       beds: r.beds == null ? null : Number(r.beds), yearBuilt: r.yearBuilt == null ? null : Number(r.yearBuilt),
       dwelling: r.dwelling, zip: r.zip, subdivision: subdivisionKey(r.subdivision), price: Number(r.price), closedAt: new Date(r.closed).getTime(),
       address: r.address, city: r.city, flipResale: r.flip, renovated: r.renovated,
+      lotSqft: plausibleLotSqft(r.lot == null ? null : Number(r.lot)),
     }));
 }
 
