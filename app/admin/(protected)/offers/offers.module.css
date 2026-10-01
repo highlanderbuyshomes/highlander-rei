@@ -101,3 +101,24 @@
 .cardActions form button { background: #12161c; }
 .cardActions form button:hover { background: #22262c; }
 .emptyColumn { border-color: #c7d0d8; }
+
+/* Submit an Offer (MLS → Transaction Desk) */
+.offerPage { max-width: 980px; padding: 22px 28px; display: grid; gap: 14px; }
+.offerLookup { display: flex; align-items: flex-end; gap: 10px; }
+.offerForm { display: grid; gap: 14px; }
+.offerCard { padding: 18px; border: 1px solid #e8e7e2; border-radius: 8px; background: #fff; }
+.offerCard h2 { margin: 0 0 4px; font-size: 15px; }
+.offerMeta { margin: 0 0 12px; color: #6b6b66; font-size: 12px; }
+.offerGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.offerField { display: grid; gap: 4px; }
+.offerField span, .offerChecks legend { color: #6b6b66; font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.offerField input, .offerField select, .offerField textarea { height: 36px; padding: 0 10px; border: 1px solid #d6d5cf; border-radius: 6px; background: #fff; color: #111110; font: 13px var(--font-body); }
+.offerField textarea { height: auto; padding: 8px 10px; }
+.offerField small { color: #8a8a84; font-size: 10.5px; }
+.offerNotes { margin-top: 12px; }
+.offerChecks { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0; padding: 0; border: 0; }
+.offerChecks legend { width: 100%; margin-bottom: 6px; }
+.offerChecks label { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+.offerSecondary { height: 36px; padding: 0 14px; border: 1px solid #d6d5cf; border-radius: 6px; background: #fff; font: 700 12px var(--font-body); cursor: pointer; }
+.offerSaved { padding: 12px 16px; border: 1px solid #b8dfc8; border-radius: 8px; background: #eaf6f0; color: #2f6b45; font-size: 13px; }
+.offerError { padding: 12px 16px; border: 1px solid rgba(192,57,43,.25); border-radius: 8px; background: rgba(192,57,43,.07); color: #c0392b; font-size: 13px; }

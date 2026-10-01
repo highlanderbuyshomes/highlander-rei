@@ -35,6 +35,7 @@ const STAGES: { key: PipelineStage; label: string; nextAction: string; color: st
 ];
 
 const TYPE_LABELS: Record<string, string> = {
+  mls_offer: "MLS Offer (Transaction Desk)",
   cash_offer: "Cash Offer",
   flex_equity: "Flex Equity",
   aif_novation: "AIF / Novation",
