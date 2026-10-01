@@ -559,3 +559,16 @@ model ArvAccuracyRun {
 
   @@index([createdAt])
 }
+
+/// InvestorBase API responses, cached so a property spends the monthly
+/// allowance (100 per endpoint) once per CACHE_DAYS. Not ARMLS data.
+model InvestorBaseCache {
+  id               String   @id @default(cuid())
+  cacheKey         String   @unique
+  endpoint         String
+  response         Json
+  monthlyRemaining Int?
+  fetchedAt        DateTime @default(now())
+
+  @@index([endpoint, fetchedAt])
+}

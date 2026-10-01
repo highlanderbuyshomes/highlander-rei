@@ -8,6 +8,7 @@ import { normalizeStatus } from "@/lib/search/score-deals";
 import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, ListingRecord, SearchResponse } from "@/lib/search/types";
 import GoogleMapStage from "./GoogleMapStage";
 import InvestorComps from "./InvestorComps";
+import BuyerPay from "./BuyerPay";
 import styles from "./search.module.css";
 
 type WorkspaceView = "map" | "list" | "detail";
@@ -348,6 +349,9 @@ function ListingDetail({ listing, comps, asIs, threshold }: { listing: DealCandi
 // flippers and landlords pay here. Nothing investor-side loads until it's clicked.
 function CompsSection({ listing, comps, asIs }: { listing: DealCandidate; comps: CompSale[] | null; asIs: ListingDetailResponse["asIs"] | undefined }) {
   const [open, setOpen] = useState(false);
+  // InvestorBase is the primary investor source; ARMLS-derived buys are the fallback.
+  const [ibUnavailable, setIbUnavailable] = useState(false);
+  const markUnavailable = useCallback(() => setIbUnavailable(true), []);
   if (!open) return <button type="button" className={`${styles.applyButton} ${styles.compsButton}`} onClick={() => setOpen(true)}>Comps</button>;
   const buyBox = listing.conservativeArv ? `70–75%: ${money(listing.conservativeArv * 0.7, true)}–${money(listing.conservativeArv * 0.75, true)}` : null;
   const remodel = listing.arv && asIs ? Math.round((listing.arv / asIs.value - 1) * 100) : null;
@@ -356,7 +360,11 @@ function CompsSection({ listing, comps, asIs }: { listing: DealCandidate; comps:
       <div><small>ARV</small><strong>{arvWithRange(listing)}</strong><small>{[arvBasis(listing), buyBox].filter(Boolean).join(" · ")}</small></div>
       <div><small>Clean as-is</small><strong>{asIs === undefined ? "…" : asIs ? `${money(asIs.value)} ±${asIs.rangePct}%` : "—"}</strong><small>{asIs ? [`${asIs.compCount} clean sales ≤${asIs.radiusMiles} mi`, remodel != null ? `remodel adds ${remodel >= 0 ? "+" : ""}${remodel}%` : null].filter(Boolean).join(" · ") : asIs === null ? "Too few clean sales" : ""}</small></div>
     </div>
-    <InvestorComps listingId={listing.id} />
+    <BuyerPay listingId={listing.id} onUnavailable={markUnavailable} />
+    <details className={styles.soldComps} open={ibUnavailable || undefined}>
+      <summary>ARMLS investor buys</summary>
+      <InvestorComps listingId={listing.id} />
+    </details>
     <details className={styles.soldComps}>
       <summary>Sold comps{comps ? ` (${comps.length})` : ""}</summary>
         {comps == null ? <p className={styles.previewNote}>Loading sold comps…</p> : comps.length === 0 ? <p className={styles.previewNote}>No nearby sold comps — ARV is {listing.arvSource === "Insufficient data" ? "unavailable" : `from ${listing.arvSource}`}; verify before offering.</p> :
