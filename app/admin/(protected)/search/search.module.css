@@ -472,10 +472,10 @@
 .investorComps .detailGrid { grid-template-columns: repeat(2, 1fr); margin-top: 0; }
 .investorComps .detailGrid strong { font-size: 18px; }
 .investorFilters { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0 10px; }
-.flipperTag, .landlordTag, .smartTag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 8px; font-weight: 700; }
-.flipperTag { background: #e3f1fc; color: #1a6fb0; }
-.landlordTag { background: #e2f5ea; color: #1f7a48; }
-.smartTag { background: #fdf1d8; color: #9a6a0c; }
+.flipperTag, .landlordTag, .smartTag { display: inline-block; padding: 2px 8px; border: 1px solid transparent; border-radius: 10px; font-size: 9px; font-weight: 600; white-space: nowrap; }
+.flipperTag { border-color: #72c3ef; background: #e8f5fd; color: #2f8fd0; }
+.landlordTag { border-color: #5fbd67; background: #e9f7ea; color: #2e8a3a; }
+.smartTag { background: #fcefcf; color: #9a5b13; }
 .inlineButton { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 
 /* What buyers can pay (InvestorBase) */
@@ -484,5 +484,12 @@
 .buyerMap { height: 340px; border: 1px solid #dce0e3; border-radius: 6px; }
 .buyerLegend { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 6px; color: #5d6862; font-size: 10px; }
 .buyerLegend span { display: inline-flex; align-items: center; gap: 4px; }
-.buyerLegend i { width: 9px; height: 9px; border: 1.5px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #c5cbd0; }
+.buyerLegend .legendPin { width: 20px; height: 20px; background: center / contain no-repeat; }
 .buyerLegend em { color: #8a9398; }
+.buyersBar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.buyersBar strong { margin-right: 4px; color: #25342d; font-size: 11px; }
+.buyersBar button { height: 27px; padding: 0 10px; border: 1px solid #d2d8d4; border-radius: 4px; background: #fff; color: #4f585e; font: 700 9.5px var(--font-body); cursor: pointer; }
+.buyersBar .buyersFilterOn { border-color: #2478c5; background: #2478c5; color: #fff; }
+.buyersBar .loadBuyers { height: 31px; padding: 0 14px; border-color: #2478c5; background: #2478c5; color: #fff; }
+.buyersBar .loadBuyers:disabled { opacity: .6; cursor: wait; }
+.buyerRowOn td { background: #eef5fc; }
