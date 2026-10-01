@@ -29,11 +29,12 @@ export function capPins(scored: DealCandidate[], max: number = MAX_PINS): Pin[] 
 
 const clampThreshold = (value: number) => Math.min(99, Math.max(1, Math.round(value)));
 const arvFrom = (index: CompIndex) => (listing: ListingRecord) => estimateArv(listing, index);
+const asIsFrom = (index: CompIndex) => (listing: ListingRecord) => estimateAsIs(listing, index);
 
 /** Score fields computed by scoreDeals, copied onto the full display rows. */
 function scoreFieldsOf(d: DealCandidate) {
-  const { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, arvCompBasis, arvRangePct, conservativeArv, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons } = d;
-  return { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, arvCompBasis, arvRangePct, conservativeArv, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons };
+  const { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, arvCompBasis, arvRangePct, conservativeArv, asIsValue, pctOfAsIs, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons } = d;
+  return { arv, arvSource, arvConfidence, arvCompCount, arvRadiusMiles, arvSameSubdivision, arvCompBasis, arvRangePct, conservativeArv, asIsValue, pctOfAsIs, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct, dealScore, priority, reasons };
 }
 
 export async function runSearch(req: SearchRequest): Promise<SearchResponse> {
@@ -42,7 +43,7 @@ export async function runSearch(req: SearchRequest): Promise<SearchResponse> {
 
   const [loaded, index] = await Promise.all([loadCandidates(req.filters), loadCompIndex()]);
   const candidates = applyShape(loaded, req.shape);
-  const scored = scoreDeals(candidates, threshold, arvFrom(index)); // already sorted by score desc
+  const scored = scoreDeals(candidates, threshold, arvFrom(index), asIsFrom(index)); // already sorted by score desc
 
   const pins = capPins(scored);
 
@@ -68,13 +69,13 @@ export async function loadListingDetail(id: string, arvThreshold: number): Promi
   const [[row], index] = await Promise.all([loadRowsByIds([id]), loadCompIndex()]);
   if (!row) return null;
   const est = estimateArv(row, index);
-  const [scored] = scoreDeals([row], clampThreshold(arvThreshold), () => est);
+  const asIsEst = estimateAsIs(row, index);
+  const [scored] = scoreDeals([row], clampThreshold(arvThreshold), () => est, () => asIsEst);
   const comps: CompSale[] = (est?.comps ?? []).flatMap(({ id: compId, distanceMiles }) => {
     const c = index.byId.get(compId);
     if (!c) return [];
     return [{ id: c.id, address: c.address, city: c.city, price: c.price, sqft: c.sqft, pricePerSqft: c.price / c.sqft, beds: c.beds, yearBuilt: c.yearBuilt, closedDate: new Date(c.closedAt).toISOString(), distanceMiles }];
   });
-  const asIsEst = estimateAsIs(row, index);
   const asIs = asIsEst && { value: asIsEst.value, rangePct: asIsEst.rangePct, compCount: asIsEst.compCount, radiusMiles: asIsEst.radiusMiles };
   return { ...scored, comps, asIs };
 }
