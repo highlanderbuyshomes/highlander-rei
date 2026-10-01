@@ -29,6 +29,19 @@ export type IbInvestorBuy = {
   rank?: number;
 };
 
+/** One buyer from /v1/buyer-search: the purchase plus who made it (skiptraced). */
+export type IbBuyer = IbInvestorBuy & {
+  buyer_first_name: string | null;
+  buyer_last_name: string | null;
+  buyer_entity_name: string | null;
+  buyer_phone_number: string | null;
+  buyer_email: string | null;
+  smart_match: boolean;
+  smart_match_rank: number;
+  flip_purchase_method: string | null;
+  rental_purchase_method: string | null;
+};
+
 type Metrics = { count: number; price_avg: number; price_low: number; price_high: number; ppsft_avg: number; ppsft_low: number; ppsft_high: number };
 export type IbSummary = {
   radius_counts: Record<"1mi" | "2mi" | "5mi" | "10mi", { flips: number; rentals: number }>;

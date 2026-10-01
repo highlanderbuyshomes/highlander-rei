@@ -486,3 +486,10 @@
 .buyerLegend span { display: inline-flex; align-items: center; gap: 4px; }
 .buyerLegend i { width: 9px; height: 9px; border: 1.5px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #c5cbd0; }
 .buyerLegend em { color: #8a9398; }
+.buyersBar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.buyersBar strong { margin-right: 4px; color: #25342d; font-size: 11px; }
+.buyersBar button { height: 27px; padding: 0 10px; border: 1px solid #d2d8d4; border-radius: 4px; background: #fff; color: #4f585e; font: 700 9.5px var(--font-body); cursor: pointer; }
+.buyersBar .buyersFilterOn { border-color: #2478c5; background: #2478c5; color: #fff; }
+.buyersBar .loadBuyers { height: 31px; padding: 0 14px; border-color: #2478c5; background: #2478c5; color: #fff; }
+.buyersBar .loadBuyers:disabled { opacity: .6; cursor: wait; }
+.buyerRowOn td { background: #eef5fc; }
