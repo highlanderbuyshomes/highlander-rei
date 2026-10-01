@@ -572,3 +572,16 @@ model InvestorBaseCache {
 
   @@index([endpoint, fetchedAt])
 }
+
+/// Steven's call on a scanner pick ("good" | "bad"), with the numbers the
+/// scanner showed at the time, so scoring can be tuned against real verdicts.
+model DealFeedback {
+  id        String   @id @default(cuid())
+  listingId String   @unique
+  mlsNumber String
+  verdict   String
+  note      String?
+  snapshot  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -486,3 +486,16 @@
 .buyerLegend span { display: inline-flex; align-items: center; gap: 4px; }
 .buyerLegend i { width: 9px; height: 9px; border: 1.5px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #c5cbd0; }
 .buyerLegend em { color: #8a9398; }
+
+/* Threshold slider + scanner feedback */
+.thresholdSlider { width: 120px; accent-color: #2478c5; cursor: pointer; }
+.dealCall { display: grid; gap: 4px; }
+.dealCall > div { display: flex; gap: 4px; }
+.dealCall button { width: 30px; height: 25px; display: grid; place-items: center; padding: 0; border: 1px solid; border-radius: 4px; background: #fff; cursor: pointer; }
+.callUp { border-color: #9fd0b2; color: #1f8a4c; }
+.callDown { border-color: #e7aaa2; color: #c23a2b; }
+.callUp:hover { background: #ecf8f1; }
+.callDown:hover { background: #fdf0ee; }
+.callUp.callOn { border-color: #1f8a4c; background: #1f8a4c; color: #fff; }
+.callDown.callOn { border-color: #c23a2b; background: #c23a2b; color: #fff; }
+.dealCall input { width: 90px; height: 22px; padding: 0 6px; border: 1px solid #d2d8d4; border-radius: 4px; color: #25342d; font: 600 8px var(--font-body); }

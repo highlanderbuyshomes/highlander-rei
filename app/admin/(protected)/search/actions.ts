@@ -97,3 +97,45 @@ export async function targetProperty(propertyId: string, dealScore: number, summ
   revalidatePath("/admin/search");
   revalidatePath("/admin/offers");
 }
+
+export type DealVerdict = "good" | "bad";
+export type DealFeedbackEntry = { verdict: DealVerdict; note: string | null };
+
+/** The scanner's numbers at the moment of the call, kept for tuning later. */
+export type DealFeedbackSnapshot = {
+  dealScore: number;
+  priority: string;
+  listPrice: number | null;
+  arv: number | null;
+  arvConfidence: string | null;
+  listToArvPct: number | null;
+  pctOfAsIs: number | null;
+  threshold: number;
+  reasons: string[];
+};
+
+export async function loadDealFeedback(listingIds: string[]): Promise<Record<string, DealFeedbackEntry>> {
+  await requireAdmin();
+  if (!listingIds.length) return {};
+  const rows = await prisma.dealFeedback.findMany({
+    where: { listingId: { in: listingIds.slice(0, 500) } },
+    select: { listingId: true, verdict: true, note: true },
+  });
+  return Object.fromEntries(rows.map((row) => [row.listingId, { verdict: row.verdict as DealVerdict, note: row.note }]));
+}
+
+/** verdict null clears the call. */
+export async function saveDealFeedback(listingId: string, mlsNumber: string, verdict: DealVerdict | null, note: string | null, snapshot: DealFeedbackSnapshot) {
+  await requireAdmin();
+  if (verdict === null) {
+    await prisma.dealFeedback.deleteMany({ where: { listingId } });
+    return;
+  }
+  if (verdict !== "good" && verdict !== "bad") throw new Error("Invalid verdict");
+  const cleanNote = note?.trim().slice(0, 500) || null;
+  await prisma.dealFeedback.upsert({
+    where: { listingId },
+    create: { listingId, mlsNumber, verdict, note: cleanNote, snapshot },
+    update: { verdict, note: cleanNote, snapshot },
+  });
+}
