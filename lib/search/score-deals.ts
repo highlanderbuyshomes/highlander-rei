@@ -1,6 +1,6 @@
 import { hasConditionLanguage, hasMotivatedLanguage } from "@/lib/distress";
 import { normalizeStatus } from "./classify";
-import type { ArvEstimate } from "./comps";
+import type { ArvEstimate, AsIsEstimate } from "./comps";
 import type { DealCandidate, ListingRecord } from "./types";
 
 export { normalizeStatus };
@@ -13,6 +13,9 @@ export const MAX_ARV_PCT = 300;
 /** An ARV range up to ±this % is normal; each point beyond it marks the
  *  ARV down a point for scoring and max offer (wide = conservative end). */
 export const NORMAL_ARV_RANGE_PCT = 10;
+
+/** Listed at or below this % of the clean as-is value = below market before any remodel. */
+export const BELOW_AS_IS_PCT = 90;
 
 /** "Target now" needs at least this many sold comps behind its ARV. */
 export const MIN_TARGET_COMPS = 5;
@@ -42,7 +45,12 @@ function pushTo(map: Map<string, number[]>, key: string, value: number) {
  * High/Medium confidence (or a property estimate) can make a listing
  * "Target now"; asking-price models are too noisy to act on.
  */
-export function scoreDeals(listings: ListingRecord[], threshold: number, estimate?: (listing: ListingRecord) => ArvEstimate | null): DealCandidate[] {
+export function scoreDeals(
+  listings: ListingRecord[],
+  threshold: number,
+  estimate?: (listing: ListingRecord) => ArvEstimate | null,
+  asIsEstimate?: (listing: ListingRecord) => AsIsEstimate | null,
+): DealCandidate[] {
   // Pocket = same zip + dwelling type; fallback = same dwelling type; last
   // resort = all listings. Each group's median is computed once, not per listing.
   const allValues: number[] = [];
@@ -75,6 +83,8 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     const arvSource: DealCandidate["arvSource"] = !arv ? "Insufficient data" : comps ? comps.method : listing.estimatedArv ? "Property estimate" : "Pocket $/sqft model";
     const arvConfidence: DealCandidate["arvConfidence"] = !arv ? null : comps ? comps.confidence : listing.estimatedArv ? "Medium" : "Low";
     const listToArvPct = implausible ? null : rawPct;
+    const asIsValue = asIsEstimate?.(listing)?.value ?? null;
+    const pctOfAsIs = price && asIsValue ? (price / asIsValue) * 100 : null;
     const arvRangePct = arv && comps ? comps.rangePct : null;
     const conservativeArv = !arv ? null : Math.round(arv * (1 - Math.max(0, (arvRangePct ?? 0) - NORMAL_ARV_RANGE_PCT) / 100));
     // Scoring and max offer use the conservative ARV; the shown % stays the plain one.
@@ -91,7 +101,7 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
     const priceReductionPct = listing.originalListPrice && listing.listPrice && listing.originalListPrice > listing.listPrice ? ((listing.originalListPrice - listing.listPrice) / listing.originalListPrice) * 100 : 0;
     const reasons: string[] = [];
     let score = 0;
-    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: arv && comps ? comps.compCount : null, arvRadiusMiles: arv && comps ? comps.radiusMiles : null, arvSameSubdivision: Boolean(arv && comps?.sameSubdivision), arvCompBasis: arv && comps ? comps.basis : null, arvRangePct, conservativeArv, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
+    const scoreFields = { arv, arvSource, arvConfidence, arvCompCount: arv && comps ? comps.compCount : null, arvRadiusMiles: arv && comps ? comps.radiusMiles : null, arvSameSubdivision: Boolean(arv && comps?.sameSubdivision), arvCompBasis: arv && comps ? comps.basis : null, arvRangePct, conservativeArv, asIsValue, pctOfAsIs, listToArvPct, rule70Price, rule70Spread, pricePerSqft, pocketPricePerSqft, ppsfDiscountPct };
 
     if (status === "Closed") {
       // Sold listings are comps, not opportunities; say what it sold at.
@@ -107,6 +117,7 @@ export function scoreDeals(listings: ListingRecord[], threshold: number, estimat
       else if (dealPct <= threshold + 10) { score += 32; reasons.push(reason); }
       else if (dealPct <= threshold + 20) score += 15;
     }
+    if (pctOfAsIs != null && pctOfAsIs <= BELOW_AS_IS_PCT) { score += 12 + Math.min(8, BELOW_AS_IS_PCT - pctOfAsIs); reasons.push(`${Math.round(pctOfAsIs)}% of clean as-is`); }
     if (ppsfDiscountPct != null && ppsfDiscountPct >= 15) { score += Math.min(16, Math.round(ppsfDiscountPct / 2)); reasons.push(`${Math.round(ppsfDiscountPct)}% below pocket $/sqft`); }
     if (["Expired", "Canceled"].includes(status)) { score += 14; reasons.push(`${status} listing`); }
     if ((listing.dom ?? 0) >= 60) { score += 8; reasons.push(`${listing.dom} days on market`); }

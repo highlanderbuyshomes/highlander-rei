@@ -150,4 +150,23 @@ describe("scoreDeals", () => {
     expect(d.priority).toBe("Target now");
     expect(d.reasons[0]).toBe("68% of projected ARV");
   });
+
+  it("adds score and a reason when listed at or below 90% of the clean as-is value", () => {
+    const asIs = () => ({ value: 350_000, pricePerSqft: 350, compCount: 5, radiusMiles: 0.5, sameSubdivision: false, rangePct: 10, comps: [] });
+    const [plain] = scoreDeals([L({ listPrice: 300_000, sqft: 1000 })], 70, () => est(400_000, "High"));
+    const [d] = scoreDeals([L({ listPrice: 300_000, sqft: 1000 })], 70, () => est(400_000, "High"), asIs);
+    expect(d.asIsValue).toBe(350_000);
+    expect(Math.round(d.pctOfAsIs!)).toBe(86);
+    expect(d.reasons).toContain("86% of clean as-is");
+    expect(d.dealScore).toBe(Math.min(99, plain.dealScore + 16)); // 12 + (90 − 85.7)
+  });
+
+  it("gives no as-is bonus above 90% or on a closed sale", () => {
+    const asIs = () => ({ value: 350_000, pricePerSqft: 350, compCount: 5, radiusMiles: 0.5, sameSubdivision: false, rangePct: 10, comps: [] });
+    const [near] = scoreDeals([L({ listPrice: 330_000, sqft: 1000 })], 70, () => est(400_000, "High"), asIs);
+    expect(near.reasons.join()).not.toContain("clean as-is");
+    const [sold] = scoreDeals([L({ status: "Closed", listPrice: 300_000, closePrice: 300_000, sqft: 1000 })], 70, () => est(400_000, "High"), asIs);
+    expect(sold.reasons.join()).not.toContain("clean as-is");
+    expect(Math.round(sold.pctOfAsIs!)).toBe(86); // still shown
+  });
 });

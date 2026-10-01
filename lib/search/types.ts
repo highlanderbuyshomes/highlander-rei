@@ -55,6 +55,9 @@ export type DealCandidate = ListingRecord & {
   arvRangePct: number | null;
   /** ARV marked down for a range wider than normal; drives scoring and max offer. */
   conservativeArv: number | null;
+  /** Clean, maintained value (see estimateAsIs) and the price as a % of it. */
+  asIsValue: number | null;
+  pctOfAsIs: number | null;
   listToArvPct: number | null;
   rule70Price: number | null;
   rule70Spread: number | null;
