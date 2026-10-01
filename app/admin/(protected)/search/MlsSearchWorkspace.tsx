@@ -488,7 +488,7 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
               <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{pct(candidate.listToArvPct)}</strong><small>ARV {arvWithRange(candidate, true)} · {arvBasis(candidate)}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
-              <td><div className={styles.dealActions}><MlsSiteLinks listing={candidate} /><a className={styles.offerButton} href={`/admin/offers?mls=${encodeURIComponent(candidate.mlsNumber)}`}>Submit an Offer</a></div></td>
+              <td><div className={styles.dealActions}><MlsSiteLinks listing={candidate} /><a className={styles.offerButton} href={`/admin/offers/new?mls=${encodeURIComponent(candidate.mlsNumber)}`}>Submit an Offer</a></div></td>
             </tr>;
           })}</tbody>
         </table>
