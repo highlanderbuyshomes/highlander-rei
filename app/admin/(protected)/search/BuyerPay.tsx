@@ -5,9 +5,9 @@ import type { IbBuyer, IbInvestorBuy } from "@/lib/integrations/investorbase";
 import type { BuyerPayResponse } from "@/lib/search/buyer-pay-load";
 import type { BuyersResponse } from "@/lib/search/buyer-search-load";
 import { loadGoogleMaps } from "./load-google-maps";
+import { pinIcon, pinSvg, type PinKind } from "./buyer-pins";
 import styles from "./search.module.css";
 
-const COLORS = { subject: "#d63b3b", flipper: "#2f8bd8", landlord: "#2e9a5a", ranked: "#e0a21b" } as const;
 const k = (v: number | null | undefined) => (v == null ? "—" : `$${Math.round(v / 1000)}k`);
 const money = (v: number | null | undefined) => (v == null ? "—" : v.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }));
 const month = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" }) : "");
@@ -95,7 +95,7 @@ export default function BuyerPay({ listingId, onUnavailable }: { listingId: stri
         const p = paid(b), sale = b.flip_sale_transaction_price;
         const method = b.flip_purchase_method ?? b.rental_purchase_method;
         return <tr key={`${b.smart_match_rank}-${i}`} className={focus === i ? styles.buyerRowOn : ""} onClick={() => setFocus(i)}>
-          <td>{b.smart_match ? <span className={styles.smartTag}>SmartMatch #{b.smart_match_rank}</span> : `#${b.smart_match_rank}`}</td>
+          <td>{b.smart_match ? <span className={styles.smartTag}>✦ SmartMatch #{b.smart_match_rank}</span> : `#${b.smart_match_rank}`}</td>
           <td><strong>{buyerName(b)}</strong><small>{[b.buyer_phone_number, b.buyer_email].filter(Boolean).join(" · ") || "No contact"}</small></td>
           <td><span className={b.buyer_type === "flipper" ? styles.flipperTag : styles.landlordTag}>{b.buyer_type === "flipper" ? "Flipper" : "Landlord"}</span></td>
           <td><strong>{b.address ?? "—"}</strong></td>
@@ -130,11 +130,40 @@ export default function BuyerPay({ listingId, onUnavailable }: { listingId: stri
   </div>;
 }
 
+const monthYear = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" }).replace(" ", " '") : "");
+const monthsBetween = (a: string | null, b: string | null) => (a && b ? Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / (30.44 * 864e5))) : null);
+const shortMoney = (v: number) => `${v < 0 ? "−" : "+"}$${Math.round(Math.abs(v) / 1000)}k`;
+
+/** InvestorBase-style popup: tags, then Property / Purchased / Sold / Duration rows. */
+function popupHtml(b: IbInvestorBuy): string {
+  const flip = b.buyer_type === "flipper";
+  const p = paid(b), sale = b.flip_sale_transaction_price;
+  const buyer = isBuyer(b) ? b : null;
+  const method = buyer ? buyer.flip_purchase_method ?? buyer.rental_purchase_method : null;
+  const pct = p && sale ? Math.round((p / sale) * 100) : null;
+  const tag = (text: string, bg: string, color: string) => `<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:${bg};color:${color};font-weight:600;font-size:11px;margin-right:4px">${text}</span>`;
+  const row = (label: string, value: string, sub: string, right: string) =>
+    `<tr><td style="padding:4px 10px 4px 0;color:#4b5563;vertical-align:top;white-space:nowrap">${label}</td><td style="padding:4px 10px 4px 0;vertical-align:top">${value}${sub ? `<div style="color:#9ca3af;font-size:10px">${sub}</div>` : ""}</td><td style="padding:4px 0;text-align:right;vertical-align:top;white-space:nowrap">${right}</td></tr>`;
+  const ring = pct == null ? "" : `<span style="display:inline-flex;align-items:center;gap:5px">ARV ${pct}% <svg width="14" height="14" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" stroke-width="5"/><circle cx="18" cy="18" r="14" fill="none" stroke="#22a35a" stroke-width="5" stroke-dasharray="${(Math.min(100, pct) / 100) * 88} 88" transform="rotate(-90 18 18)"/></svg></span>`;
+  const months = monthsBetween(b.flip_purchase_transaction_date, b.flip_sale_transaction_date);
+  return `<div style="font:12px/1.4 system-ui,sans-serif;color:#1f2937;min-width:290px;max-width:340px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div>${buyer?.smart_match ? tag("✦ SmartMatch", "#fcefcf", "#9a5b13") : ""}${flip ? tag("Flip", "#dff0fc", "#1a6fb0") : tag("Rental", "#e2f5ea", "#1f7a48")}</div>${b.propertytype ? `<span style="padding:2px 8px;border:1px solid #d1d5db;border-radius:10px;font-size:11px">${esc(b.propertytype)}</span>` : ""}</div>
+    ${buyer ? `<div style="margin-bottom:4px"><strong>${esc(buyerName(buyer))}</strong>${buyer.smart_match_rank ? ` <span style="color:#9ca3af">#${buyer.smart_match_rank}</span>` : ""}${buyer.buyer_phone_number || buyer.buyer_email ? `<div style="color:#4b5563">${esc([buyer.buyer_phone_number, buyer.buyer_email].filter(Boolean).join(" · "))}</div>` : ""}</div>` : ""}
+    <table style="width:100%;border-collapse:collapse">
+      ${row("Property", esc(b.address ?? "—"), "", `${b.bedrooms ?? "—"} bd | ${b.bathrooms ?? "—"} ba | ${b.livingsquarefeet?.toLocaleString() ?? "—"} sqft`)}
+      ${row("Purchased", `${money(p)} (${monthYear(b.flip_purchase_transaction_date ?? b.rental_purchase_transaction_date)})`, method ? esc(method) : "", ring)}
+      ${sale ? row("Sold", `${money(sale)} (${monthYear(b.flip_sale_transaction_date)})`, "", p ? `Profit <strong style="color:${sale - p >= 0 ? "#16803c" : "#c23a2b"}">${shortMoney(sale - p)}</strong>` : "") : ""}
+      ${months != null ? row("Duration", `${months} month${months === 1 ? "" : "s"}`, "", "") : ""}
+    </table></div>`;
+}
+
 function BuyerMap({ subject, map, ranked, focus }: { subject: { latitude: number; longitude: number }; map: IbInvestorBuy[]; ranked: IbInvestorBuy[]; focus: number | null }) {
   const node = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const rankedMarkers = useRef<(google.maps.Marker | null)[]>([]);
   const openInfo = useRef<((i: number) => void) | null>(null);
+  // Loaded buyers carry exact locations and replace the approximate activity pins.
+  const showingBuyers = ranked.length > 0 && isBuyer(ranked[0]);
 
   useEffect(() => { if (focus != null) openInfo.current?.(focus); }, [focus]);
 
@@ -149,52 +178,38 @@ function BuyerMap({ subject, map, ranked, focus }: { subject: { latitude: number
       });
       const info = new google.maps.InfoWindow();
       const bounds = new google.maps.LatLngBounds();
-      const pin = (lat: number, lng: number, color: string, scale: number, z: number, html: string | null): google.maps.Marker => {
-        const m = new google.maps.Marker({
-          map: gmap, position: { lat, lng }, zIndex: z,
-          icon: { path: google.maps.SymbolPath.CIRCLE, scale, fillColor: color, fillOpacity: 0.95, strokeColor: "#ffffff", strokeWeight: 1.5 },
-        });
-        if (html) m.addListener("click", () => { info.setContent(html); info.open({ map: gmap, anchor: m }); });
+      const pin = (lat: number, lng: number, icon: google.maps.Icon, z: number, b: IbInvestorBuy | null): google.maps.Marker => {
+        const m = new google.maps.Marker({ map: gmap, position: { lat, lng }, zIndex: z, icon });
+        if (b) m.addListener("click", () => { info.setContent(popupHtml(b)); info.open({ map: gmap, anchor: m }); });
         markers.push(m);
         bounds.extend({ lat, lng });
         return m;
       };
-      const detail = (b: IbInvestorBuy) => {
-        const p = paid(b), sale = b.flip_sale_transaction_price;
-        const method = isBuyer(b) ? b.flip_purchase_method ?? b.rental_purchase_method : null;
-        const lines = [
-          isBuyer(b) ? `<strong>${esc(buyerName(b))}</strong>${b.smart_match ? ` · SmartMatch #${b.smart_match_rank}` : ""}` : "",
-          isBuyer(b) && (b.buyer_phone_number || b.buyer_email) ? esc([b.buyer_phone_number, b.buyer_email].filter(Boolean).join(" · ")) : "",
-          `<strong>${b.buyer_type === "flipper" ? "Flipper" : "Landlord"}</strong> · ${esc(b.address ?? "")}`,
-          `${b.bedrooms ?? "—"} bd / ${b.bathrooms ?? "—"} ba · ${b.livingsquarefeet?.toLocaleString() ?? "—"} sqft`,
-          `Paid ${money(p)} ${month(b.flip_purchase_transaction_date ?? b.rental_purchase_transaction_date)}${method ? ` · ${esc(method)}` : ""}`,
-          sale ? `Resold ${money(sale)} ${month(b.flip_sale_transaction_date)}${p ? ` · +${money(sale - p)} · ${Math.round((p / sale) * 100)}% of resale` : ""}` : "",
-        ];
-        return `<div style="font:12px/1.5 system-ui;max-width:240px">${lines.filter(Boolean).join("<br>")}</div>`;
-      };
-      for (const b of map) if (b.latitude != null && b.longitude != null) pin(b.latitude, b.longitude, b.buyer_type === "flipper" ? COLORS.flipper : COLORS.landlord, 5, 1, detail(b));
-      rankedMarkers.current = ranked.map((b) => b.latitude != null && b.longitude != null
-        ? pin(b.latitude, b.longitude, isBuyer(b) ? (b.smart_match ? COLORS.ranked : b.buyer_type === "flipper" ? COLORS.flipper : COLORS.landlord) : COLORS.ranked, isBuyer(b) ? 8 : 7, 2, detail(b))
+      const kind = (b: IbInvestorBuy) => (b.buyer_type === "flipper" ? "flipper" : "landlord") as PinKind;
+      if (!showingBuyers) for (const b of map) if (b.latitude != null && b.longitude != null) pin(b.latitude, b.longitude, pinIcon(kind(b), false, 30), 1, b);
+      rankedMarkers.current = ranked.map((b, i) => b.latitude != null && b.longitude != null
+        ? pin(b.latitude, b.longitude, pinIcon(kind(b), isBuyer(b) ? b.smart_match : true, 40), (isBuyer(b) && b.smart_match ? 300 : 100) - i, b)
         : null);
       openInfo.current = (i) => {
         const m = rankedMarkers.current[i], b = ranked[i];
         if (!m || !b) return;
-        info.setContent(detail(b));
+        info.setContent(popupHtml(b));
         info.open({ map: gmap, anchor: m });
         gmap.panTo(m.getPosition()!);
       };
-      pin(subject.latitude, subject.longitude, COLORS.subject, 9, 3, null);
+      pin(subject.latitude, subject.longitude, pinIcon("subject", false, 44), 1000, null);
       if (markers.length > 1) gmap.fitBounds(bounds, 40);
     }).catch((err: Error) => setError(err.message));
     return () => { cancelled = true; openInfo.current = null; markers.forEach((m) => m.setMap(null)); };
-  }, [subject, map, ranked]);
+  }, [subject, map, ranked, showingBuyers]);
 
+  const legend: [string, string][] = [["Subject", pinSvg("subject")], [showingBuyers ? "SmartMatch" : "Best matches", pinSvg("flipper", true)], ["Flipper", pinSvg("flipper")], ["Landlord", pinSvg("landlord")]];
   return <div className={styles.buyerMapShell}>
     <div ref={node} className={styles.buyerMap} aria-label="Map of investor purchases near this property" />
     {error && <p className={styles.previewNote}>Map unavailable: {error}</p>}
     <div className={styles.buyerLegend}>
-      {([["Subject", COLORS.subject], ["Best matches", COLORS.ranked], ["Flippers", COLORS.flipper], ["Landlords", COLORS.landlord]] as const).map(([label, color]) => <span key={label}><i style={{ background: color }} />{label}</span>)}
-      <em>Flipper/landlord pins are approximate</em>
+      {legend.map(([label, svg]) => <span key={label}><i className={styles.legendPin} style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}")` }} />{label}</span>)}
+      {!showingBuyers && <em>Flipper/landlord pins are approximate</em>}
     </div>
   </div>;
 }
