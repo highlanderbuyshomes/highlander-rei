@@ -352,10 +352,13 @@ function CompsSection({ listing, comps, asIs }: { listing: DealCandidate; comps:
   // InvestorBase is the primary investor source; ARMLS-derived buys are the fallback.
   const [ibUnavailable, setIbUnavailable] = useState(false);
   const markUnavailable = useCallback(() => setIbUnavailable(true), []);
+  // The detail view scrolls inside a short box; bring the results into view on open.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (open) panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }, [open]);
   if (!open) return <button type="button" className={`${styles.applyButton} ${styles.compsButton}`} onClick={() => setOpen(true)}>Comps</button>;
   const buyBox = listing.conservativeArv ? `70–75%: ${money(listing.conservativeArv * 0.7, true)}–${money(listing.conservativeArv * 0.75, true)}` : null;
   const remodel = listing.arv && asIs ? Math.round((listing.arv / asIs.value - 1) * 100) : null;
-  return <div className={styles.compsPanel}>
+  return <div ref={panelRef} className={styles.compsPanel}>
     <div className={`${styles.detailGrid} ${styles.compsSummary}`}>
       <div><small>ARV</small><strong>{arvWithRange(listing)}</strong><small>{[arvBasis(listing), buyBox].filter(Boolean).join(" · ")}</small></div>
       <div><small>Clean as-is</small><strong>{asIs === undefined ? "…" : asIs ? `${money(asIs.value)} ±${asIs.rangePct}%` : "—"}</strong><small>{asIs ? [`${asIs.compCount} clean sales ≤${asIs.radiusMiles} mi`, remodel != null ? `remodel adds ${remodel >= 0 ? "+" : ""}${remodel}%` : null].filter(Boolean).join(" · ") : asIs === null ? "Too few clean sales" : ""}</small></div>
