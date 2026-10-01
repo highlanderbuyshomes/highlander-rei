@@ -9,6 +9,7 @@ import type { CompSale, DealCandidate, DrawnShape, ListingDetailResponse, Listin
 import GoogleMapStage from "./GoogleMapStage";
 import InvestorComps from "./InvestorComps";
 import BuyerPay from "./BuyerPay";
+import { loadDealFeedback, saveDealFeedback, type DealFeedbackEntry, type DealVerdict } from "./actions";
 import styles from "./search.module.css";
 
 type WorkspaceView = "map" | "list" | "detail";
@@ -63,9 +64,10 @@ function shortDate(value?: string | null) {
   return value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 }
 
-const ARV_THRESHOLD_OPTIONS = [70, 75, 80, 85, 90] as const;
 const ARV_THRESHOLD_MIN = 1;
 const ARV_THRESHOLD_MAX = 99;
+const ARV_SLIDER_MIN = 50;
+const ARV_SLIDER_MAX = 95;
 
 function clampThreshold(value: number): number {
   return Math.min(ARV_THRESHOLD_MAX, Math.max(ARV_THRESHOLD_MIN, Math.round(value)));
@@ -412,25 +414,74 @@ function CityChip({ city, selected, onChange }: { city: string; selected: string
 
 function PlaceholderView({ title, detail }: { title: string; detail: string }) { return <div className={styles.placeholder}><strong>{title}</strong><span>{detail}</span></div>; }
 
+function DealCall({ entry, onChange }: { entry: DealFeedbackEntry | undefined; onChange: (verdict: DealVerdict | null, note: string | null) => void }) {
+  const [note, setNote] = useState(entry?.note ?? "");
+  const [shownNote, setShownNote] = useState(entry?.note ?? null);
+  if (shownNote !== (entry?.note ?? null)) {
+    setShownNote(entry?.note ?? null);
+    setNote(entry?.note ?? "");
+  }
+  const pick = (verdict: DealVerdict) => onChange(entry?.verdict === verdict ? null : verdict, entry?.verdict === verdict ? null : note || null);
+  const arrow = (up: boolean) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{up ? <path d="M12 19V5M5 12l7-7 7 7" /> : <path d="M12 5v14M5 12l7 7 7-7" />}</svg>;
+  return <div className={styles.dealCall}>
+    <div>
+      <button type="button" className={`${styles.callUp} ${entry?.verdict === "good" ? styles.callOn : ""}`} aria-pressed={entry?.verdict === "good"} title="Good pick" onClick={() => pick("good")}>{arrow(true)}</button>
+      <button type="button" className={`${styles.callDown} ${entry?.verdict === "bad" ? styles.callOn : ""}`} aria-pressed={entry?.verdict === "bad"} title="Bad pick" onClick={() => pick("bad")}>{arrow(false)}</button>
+    </div>
+    {entry && <input
+      type="text"
+      placeholder="Why?"
+      aria-label="Note"
+      maxLength={500}
+      value={note}
+      onChange={(event) => setNote(event.target.value)}
+      onBlur={() => { if ((note.trim() || null) !== entry.note) onChange(entry.verdict, note.trim() || null); }}
+      onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+    />}
+  </div>;
+}
+
 function DealIntelligence({ candidates, threshold, onThresholdChange }: { candidates: DealCandidate[]; threshold: number; onThresholdChange: (value: number) => void }) {
   const [mode, setMode] = useState<"ranked" | "rule70" | "ppsf" | "motivated">("ranked");
   const [customInput, setCustomInput] = useState(String(threshold));
-  // Re-sync the free-text box when the threshold changes elsewhere (the preset
-  // buttons). Adjusting state during render rather than in an effect avoids the
-  // extra commit; see https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  // Re-sync the number box when the slider moves. Adjusting state during render
+  // rather than in an effect avoids the extra commit; see
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
   const [shownThreshold, setShownThreshold] = useState(threshold);
   if (shownThreshold !== threshold) {
     setShownThreshold(threshold);
     setCustomInput(String(threshold));
   }
 
-  function commitCustomThreshold() {
-    const parsed = Number(customInput);
-    if (Number.isFinite(parsed) && customInput.trim() !== "") {
-      onThresholdChange(clampThreshold(parsed));
-    } else {
-      setCustomInput(String(threshold));
-    }
+  // Typing applies as you go; a blank or half-typed box waits, and blur snaps it back.
+  function typeThreshold(text: string) {
+    setCustomInput(text);
+    const parsed = Number(text);
+    if (text.trim() !== "" && Number.isFinite(parsed) && parsed >= ARV_THRESHOLD_MIN && parsed <= ARV_THRESHOLD_MAX) onThresholdChange(clampThreshold(parsed));
+  }
+
+  const [feedback, setFeedback] = useState<Record<string, DealFeedbackEntry>>({});
+  const feedbackIds = candidates.map((item) => item.id).join(",");
+  useEffect(() => {
+    let live = true;
+    loadDealFeedback(feedbackIds ? feedbackIds.split(",") : []).then((rows) => { if (live) setFeedback(rows); }).catch(() => {});
+    return () => { live = false; };
+  }, [feedbackIds]);
+
+  function recordCall(candidate: DealCandidate, verdict: DealVerdict | null, note: string | null) {
+    setFeedback((current) => {
+      const next = { ...current };
+      if (verdict) next[candidate.id] = { verdict, note }; else delete next[candidate.id];
+      return next;
+    });
+    saveDealFeedback(candidate.id, candidate.mlsNumber, verdict, note, {
+      dealScore: candidate.dealScore, priority: candidate.priority, listPrice: candidate.listPrice, arv: candidate.arv,
+      arvConfidence: candidate.arvConfidence, listToArvPct: candidate.listToArvPct, pctOfAsIs: candidate.pctOfAsIs, threshold, reasons: candidate.reasons,
+    }).catch(() => setFeedback((current) => {
+      const next = { ...current };
+      delete next[candidate.id];
+      return next;
+    }));
   }
   const visible = candidates.filter((item) => {
     if (mode === "rule70") return item.listToArvPct != null && item.listToArvPct <= threshold;
@@ -461,16 +512,24 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
         <div>{([['ranked','Best opportunities'],['rule70',`${threshold}% rule`],['ppsf','Low $/sqft'],['motivated','Motivated']] as const).map(([key, label]) => <button key={key} type="button" className={mode === key ? styles.dealModeActive : ""} onClick={() => setMode(key)}>{label}</button>)}</div>
         <div className={styles.thresholdGroup}>
           <span>ARV discount</span>
-          {ARV_THRESHOLD_OPTIONS.map((option) => <button key={option} type="button" className={threshold === option ? styles.dealModeActive : ""} onClick={() => onThresholdChange(option)}>{option}%</button>)}
+          <input
+            type="range"
+            className={styles.thresholdSlider}
+            aria-label="ARV discount threshold"
+            min={ARV_SLIDER_MIN}
+            max={ARV_SLIDER_MAX}
+            value={Math.min(ARV_SLIDER_MAX, Math.max(ARV_SLIDER_MIN, threshold))}
+            onChange={(event) => onThresholdChange(clampThreshold(Number(event.target.value)))}
+          />
           <label className={styles.thresholdCustom}>
             <input
               type="number"
+              aria-label="ARV discount threshold, percent"
               min={ARV_THRESHOLD_MIN}
               max={ARV_THRESHOLD_MAX}
               value={customInput}
-              onChange={(event) => setCustomInput(event.target.value)}
-              onBlur={commitCustomThreshold}
-              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); commitCustomThreshold(); } }}
+              onChange={(event) => typeThreshold(event.target.value)}
+              onBlur={() => setCustomInput(String(threshold))}
             />
             <span>%</span>
           </label>
@@ -480,7 +539,7 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
 
       <div className={styles.dealTableWrap}>
         <table className={styles.dealTable}>
-          <thead><tr><th>Priority</th><th>Property</th><th>Deal score <span className={styles.scoreHint}>Higher is better · 0–99</span></th><th>% of ARV · {threshold}% threshold<span className={styles.scoreHint}>Lower means a bigger discount</span></th><th>Why it surfaced</th><th>Action</th></tr></thead>
+          <thead><tr><th>Priority</th><th>Property</th><th>Deal score <span className={styles.scoreHint}>Higher is better · 0–99</span></th><th>% of ARV · {threshold}% threshold<span className={styles.scoreHint}>Lower means a bigger discount</span></th><th>Why it surfaced</th><th>Your call</th><th>Action</th></tr></thead>
           <tbody>{visible.slice(0, 25).map((candidate) => {
             return <tr key={candidate.id}>
               <td><span className={`${styles.priorityBadge} ${styles[`priority${candidate.priority.replace(/\s/g, "")}`]}`}>{candidate.priority}</span></td>
@@ -488,6 +547,7 @@ function DealIntelligence({ candidates, threshold, onThresholdChange }: { candid
               <td><div className={styles.scoreCell}><strong>{candidate.dealScore}</strong><span><i style={{ width: `${candidate.dealScore}%` }} /></span></div></td>
               <td><strong className={(candidate.listToArvPct ?? 100) <= threshold ? styles.ruleMatch : ""}>{pct(candidate.listToArvPct)}</strong><small>ARV {arvWithRange(candidate, true)} · {arvBasis(candidate)}</small></td>
               <td><div className={styles.reasonList}>{candidate.reasons.length ? candidate.reasons.map((reason) => <span key={reason}>{reason}</span>) : <span>Needs more data</span>}</div></td>
+              <td><DealCall entry={feedback[candidate.id]} onChange={(verdict, note) => recordCall(candidate, verdict, note)} /></td>
               <td><div className={styles.dealActions}><MlsSiteLinks listing={candidate} /><a className={styles.offerButton} href={`/admin/offers/new?mls=${encodeURIComponent(candidate.mlsNumber)}`}>Submit an Offer</a></div></td>
             </tr>;
           })}</tbody>
