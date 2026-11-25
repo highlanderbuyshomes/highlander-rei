@@ -1,16 +1,75 @@
 import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ghlConfig, ghlContactUrl } from "@/lib/integrations/ghl-conversations";
 import BuyersWorkspace from "./BuyersWorkspace";
+import ConversationsPanel from "./ConversationsPanel";
+import styles from "./buyers.module.css";
 
 export const metadata: Metadata = { title: "Our Buyers | Highlander REI" };
 
-export default async function BuyersPage() {
+export default async function BuyersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await requireAdmin();
+  const tab = (await searchParams).tab === "conversations" ? "conversations" : "buyers";
+
+  const tabs = <nav className={styles.tabs} aria-label="Our Buyers">
+    <Link href="/admin/buyers" className={tab === "buyers" ? styles.tabActive : undefined}>Buyers</Link>
+    <Link href="/admin/buyers?tab=conversations" className={tab === "conversations" ? styles.tabActive : undefined}>Conversations</Link>
+  </nav>;
+
+  if (tab === "conversations") {
+    const [rows, state] = await Promise.all([
+      prisma.ghlConversation.findMany({
+        where: { sentiment: "positive" },
+        orderBy: { positiveAt: "desc" },
+        take: 300,
+      }),
+      prisma.ghlSyncState.findUnique({ where: { id: "conversations" } }),
+    ]);
+    return <ConversationsPanel
+      tabs={tabs}
+      configured={Boolean(ghlConfig())}
+      lastRunAt={state?.lastRunAt?.toISOString() ?? null}
+      lastError={state?.lastError ?? null}
+      conversations={rows.map((row) => ({
+        id: row.id,
+        name: row.contactName,
+        phone: row.phone,
+        email: row.email,
+        tags: Array.isArray(row.tags) ? row.tags.filter((t): t is string => typeof t === "string") : [],
+        channel: row.channel,
+        body: row.positiveBody ?? "",
+        at: (row.positiveAt ?? row.lastMessageAt).toISOString(),
+        lastInbound: row.lastInboundBody !== row.positiveBody ? row.lastInboundBody : null,
+        unread: row.unreadCount,
+        ghlUrl: ghlContactUrl(row.contactId),
+      }))}
+    />;
+  }
+
   const buyers = await prisma.acquisitionArea.findMany({
     orderBy: [{ active: "desc" }, { updatedAt: "desc" }],
-    include: { buyBoxes: { orderBy: [{ active: "desc" }, { priority: "desc" }, { updatedAt: "desc" }] } },
+    select: {
+      id: true,
+      name: true,
+      buyerContact: true,
+      description: true,
+      active: true,
+      buyBoxes: {
+        orderBy: [{ active: "desc" }, { priority: "desc" }, { updatedAt: "desc" }],
+        select: {
+          id: true, name: true, active: true, zips: true, propertyTypes: true, mlsStatuses: true,
+          priceMin: true, priceMax: true, bedsMin: true, bathsMin: true, sqftMin: true, sqftMax: true,
+          lotSqftMin: true, lotSqftMax: true, maxDom: true, dispositionStrategy: true,
+        },
+      },
+    },
   });
 
-  return <BuyersWorkspace buyers={buyers} />;
+  return <BuyersWorkspace buyers={buyers} tabs={tabs} />;
 }

@@ -1,0 +1,24 @@
+name: GHL conversations sync
+
+# Pulls new GHL replies for Our Buyers > Conversations. The repo is public:
+# the endpoint returns counts only.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ghl-conversations
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --max-time 320 -H "Authorization: Bearer $CRON_SECRET" \
+            "https://highlanderrei.com/api/cron/ghl-conversations"

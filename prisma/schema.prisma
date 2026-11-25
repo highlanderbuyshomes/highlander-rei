@@ -572,3 +572,32 @@ model InvestorBaseCache {
 
   @@index([endpoint, fetchedAt])
 }
+
+// GHL conversations with a reply worth acting on, synced from GoHighLevel by
+// lib/integrations/ghl-conversations.ts. Instagram/Facebook DMs are skipped.
+model GhlConversation {
+  id              String    @id // GHL conversation id
+  contactId       String
+  contactName     String?
+  phone           String?
+  email           String?
+  tags            Json      @default("[]")
+  channel         String
+  sentiment       String // positive | negative | neutral
+  positiveBody    String?
+  positiveAt      DateTime?
+  lastInboundBody String?
+  lastInboundAt   DateTime?
+  lastMessageAt   DateTime
+  unreadCount     Int       @default(0)
+  updatedAt       DateTime  @updatedAt
+
+  @@index([sentiment, positiveAt])
+}
+
+model GhlSyncState {
+  id        String    @id // "conversations"
+  watermark DateTime?
+  lastRunAt DateTime?
+  lastError String?
+}
