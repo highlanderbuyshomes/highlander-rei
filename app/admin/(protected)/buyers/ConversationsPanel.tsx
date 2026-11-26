@@ -100,7 +100,7 @@ export default function ConversationsPanel({
       <div className={styles.convoToolbar}>
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, phone, tag, reply" />
         <span className={styles.convoSynced} title={lastError ?? undefined}>
-          {syncing ? "Syncing…" : lastRunAt ? `Synced ${ago(lastRunAt)} ago` : "Not synced"}
+          {syncing ? "Syncing…" : lastRunAt ? (ago(lastRunAt) === "now" ? "Synced just now" : `Synced ${ago(lastRunAt)} ago`) : "Not synced"}
         </span>
         <button type="button" onClick={refresh} disabled={syncing || !configured}>{syncing ? "Syncing…" : "Refresh"}</button>
       </div>
