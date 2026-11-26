@@ -3,11 +3,12 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ghlConfig, ghlContactUrl } from "@/lib/integrations/ghl-conversations";
-import BuyersWorkspace from "./BuyersWorkspace";
 import ConversationsPanel from "./ConversationsPanel";
+import PipelineBoard from "./PipelineBoard";
+import { BUY_BOX_FIELDS, INVESTORS_PIPELINE_ID, getPipelineStages, listOpportunities, type PipelineCard, type PipelineStage } from "@/lib/integrations/ghl-api";
 import styles from "./buyers.module.css";
 
-export const metadata: Metadata = { title: "Our Buyers | Highlander REI" };
+export const metadata: Metadata = { title: "Buyers | Highlander REI" };
 
 export default async function BuyersPage({
   searchParams,
@@ -18,7 +19,7 @@ export default async function BuyersPage({
   const params = await searchParams;
   const tab = params.tab === "conversations" ? "conversations" : "buyers";
 
-  const tabs = <nav className={styles.tabs} aria-label="Our Buyers">
+  const tabs = <nav className={styles.tabs} aria-label="Buyers">
     <Link href="/admin/buyers" className={tab === "buyers" ? styles.tabActive : undefined}>Buyers</Link>
     <Link href="/admin/buyers?tab=conversations" className={tab === "conversations" ? styles.tabActive : undefined}>Conversations</Link>
   </nav>;
@@ -55,24 +56,26 @@ export default async function BuyersPage({
     />;
   }
 
-  const buyers = await prisma.acquisitionArea.findMany({
-    orderBy: [{ active: "desc" }, { updatedAt: "desc" }],
-    select: {
-      id: true,
-      name: true,
-      buyerContact: true,
-      description: true,
-      active: true,
-      buyBoxes: {
-        orderBy: [{ active: "desc" }, { priority: "desc" }, { updatedAt: "desc" }],
-        select: {
-          id: true, name: true, active: true, zips: true, propertyTypes: true, mlsStatuses: true,
-          priceMin: true, priceMax: true, bedsMin: true, bathsMin: true, sqftMin: true, sqftMax: true,
-          lotSqftMin: true, lotSqftMax: true, maxDom: true, dispositionStrategy: true,
-        },
-      },
-    },
-  });
-
-  return <BuyersWorkspace buyers={buyers} tabs={tabs} />;
+  let stages: PipelineStage[] = [];
+  let cards: PipelineCard[] = [];
+  let error: string | null = null;
+  if (!ghlConfig()) error = "GHL_API_TOKEN / GHL_LOCATION_ID not set";
+  else {
+    try {
+      const [pipeline, opps] = await Promise.all([getPipelineStages(INVESTORS_PIPELINE_ID), listOpportunities(INVESTORS_PIPELINE_ID)]);
+      stages = pipeline.stages;
+        cards = opps;
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    }
+  }
+  return <PipelineBoard
+    key={cards.map((c) => `${c.id}:${c.stageId}:${c.updatedAt}`).join("|")}
+    tabs={tabs}
+    stages={stages}
+    cards={cards}
+    fields={BUY_BOX_FIELDS}
+    contactUrl={ghlContactUrl("").replace(/\/$/, "")}
+    error={error}
+  />;
 }

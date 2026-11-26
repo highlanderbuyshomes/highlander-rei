@@ -141,7 +141,7 @@ export default function ConversationsPanel({
 
   return <main className={styles.shell}>
     <header className={styles.pageHeader}>
-      <div><span>Disposition Network</span><h1>Our Buyers</h1></div>
+      <div><h1>Buyers</h1></div>
     </header>
     {tabs}
 

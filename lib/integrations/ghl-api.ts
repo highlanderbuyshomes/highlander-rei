@@ -148,3 +148,97 @@ export async function locationTags(): Promise<string[]> {
   const d = await call<{ tags?: { name: string }[] }>("GET", `/locations/${cfg.locationId}/tags`);
   return (d.tags ?? []).map((t) => t.name).sort((a, b) => a.localeCompare(b));
 }
+
+// ── Investors pipeline ───────────────────────────────────────────────
+
+export const INVESTORS_PIPELINE_ID = "beW9rFDD9pfnSh0JnwyU";
+
+/** Contact custom fields that make up a buyer's buy box in GHL. */
+export const BUY_BOX_FIELDS = [
+  { id: "jlCKOhBUnsa8rPGhudPq", label: "Buying areas" },
+  { id: "k8ezQbdLl5Rt9CQqb2TE", label: "Price range" },
+  { id: "y5WNK2L59BWms3ZwDnKx", label: "Cash or hard money" },
+  { id: "Hve46adMbXU2elf8a2k5", label: "How soon can close" },
+  { id: "leDLYD1D8knO3opyJc61", label: "Buyer area" },
+  { id: "Cp4LGHTw0V5ImnDeuJXV", label: "Buyer timeline" },
+] as const;
+
+export type PipelineStage = { id: string; name: string };
+export type PipelineCard = {
+  id: string;
+  stageId: string;
+  contactId: string;
+  name: string;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  tags: string[];
+  value: number;
+  status: string;
+  updatedAt: string;
+};
+
+export async function getPipelineStages(pipelineId: string): Promise<{ name: string; stages: PipelineStage[] }> {
+  const cfg = ghlConfig();
+  const d = await call<{ pipelines?: { id: string; name: string; stages: { id: string; name: string }[] }[] }>("GET", `/opportunities/pipelines?locationId=${cfg?.locationId}`);
+  const p = d.pipelines?.find((x) => x.id === pipelineId);
+  if (!p) throw new GhlError(404, "Investors pipeline not found in GHL");
+  return { name: p.name, stages: p.stages.map((s) => ({ id: s.id, name: s.name })) };
+}
+
+type RawOpp = {
+  id: string; name?: string; pipelineStageId: string; contactId: string; monetaryValue?: number; status?: string; updatedAt?: string;
+  contact?: { name?: string; companyName?: string; phone?: string; email?: string; tags?: string[] };
+};
+
+export async function listOpportunities(pipelineId: string): Promise<PipelineCard[]> {
+  const cfg = ghlConfig();
+  const out: PipelineCard[] = [];
+  let cursor = "";
+  for (let page = 0; page < 20; page++) {
+    const d = await call<{ opportunities?: RawOpp[]; meta?: { startAfter?: number; startAfterId?: string; total?: number } }>(
+      "GET",
+      `/opportunities/search?location_id=${cfg?.locationId}&pipeline_id=${pipelineId}&limit=100${cursor}`,
+    );
+    for (const o of d.opportunities ?? []) {
+      if (o.status && o.status !== "open" && o.status !== "won") continue;
+      out.push({
+        id: o.id,
+        stageId: o.pipelineStageId,
+        contactId: o.contactId,
+        name: o.contact?.name || o.name || "Unknown",
+        company: o.contact?.companyName || null,
+        phone: o.contact?.phone || null,
+        email: o.contact?.email || null,
+        tags: o.contact?.tags ?? [],
+        value: o.monetaryValue ?? 0,
+        status: o.status ?? "open",
+        updatedAt: o.updatedAt ?? "",
+      });
+    }
+    const m = d.meta;
+    if (!m?.startAfterId || (d.opportunities?.length ?? 0) < 100 || out.length >= (m.total ?? 0)) break;
+    cursor = `&startAfter=${m.startAfter}&startAfterId=${m.startAfterId}`;
+  }
+  return out;
+}
+
+export async function moveOpportunity(opportunityId: string, stageId: string): Promise<void> {
+  await call("PUT", `/opportunities/${opportunityId}`, { pipelineId: INVESTORS_PIPELINE_ID, pipelineStageId: stageId });
+}
+
+export type BuyBoxValues = Record<string, string>;
+
+export async function getBuyBox(contactId: string): Promise<{ contact: GhlContact; buyBox: BuyBoxValues }> {
+  const d = await call<{ contact: RawContact & { customFields?: { id: string; value?: unknown }[] } }>("GET", `/contacts/${contactId}`);
+  const values: BuyBoxValues = {};
+  for (const f of d.contact.customFields ?? []) {
+    if (BUY_BOX_FIELDS.some((b) => b.id === f.id) && f.value != null) values[f.id] = Array.isArray(f.value) ? f.value.join(", ") : String(f.value);
+  }
+  return { contact: toContact(d.contact), buyBox: values };
+}
+
+export async function saveBuyBox(contactId: string, values: BuyBoxValues): Promise<void> {
+  const customFields = BUY_BOX_FIELDS.map((f) => ({ id: f.id, field_value: (values[f.id] ?? "").trim() }));
+  await call("PUT", `/contacts/${contactId}`, { customFields });
+}
