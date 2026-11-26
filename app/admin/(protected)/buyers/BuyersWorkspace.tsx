@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentProps, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 import { createArea, deleteArea, toggleArea, updateArea } from "../search/actions";
 import { createBuyBox, toggleBuyBox, deleteBuyBox, updateBuyBox } from "../offers/actions";
 import styles from "./buyers.module.css";
@@ -62,11 +63,18 @@ function buyBoxCriteria(buyBox: BuyBox) {
   return criteria.length ? criteria : ["Criteria not configured"];
 }
 
+// Disables itself and dims while its form's server action runs, so a click
+// registers immediately instead of looking dead until the round trip ends.
+function SubmitButton({ children, ...props }: ComponentProps<"button">) {
+  const { pending } = useFormStatus();
+  return <button type="submit" {...props} disabled={pending || props.disabled} aria-busy={pending} style={pending ? { opacity: 0.55, cursor: "progress" } : undefined}>{children}</button>;
+}
+
 function num(value: number | null) {
   return value == null ? "" : String(value);
 }
 
-export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
+export default function BuyersWorkspace({ buyers, tabs }: { buyers: Buyer[]; tabs: ReactNode }) {
   const [selectedId, setSelectedId] = useState(buyers[0]?.id ?? "");
   const [editingBuyer, setEditingBuyer] = useState(false);
   const [editingBuyBoxId, setEditingBuyBoxId] = useState<string | null>(null);
@@ -96,6 +104,7 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
       <div><span>Disposition Network</span><h1>Our Buyers</h1><p>Committed buyers and the exact buy boxes acquisitions should hunt for.</p></div>
       <div className={styles.metrics}><div><strong>{activeBuyers}</strong><span>Active buyers</span></div><div><strong>{activeBuyBoxes}</strong><span>Active buy boxes</span></div><div><strong>{buyers.length}</strong><span>Total relationships</span></div></div>
     </header>
+    {tabs}
 
     <div className={styles.workspace}>
       <aside className={styles.addPanel}>
@@ -104,7 +113,7 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
           <label>Buyer or market name<input name="name" required placeholder="Smith Family — Arcadia" /></label>
           <label>Primary contact<input name="buyerContact" placeholder="Name, phone, or email" /></label>
           <label>Acquisition notes<textarea name="description" rows={4} placeholder="What they buy, how quickly they close, proof of funds…" /></label>
-          <button type="submit">Add buyer</button>
+          <SubmitButton>Add buyer</SubmitButton>
         </form>
       </aside>
 
@@ -128,7 +137,7 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
               <label>Primary contact<input name="buyerContact" defaultValue={selected.buyerContact ?? ""} placeholder="Name, phone, or email" /></label>
               <label>Acquisition notes<textarea name="description" rows={3} defaultValue={selected.description ?? ""} placeholder="What they buy, how quickly they close, proof of funds…" /></label>
               <div className={styles.editFormActions}>
-                <button type="submit">Save</button>
+                <SubmitButton>Save</SubmitButton>
                 <button type="button" onClick={() => setEditingBuyer(false)}>Cancel</button>
               </div>
             </form>
@@ -146,7 +155,7 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
                 <input name="priceMin" type="number" defaultValue={num(buyBox.priceMin)} placeholder="Price min" />
                 <input name="priceMax" type="number" defaultValue={num(buyBox.priceMax)} placeholder="Price max" />
                 <div className={styles.editFormActions}>
-                  <button type="submit">Save</button>
+                  <SubmitButton>Save</SubmitButton>
                   <button type="button" onClick={() => setEditingBuyBoxId(null)}>Cancel</button>
                 </div>
               </form>
@@ -154,8 +163,8 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
               <div><strong>{buyBox.name}</strong><span className={buyBox.active ? styles.boxActive : styles.boxPaused}>{buyBox.active ? "Active" : "Paused"}</span>
                 <div className={styles.buyBoxActions}>
                   <button type="button" onClick={() => setEditingBuyBoxId(buyBox.id)}>Edit</button>
-                  <form action={toggleBuyBox.bind(null, buyBox.id)}><button type="submit">{buyBox.active ? "Pause" : "Activate"}</button></form>
-                  <form action={deleteBuyBox.bind(null, buyBox.id)}><button type="submit" className={styles.deleteButton}>Delete</button></form>
+                  <form action={toggleBuyBox.bind(null, buyBox.id)}><SubmitButton>{buyBox.active ? "Pause" : "Activate"}</SubmitButton></form>
+                  <form action={deleteBuyBox.bind(null, buyBox.id)}><SubmitButton className={styles.deleteButton}>Delete</SubmitButton></form>
                 </div>
               </div>
               <div className={styles.criteria}>{buyBoxCriteria(buyBox).map((criterion) => <span key={criterion}>{criterion}</span>)}</div>
@@ -167,10 +176,10 @@ export default function BuyersWorkspace({ buyers }: { buyers: Buyer[] }) {
               <input name="propertyTypes" placeholder="Property types — SFR, Condo" />
               <input name="priceMin" type="number" placeholder="Price min" />
               <input name="priceMax" type="number" placeholder="Price max" />
-              <button type="submit">+ Add buy box</button>
+              <SubmitButton>+ Add buy box</SubmitButton>
             </form>
           </div>
-          <footer><form action={toggleArea.bind(null, selected.id)}><button type="submit">{selected.active ? "Pause buyer" : "Activate buyer"}</button></form><form action={deleteArea.bind(null, selected.id)}><button type="submit" className={styles.deleteButton}>Delete</button></form></footer>
+          <footer><form action={toggleArea.bind(null, selected.id)}><SubmitButton>{selected.active ? "Pause buyer" : "Activate buyer"}</SubmitButton></form><form action={deleteArea.bind(null, selected.id)}><SubmitButton className={styles.deleteButton}>Delete</SubmitButton></form></footer>
         </article> : <div className={styles.emptyState}><strong>No buyers added yet</strong><span>Add the first committed buyer to start building the acquisition target list.</span></div>}
       </section>
     </div>

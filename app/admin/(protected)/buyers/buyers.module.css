@@ -82,3 +82,31 @@
 .criteria span { border-color: #e1e7ec; color: #475569; }
 .buyBoxHeading strong { color: #475569; }
 .buyBoxHeading span { background: #eef2f6; color: #12161c; }
+
+/* Buyers / Conversations tabs */
+.tabs { display: flex; gap: 4px; margin: -4px 0 14px; border-bottom: 1px solid #dde4ea; }
+.tabs a { padding: 8px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; color: #64748b; font-size: 10px; font-weight: 700; text-decoration: none; }
+.tabs a:hover { color: #12161c; }
+.tabs .tabActive { border-bottom-color: #12161c; color: #12161c; }
+
+.convoPanel { border: 1px solid #dde4ea; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(15,23,32,.04), 0 10px 24px -14px rgba(15,23,32,.2); }
+.convoToolbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #e6ebef; }
+.convoToolbar input { flex: 1; max-width: 340px; padding: 8px 9px; border: 1px solid #c7d0d8; border-radius: 4px; outline: 0; color: #2e2e2c; font: 10px var(--font-body); }
+.convoToolbar input:focus { border-color: #12161c; box-shadow: 0 0 0 3px rgba(18,22,28,.1); }
+.convoSynced { margin-left: auto; color: #64748b; font-size: 8px; }
+.convoToolbar button { height: 28px; padding: 0 12px; border: 0; border-radius: 4px; background: #12161c; color: #fff; font: 700 8px var(--font-body); cursor: pointer; }
+.convoToolbar button:disabled { opacity: .55; cursor: progress; }
+.convoError { padding: 8px 14px; border-bottom: 1px solid #f1d5cf; background: #fdf3f1; color: #a45645; font-size: 8.5px; }
+.convoList { display: grid; }
+.convoRow { display: grid; grid-template-columns: 26px minmax(140px, 200px) minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #eef2f6; color: inherit; text-decoration: none; }
+.convoRow:last-child { border-bottom: 0; }
+.convoRow:hover { background: #f7f9fb; }
+.convoWho { display: grid; gap: 2px; min-width: 0; }
+.convoWho strong { display: flex; align-items: center; gap: 5px; overflow: hidden; color: #12161c; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.convoWho small { color: #64748b; font-size: 8px; }
+.unreadDot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: #2478c5; }
+.convoBody { display: grid; gap: 5px; min-width: 0; color: #12161c; font-size: 10px; line-height: 1.4; }
+.convoBody > small { color: #64748b; font-size: 8px; }
+.convoMeta { display: grid; justify-items: end; gap: 4px; color: #64748b; font-size: 8px; }
+.convoOpen { color: #2478c5; font-weight: 700; }
+@media (max-width: 760px) { .convoRow { grid-template-columns: 26px minmax(0, 1fr) auto; } .convoBody { grid-column: 2 / -1; grid-row: 2; } .convoToolbar { flex-wrap: wrap; } }
