@@ -52,7 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/admin/buyers",
-    label: "Our Buyers",
+    label: "Buyers",
     icon: (
       <>
         <circle cx="9" cy="8" r="3.5" />
