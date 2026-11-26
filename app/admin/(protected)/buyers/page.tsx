@@ -15,7 +15,8 @@ export default async function BuyersPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   await requireAdmin();
-  const tab = (await searchParams).tab === "conversations" ? "conversations" : "buyers";
+  const params = await searchParams;
+  const tab = params.tab === "conversations" ? "conversations" : "buyers";
 
   const tabs = <nav className={styles.tabs} aria-label="Our Buyers">
     <Link href="/admin/buyers" className={tab === "buyers" ? styles.tabActive : undefined}>Buyers</Link>
@@ -36,8 +37,10 @@ export default async function BuyersPage({
       configured={Boolean(ghlConfig())}
       lastRunAt={state?.lastRunAt?.toISOString() ?? null}
       lastError={state?.lastError ?? null}
+      initialId={typeof params.c === "string" ? params.c : null}
       conversations={rows.map((row) => ({
         id: row.id,
+        contactId: row.contactId,
         name: row.contactName,
         phone: row.phone,
         email: row.email,
