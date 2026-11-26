@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/session";
-import { runSearch } from "@/lib/search/run-search";
+import { cachedRunSearch } from "@/lib/search/cached-search";
 import type { SearchRequest } from "@/lib/search/types";
 
 export const maxDuration = 60;
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const bad = validateBody(body);
   if (bad) return NextResponse.json({ error: bad }, { status: 400 });
   try {
-    return NextResponse.json(await runSearch(body));
+    return NextResponse.json(await cachedRunSearch(body));
   } catch (err) {
     console.error("[admin/search] failed:", err);
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });

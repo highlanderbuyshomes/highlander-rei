@@ -30,14 +30,14 @@ type DragState = {
 };
 
 const FIELD_META: Record<FieldType, { label: string; color: string; w: number; h: number }> = {
-  signature: { label: "Signature", color: "#1a56db", w: 0.27,  h: 0.044 },
+  signature: { label: "Signature", color: "#237f96", w: 0.27,  h: 0.044 },
   initials:  { label: "Initials",  color: "#6b46c1", w: 0.12,  h: 0.038 },
   date:      { label: "Date",      color: "#3a7a50", w: 0.18,  h: 0.034 },
   text:      { label: "Text",      color: "#B8962E", w: 0.25,  h: 0.034 },
 };
 const DATA_FIELD_META = { color: "#d97706", w: 0.28, h: 0.034 };
 
-const SIGNER_COLORS = ["#1a56db", "#c0392b", "#6b46c1", "#3a7a50"];
+const SIGNER_COLORS = ["#237f96", "#c0392b", "#6b46c1", "#3a7a50"];
 
 export default function PdfFieldEditor({
   pdfUrl,

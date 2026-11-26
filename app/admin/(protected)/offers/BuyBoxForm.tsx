@@ -4,8 +4,8 @@ import { useRef, useState } from "react";
 
 const inp: React.CSSProperties = {
   width: "100%", padding: "9px 12px", fontSize: "13px",
-  border: "1px solid #d0cfc8", borderRadius: "6px",
-  background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none",
+  border: "1px solid #d9d6cf", borderRadius: "6px",
+  background: "#ffffff", color: "#1a1a1a", fontFamily: "inherit", outline: "none",
   boxSizing: "border-box",
 };
 
@@ -96,9 +96,9 @@ export default function BuyBoxForm({ buyerSearches, action, defaults = {}, submi
               style={{
                 padding: "3px 10px", fontSize: "10.5px", fontWeight: 500,
                 borderRadius: "20px", cursor: "pointer", fontFamily: "inherit",
-                background: locations.includes(a.value) ? "#111110" : "#f5f4f0",
-                color: locations.includes(a.value) ? "#ffffff" : "#5a5a54",
-                border: locations.includes(a.value) ? "1px solid #111110" : "1px solid #e8e7e2",
+                background: locations.includes(a.value) ? "#1a1a1a" : "#f4f2ee",
+                color: locations.includes(a.value) ? "#ffffff" : "#4a4a4a",
+                border: locations.includes(a.value) ? "1px solid #1a1a1a" : "1px solid #e8e6e1",
               }}
             >
               {a.label}
@@ -153,7 +153,7 @@ export default function BuyBoxForm({ buyerSearches, action, defaults = {}, submi
 
       <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "8px" }}>
         <button type="submit" style={{
-          padding: "10px 24px", background: "#111110", color: "#ffffff",
+          padding: "10px 24px", background: "#1a1a1a", color: "#ffffff",
           border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
           cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.3px",
         }}>

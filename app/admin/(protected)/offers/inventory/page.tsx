@@ -26,8 +26,8 @@ function DeleteButton({ id, action, label }: { id: string; action: (id: string) 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, { bg: string; color: string; border: string }> = {
     completed: { bg: "#eaf6f0", color: "#3a7a50", border: "#b8dfc8" },
-    running: { bg: "rgba(26,86,219,0.08)", color: "#1a56db", border: "rgba(26,86,219,0.25)" },
-    pending: { bg: "#f0efeb", color: "#8a8a84", border: "#d0cfc8" },
+    running: { bg: "rgba(26,86,219,0.08)", color: "#237f96", border: "rgba(26,86,219,0.25)" },
+    pending: { bg: "#f0efeb", color: "#8a8a84", border: "#d9d6cf" },
     failed: { bg: "rgba(192,57,43,0.06)", color: "#c0392b", border: "rgba(192,57,43,0.2)" },
   };
   const c = colors[status] ?? colors.pending;
@@ -79,21 +79,21 @@ export default async function OffersPage({
     <div style={{ maxWidth: "1100px", padding: "32px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
         <div>
-          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#111110", letterSpacing: "2px", lineHeight: 1 }}>INVENTORY &amp; IMPORTS</div>
-          <div style={{ fontSize: "12px", color: "#8a8a84", marginTop: "4px" }}><Link href="/admin/offers" style={{ color: "#1a56db", textDecoration: "none" }}>Offers pipeline</Link> · Property imports &amp; deal matching</div>
+          <div style={{ fontFamily: "var(--font-display), serif", fontSize: "36px", color: "#1a1a1a", letterSpacing: "2px", lineHeight: 1 }}>INVENTORY &amp; IMPORTS</div>
+          <div style={{ fontSize: "12px", color: "#8a8a84", marginTop: "4px" }}><Link href="/admin/offers" style={{ color: "#237f96", textDecoration: "none" }}>Offers pipeline</Link> · Property imports &amp; deal matching</div>
         </div>
         <div style={{ display: "flex", gap: "12px", fontSize: "11px", color: "#8a8a84" }}>
-          <span><strong style={{ color: "#111110" }}>{propertyCount}</strong> properties</span>
-          <span><strong style={{ color: "#111110" }}>{importRunCount}</strong> imports</span>
+          <span><strong style={{ color: "#1a1a1a" }}>{propertyCount}</strong> properties</span>
+          <span><strong style={{ color: "#1a1a1a" }}>{importRunCount}</strong> imports</span>
         </div>
       </div>
 
       <ImportRunner />
 
       {imports.length > 0 && (
-        <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden", marginBottom: "20px" }}>
-          <div style={{ padding: "14px 20px", borderBottom: "1px solid #e8e7e2", fontSize: "13px", fontWeight: 600, color: "#111110" }}>Recent Imports</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 1fr 80px", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e8e6e1", borderRadius: "14px", overflow: "hidden", marginBottom: "20px" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid #e8e6e1", fontSize: "13px", fontWeight: 600, color: "#1a1a1a" }}>Recent Imports</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 1fr 80px", padding: "10px 20px", background: "#f4f2ee", borderBottom: "1px solid #e8e6e1" }}>
             {["Source", "Status", "Records", "Date", ""].map((h) => (
               <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
             ))}
@@ -102,9 +102,9 @@ export default async function OffersPage({
             const meta = run.rawMeta as Record<string, unknown> | null;
             return (
               <div key={run.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 1fr 80px", padding: "13px 20px", borderBottom: i < imports.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
-                <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{run.source}</div>
+                <div style={{ fontSize: "13px", color: "#1a1a1a", fontWeight: 500 }}>{run.source}</div>
                 <div><StatusBadge status={run.status} /></div>
-                <div style={{ fontSize: "12px", color: "#5a5a54" }}>{meta?.imported != null ? `${meta.imported} new` : run.itemCount ?? "—"}</div>
+                <div style={{ fontSize: "12px", color: "#4a4a4a" }}>{meta?.imported != null ? `${meta.imported} new` : run.itemCount ?? "—"}</div>
                 <div style={{ fontSize: "11.5px", color: "#8a8a84" }}>{new Date(run.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
                 <div><DeleteButton id={run.id} action={deleteImportRun} label="Delete" /></div>
               </div>
@@ -115,18 +115,18 @@ export default async function OffersPage({
 
       {propertyCount > 0 && (
         <>
-          <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e8e6e1", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px" }}>
             <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "#111110" }}>Results</span>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "#1a1a1a" }}>Results</span>
               <form method="GET" action="/admin/offers/inventory" style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                <select name="zip" defaultValue={filterZip ?? ""} style={{ padding: "7px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit" }}>
+                <select name="zip" defaultValue={filterZip ?? ""} style={{ padding: "7px 12px", fontSize: "12px", border: "1px solid #d9d6cf", borderRadius: "6px", background: "#ffffff", color: "#1a1a1a", fontFamily: "inherit" }}>
                   <option value="">All ZIPs</option>
                   {distinctZips.map((z) => <option key={z.zip} value={z.zip}>{z.zip}</option>)}
                 </select>
-                <input name="city" defaultValue={filterCity ?? ""} placeholder="City..." style={{ padding: "7px 12px", fontSize: "12px", border: "1px solid #d0cfc8", borderRadius: "6px", background: "#ffffff", color: "#111110", fontFamily: "inherit", width: "140px" }} />
-                <button type="submit" style={{ padding: "7px 16px", background: "#111110", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Filter</button>
+                <input name="city" defaultValue={filterCity ?? ""} placeholder="City..." style={{ padding: "7px 12px", fontSize: "12px", border: "1px solid #d9d6cf", borderRadius: "6px", background: "#ffffff", color: "#1a1a1a", fontFamily: "inherit", width: "140px" }} />
+                <button type="submit" style={{ padding: "7px 16px", background: "#1a1a1a", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Filter</button>
                 {(filterZip || filterCity) && (
-                  <Link href="/admin/offers/inventory" style={{ padding: "7px 12px", fontSize: "12px", color: "#8a8a84", textDecoration: "none", border: "1px solid #d0cfc8", borderRadius: "6px" }}>Clear</Link>
+                  <Link href="/admin/offers/inventory" style={{ padding: "7px 12px", fontSize: "12px", color: "#8a8a84", textDecoration: "none", border: "1px solid #d9d6cf", borderRadius: "6px" }}>Clear</Link>
                 )}
               </form>
               <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
@@ -138,8 +138,8 @@ export default async function OffersPage({
             </div>
           </div>
 
-          <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.8fr 0.8fr 0.5fr 0.6fr 0.8fr 0.7fr 0.6fr 1fr", padding: "10px 20px", background: "#f5f4f0", borderBottom: "1px solid #e8e7e2" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e8e6e1", borderRadius: "14px", overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.8fr 0.8fr 0.5fr 0.6fr 0.8fr 0.7fr 0.6fr 1fr", padding: "10px 20px", background: "#f4f2ee", borderBottom: "1px solid #e8e6e1" }}>
               {["Address", "City / ZIP", "Beds", "Sqft", "Value", "Equity", "Owned", "Owner"].map((h) => (
                 <div key={h} style={{ fontSize: "9.5px", color: "#8a8a84", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{h}</div>
               ))}
@@ -150,15 +150,15 @@ export default async function OffersPage({
               const ownedYears = yearsSince(p.lastSaleDate);
               return (
                 <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.8fr 0.8fr 0.5fr 0.6fr 0.8fr 0.7fr 0.6fr 1fr", padding: "13px 20px", borderBottom: i < importedProperties.length - 1 ? "1px solid #f0efeb" : "none", alignItems: "center" }}>
-                  <div style={{ fontSize: "13px", color: "#111110", fontWeight: 500 }}>{p.streetAddress}</div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.city}, {p.zip}</div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.beds ?? "—"}</div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{p.sqft ? fmt(p.sqft) : "—"}</div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{fmtPrice(p.estimatedValue)}</div>
+                  <div style={{ fontSize: "13px", color: "#1a1a1a", fontWeight: 500 }}>{p.streetAddress}</div>
+                  <div style={{ fontSize: "12px", color: "#4a4a4a" }}>{p.city}, {p.zip}</div>
+                  <div style={{ fontSize: "12px", color: "#4a4a4a" }}>{p.beds ?? "—"}</div>
+                  <div style={{ fontSize: "12px", color: "#4a4a4a" }}>{p.sqft ? fmt(p.sqft) : "—"}</div>
+                  <div style={{ fontSize: "12px", color: "#4a4a4a" }}>{fmtPrice(p.estimatedValue)}</div>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: eqPct != null && eqPct >= 50 ? "#3a7a50" : eqPct != null && eqPct >= 20 ? "#b45309" : "#8a8a84" }}>
                     {eqPct != null ? `${Math.round(eqPct)}%` : "—"}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#5a5a54" }}>{ownedYears != null ? `${ownedYears}yr` : "—"}</div>
+                  <div style={{ fontSize: "12px", color: "#4a4a4a" }}>{ownedYears != null ? `${ownedYears}yr` : "—"}</div>
                   <div style={{ fontSize: "11px", color: "#8a8a84" }}>{o?.fullName ?? [o?.firstName, o?.lastName].filter(Boolean).join(" ") ?? "—"}</div>
                 </div>
               );
@@ -169,8 +169,8 @@ export default async function OffersPage({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px", fontSize: "12px", color: "#8a8a84" }}>
               <span>Page {currentPage} of {Math.ceil(filteredPropertyCount / PAGE_SIZE)}</span>
               <div style={{ display: "flex", gap: "8px" }}>
-                {currentPage > 1 && <Link href={`/admin/offers/inventory?${filterZip ? `zip=${filterZip}&` : ""}${filterCity ? `city=${filterCity}&` : ""}page=${currentPage - 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>Previous</Link>}
-                {currentPage < Math.ceil(filteredPropertyCount / PAGE_SIZE) && <Link href={`/admin/offers/inventory?${filterZip ? `zip=${filterZip}&` : ""}${filterCity ? `city=${filterCity}&` : ""}page=${currentPage + 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d0cfc8", borderRadius: "6px", color: "#111110", textDecoration: "none", fontSize: "12px" }}>Next</Link>}
+                {currentPage > 1 && <Link href={`/admin/offers/inventory?${filterZip ? `zip=${filterZip}&` : ""}${filterCity ? `city=${filterCity}&` : ""}page=${currentPage - 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d9d6cf", borderRadius: "6px", color: "#1a1a1a", textDecoration: "none", fontSize: "12px" }}>Previous</Link>}
+                {currentPage < Math.ceil(filteredPropertyCount / PAGE_SIZE) && <Link href={`/admin/offers/inventory?${filterZip ? `zip=${filterZip}&` : ""}${filterCity ? `city=${filterCity}&` : ""}page=${currentPage + 1}`} style={{ padding: "7px 14px", background: "#ffffff", border: "1px solid #d9d6cf", borderRadius: "6px", color: "#1a1a1a", textDecoration: "none", fontSize: "12px" }}>Next</Link>}
               </div>
             </div>
           )}

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 
 const inp: React.CSSProperties = {
   width: "100%", padding: "9px 12px", fontSize: "13px",
-  border: "1px solid #d0cfc8", borderRadius: "6px",
-  background: "#ffffff", color: "#111110", fontFamily: "inherit", outline: "none",
+  border: "1px solid #d9d6cf", borderRadius: "6px",
+  background: "#ffffff", color: "#1a1a1a", fontFamily: "inherit", outline: "none",
   boxSizing: "border-box",
 };
 
@@ -146,8 +146,8 @@ export default function ImportRunner() {
   const groups = [...new Set(LEAD_TYPES.map((t) => t.group))];
 
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e8e7e2", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
-      <div style={{ fontSize: "14px", fontWeight: 600, color: "#111110", marginBottom: "4px" }}>Import Off-Market Homeowners</div>
+    <div style={{ background: "#ffffff", border: "1px solid #e8e6e1", borderRadius: "14px", padding: "24px", marginBottom: "20px" }}>
+      <div style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a", marginBottom: "4px" }}>Import Off-Market Homeowners</div>
       <div style={{ fontSize: "12px", color: "#8a8a84", marginBottom: "16px" }}>Propwire — owner info, equity, MLS data, lead-type flags</div>
 
       {/* Location presets */}
@@ -159,9 +159,9 @@ export default function ImportRunner() {
             style={{
               padding: "5px 12px", fontSize: "11.5px", fontWeight: 500,
               borderRadius: "20px", cursor: "pointer", fontFamily: "inherit",
-              background: location === p.location ? "#111110" : "#f5f4f0",
-              color: location === p.location ? "#ffffff" : "#5a5a54",
-              border: location === p.location ? "1px solid #111110" : "1px solid #e8e7e2",
+              background: location === p.location ? "#1a1a1a" : "#f4f2ee",
+              color: location === p.location ? "#ffffff" : "#4a4a4a",
+              border: location === p.location ? "1px solid #1a1a1a" : "1px solid #e8e6e1",
             }}
           >
             {p.label}
@@ -210,9 +210,9 @@ export default function ImportRunner() {
                       style={{
                         padding: "4px 11px", fontSize: "11px", fontWeight: 500,
                         borderRadius: "20px", cursor: "pointer", fontFamily: "inherit",
-                        background: selected ? "#111110" : "#ffffff",
-                        color: selected ? "#ffffff" : "#5a5a54",
-                        border: selected ? "1px solid #111110" : "1px solid #d0cfc8",
+                        background: selected ? "#1a1a1a" : "#ffffff",
+                        color: selected ? "#ffffff" : "#4a4a4a",
+                        border: selected ? "1px solid #1a1a1a" : "1px solid #d9d6cf",
                       }}
                     >
                       {t.label}
@@ -230,7 +230,7 @@ export default function ImportRunner() {
           onClick={handleRun}
           disabled={running || !location}
           style={{
-            padding: "10px 24px", background: running ? "#8a8a84" : "#111110", color: "#ffffff",
+            padding: "10px 24px", background: running ? "#8a8a84" : "#1a1a1a", color: "#ffffff",
             border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
             cursor: running ? "not-allowed" : "pointer", fontFamily: "inherit",
           }}
@@ -246,7 +246,7 @@ export default function ImportRunner() {
       </div>
 
       {result && (
-        <div style={{ marginTop: "16px", padding: "16px", background: "#f8f7f4", borderRadius: "8px", fontSize: "12.5px", color: "#5a5a54" }}>
+        <div style={{ marginTop: "16px", padding: "16px", background: "#fafaf8", borderRadius: "8px", fontSize: "12.5px", color: "#4a4a4a" }}>
           <div>Total scraped: <strong>{String(result.total)}</strong></div>
           <div>Imported: <strong style={{ color: "#3a7a50" }}>{String(result.imported)}</strong></div>
           <div>Already in DB: <strong>{String(result.duplicates)}</strong></div>

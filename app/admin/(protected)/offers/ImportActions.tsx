@@ -51,7 +51,7 @@ export default function ImportActions({ exportUrl, propertyCount }: { exportUrl:
         download
         style={{
           ...btnStyle,
-          background: "#ffffff", color: "#111110", border: "1px solid #d0cfc8",
+          background: "#ffffff", color: "#1a1a1a", border: "1px solid #d9d6cf",
           textDecoration: "none",
         }}
       >
@@ -64,7 +64,7 @@ export default function ImportActions({ exportUrl, propertyCount }: { exportUrl:
         disabled={ghlStatus === "sending" || propertyCount === 0}
         style={{
           ...btnStyle,
-          background: ghlStatus === "sending" ? "#8a8a84" : "#111110",
+          background: ghlStatus === "sending" ? "#8a8a84" : "#1a1a1a",
           color: "#ffffff", border: "none",
         }}
       >

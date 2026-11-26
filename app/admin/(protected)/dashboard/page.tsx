@@ -92,7 +92,7 @@ export default async function DashboardPage() {
               </div>
             )}
             <div style={{ marginTop: 12 }}>
-              <Link href="/admin/offers" style={{ fontSize: 11, fontWeight: 700, color: "#111110" }}>
+              <Link href="/admin/offers" style={{ fontSize: 11, fontWeight: 700, color: "#1a1a1a" }}>
                 View full pipeline →
               </Link>
             </div>

@@ -123,9 +123,9 @@ export default function ResoSyncPanel({ configured, lastLiveSync }: { configured
   }
 
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "28px" }}>
-      <div style={{ fontSize: "14px", fontWeight: 600, color: "#12161c", marginBottom: "4px" }}>ARMLS RESO Web API</div>
-      <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px" }}>
+    <div style={{ background: "#ffffff", border: "1px solid #e8e6e1", borderRadius: "14px", padding: "28px" }}>
+      <div style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a", marginBottom: "4px" }}>ARMLS RESO Web API</div>
+      <div style={{ fontSize: "12px", color: "#6b6b66", marginBottom: "16px" }}>
         Pulls Active, Under Contract, Pending, and Closed listings for all of ARMLS into Property &amp; Search — powers the Deal Search 70% rule ranking with real MLS data instead of an empty table. The manual Closed month-by-month backfill now covers the whole MLS and is very large.
       </div>
 
@@ -138,7 +138,7 @@ export default function ResoSyncPanel({ configured, lastLiveSync }: { configured
           Not configured yet. Add <code>RESO_ACCESS_TOKEN</code> (the non-expiring access token from ARMLS/Spark) to <code>.env.local</code> — never entered here. The Spark feed&apos;s OAuth key isn&apos;t needed for requests. Only set <code>RESO_API_URL</code> too if ARMLS gives you a different base URL than Spark&apos;s standard one.
         </div>
       ) : (
-        <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "16px", lineHeight: 1.6 }}>
+        <div style={{ fontSize: "11px", color: "#6b6b66", marginBottom: "16px", lineHeight: 1.6 }}>
           Uses <code>RESO_ACCESS_TOKEN</code> set as an environment variable — not entered here.
         </div>
       )}
@@ -148,7 +148,7 @@ export default function ResoSyncPanel({ configured, lastLiveSync }: { configured
         disabled={status === "running" || !configured}
         style={{
           padding: "10px 24px",
-          background: status === "running" || !configured ? "#c8c7c1" : "#12161c",
+          background: status === "running" || !configured ? "#c8c7c1" : "#1a1a1a",
           color: "#ffffff",
           border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
           cursor: status === "running" || !configured ? "not-allowed" : "pointer", fontFamily: "inherit",
@@ -158,7 +158,7 @@ export default function ResoSyncPanel({ configured, lastLiveSync }: { configured
       </button>
 
       {message && (
-        <div style={{ marginTop: "14px", fontSize: "12.5px", color: status === "error" ? "#c0392b" : status === "done" ? "#3a7a50" : "#64748b" }}>
+        <div style={{ marginTop: "14px", fontSize: "12.5px", color: status === "error" ? "#c0392b" : status === "done" ? "#3a7a50" : "#6b6b66" }}>
           {message}
         </div>
       )}

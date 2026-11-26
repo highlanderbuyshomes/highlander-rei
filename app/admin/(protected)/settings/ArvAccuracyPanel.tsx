@@ -2,13 +2,13 @@ import type { ArvAccuracySummary, ErrorStats } from "@/lib/search/backtest";
 import { addArvSample, deleteArvSample, runArvAccuracy } from "./actions";
 import RunButton from "./RunButton";
 
-const card = { background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", padding: "24px", marginBottom: "16px" } as const;
-const heading = { fontFamily: "var(--font-display), serif", fontSize: "16px", color: "#12161c", letterSpacing: "1px" } as const;
-const muted = { fontSize: "12px", color: "#64748b" } as const;
-const th = { textAlign: "left", fontSize: "10.5px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 500, padding: "6px 8px", borderBottom: "1px solid #e1e7ec" } as const;
-const td = { fontSize: "12.5px", color: "#12161c", padding: "7px 8px", borderBottom: "1px solid #f1f4f6" } as const;
-const input = { width: "100%", padding: "8px 10px", fontSize: "12.5px", color: "#12161c", background: "#ffffff", border: "1px solid #c7d0d8", borderRadius: "6px", fontFamily: "inherit", boxSizing: "border-box" } as const;
-const label = { fontSize: "10.5px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "4px", display: "block", fontWeight: 500 } as const;
+const card = { background: "#ffffff", border: "1px solid #e8e6e1", borderRadius: "14px", padding: "24px", marginBottom: "16px" } as const;
+const heading = { fontFamily: "var(--font-display), serif", fontSize: "16px", color: "#1a1a1a", letterSpacing: "1px" } as const;
+const muted = { fontSize: "12px", color: "#6b6b66" } as const;
+const th = { textAlign: "left", fontSize: "10.5px", color: "#4a4a4a", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 500, padding: "6px 8px", borderBottom: "1px solid #e8e6e1" } as const;
+const td = { fontSize: "12.5px", color: "#1a1a1a", padding: "7px 8px", borderBottom: "1px solid #f1f4f6" } as const;
+const input = { width: "100%", padding: "8px 10px", fontSize: "12.5px", color: "#1a1a1a", background: "#ffffff", border: "1px solid #d9d6cf", borderRadius: "6px", fontFamily: "inherit", boxSizing: "border-box" } as const;
+const label = { fontSize: "10.5px", color: "#4a4a4a", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "4px", display: "block", fontWeight: 500 } as const;
 
 const money = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }));
 const miss = (s: ErrorStats | null | undefined) => (s ? `${s.medianMiss}% · ±${s.p70}%` : "—");
@@ -31,9 +31,9 @@ export default function ArvAccuracyPanel({ run, samples }: { run: { createdAt: D
       {s && <>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
           {([["ARV", s.arv, "flip resales"], ["Clean as-is", s.asIs, "clean sales"]] as const).map(([name, part, what]) => (
-            <div key={name} style={{ background: "#f8fafb", border: "1px solid #e1e7ec", borderRadius: "10px", padding: "14px" }}>
+            <div key={name} style={{ background: "#f8fafb", border: "1px solid #e8e6e1", borderRadius: "10px", padding: "14px" }}>
               <div style={label}>{name} · median miss</div>
-              <div style={{ fontSize: "24px", fontWeight: 600, color: "#12161c" }}>{part.overall ? `${part.overall.medianMiss}%` : "—"}</div>
+              <div style={{ fontSize: "24px", fontWeight: 600, color: "#1a1a1a" }}>{part.overall ? `${part.overall.medianMiss}%` : "—"}</div>
               <div style={muted}>{part.overall ? `${part.overall.within10}% within 10% · ${part.overall.n.toLocaleString()} ${what} · ${part.insideRangePct}% inside ± range` : ""}</div>
             </div>
           ))}
@@ -58,7 +58,7 @@ export default function ArvAccuracyPanel({ run, samples }: { run: { createdAt: D
         <tbody>{samples.map((x) => {
           const r = bySample.get(x.id);
           const pending = x.status === "pending";
-          return <tr key={x.id} style={pending ? { color: "#64748b", fontStyle: "italic" } : undefined}>
+          return <tr key={x.id} style={pending ? { color: "#6b6b66", fontStyle: "italic" } : undefined}>
             <td style={td} title={x.note ?? undefined}>{x.address}, {x.zip}<div style={muted}>{x.condition === "clean" ? "Clean" : "Remodeled"}{pending ? " · pending (supporting)" : ""}</div></td>
             <td style={td}>{money(x.price)}{x.priceHigh ? `–${money(x.priceHigh)}` : ""}</td>
             <td style={td}>{r ? `${money(r.estimate)}${r.rangePct ? ` ±${r.rangePct}%` : ""}` : "next run"}</td>
@@ -80,7 +80,7 @@ export default function ArvAccuracyPanel({ run, samples }: { run: { createdAt: D
           <div><label style={label}>Condition</label><select name="condition" style={input}><option value="remodeled">Remodeled</option><option value="clean">Clean</option></select></div>
         </div>
         <div><label style={label}>Note</label><input name="note" style={input} /></div>
-        <button type="submit" style={{ gridColumn: "1 / -1", padding: "10px", background: "#12161c", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add sample</button>
+        <button type="submit" style={{ gridColumn: "1 / -1", padding: "10px", background: "#1a1a1a", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add sample</button>
       </form>
     </div>
   </>;
