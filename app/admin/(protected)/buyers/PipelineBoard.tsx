@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { PipelineCard, PipelineStage } from "@/lib/integrations/ghl-api";
-import { moveBuyer, noteBuyer, openBuyer, saveBuyerBox, saveBuyerContact, tagBuyer, type CardData } from "./pipeline-actions";
+import { moveBuyer, noteBuyer, openBuyer, saveBuyerBox, saveBuyerContact, tagBuyer, textBuyer, type CardData } from "./pipeline-actions";
 import styles from "./pipeline.module.css";
 
 type Field = { id: string; label: string };
@@ -29,6 +29,7 @@ const I = {
   phone: <path d="M21 16.4v2.9a1.9 1.9 0 0 1-2.1 1.9 18.8 18.8 0 0 1-8.2-2.9 18.5 18.5 0 0 1-5.7-5.7A18.8 18.8 0 0 1 2.1 4.4 1.9 1.9 0 0 1 4 2.3h2.9a1.9 1.9 0 0 1 1.9 1.6c.1.9.4 1.8.7 2.7a1.9 1.9 0 0 1-.4 2L7.8 9.8a15.2 15.2 0 0 0 5.7 5.7l1.2-1.2a1.9 1.9 0 0 1 2-.4c.9.3 1.8.6 2.7.7a1.9 1.9 0 0 1 1.6 1.8Z" />,
   mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 6.5 8.5 6.5 8.5-6.5" /></>,
   sms: <><path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L3 21l1.4-5.1A8.5 8.5 0 1 1 21 12Z" /></>,
+  send: <><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4Z" /></>,
   x: <path d="M18 6 6 18M6 6l12 12" />,
   plus: <path d="M12 5v14M5 12h14" />,
   refresh: <><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></>,
@@ -163,6 +164,9 @@ function BuyerCard({
   const [boxForm, setBoxForm] = useState<Record<string, string>>({});
   const [tagDraft, setTagDraft] = useState("");
   const [note, setNote] = useState("");
+  const [draft, setDraft] = useState("");
+  const [sending, startSend] = useTransition();
+  const threadEnd = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
 
   useEffect(() => {
@@ -189,35 +193,93 @@ function BuyerCard({
     });
   }
 
+  useEffect(() => { threadEnd.current?.scrollIntoView({ block: "end" }); }, [data?.messages.length]);
+
   const c = data?.contact;
   const name = c ? [c.firstName, c.lastName].filter(Boolean).join(" ") || card.name : card.name;
   const filled = fields.filter((f) => data?.buyBox[f.id]);
+  const canText = Boolean(c?.phone) && !c?.dnd;
+
+  function sendText() {
+    const text = draft.trim();
+    if (!text || !data || !c) return;
+    setError(null);
+    startSend(async () => {
+      const r = await textBuyer(c.id, text);
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      setDraft("");
+      setData((d) => d && { ...d, messages: [...d.messages, { id: `local-${Date.now()}`, direction: "outbound", channel: "SMS", body: text, at: new Date().toISOString(), status: "sent" }] });
+    });
+  }
 
   return <div className={styles.overlay} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-    <aside className={styles.drawer} role="dialog" aria-label={`${name} contact card`}>
-      <header className={styles.drawerHead}>
+    <div className={styles.modal} role="dialog" aria-modal="true" aria-label={`${name} contact card`}>
+      <header className={styles.modalHead}>
         <span className={styles.avatarLg}>{initials(name)}</span>
         <div className={styles.drawerWho}><strong>{name}</strong>{card.company && <small>{card.company}</small>}</div>
-        <a href={ghlUrl} target="_blank" rel="noreferrer" className={styles.iconBtn} title="Open in GHL" aria-label="Open in GHL"><Svg>{I.ext}</Svg></a>
-        <button type="button" className={styles.iconBtn} onClick={onClose} aria-label="Close"><Svg>{I.x}</Svg></button>
+        <div className={styles.headActions}>
+          {(c?.phone ?? card.phone) && <a href={`tel:${c?.phone ?? card.phone}`} title="Call"><Svg size={15}>{I.phone}</Svg><span>{prettyPhone(c?.phone ?? card.phone)}</span></a>}
+          {(c?.email ?? card.email) && <a href={`mailto:${c?.email ?? card.email}`} title="Email"><Svg size={15}>{I.mail}</Svg><span>Email</span></a>}
+          <select value={card.stageId} onChange={(e) => onMove(e.target.value)} aria-label="Stage">
+            {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <a href={ghlUrl} target="_blank" rel="noreferrer" className={styles.iconBtn} title="Open in GHL" aria-label="Open in GHL"><Svg>{I.ext}</Svg></a>
+          <button type="button" className={styles.iconBtn} onClick={onClose} aria-label="Close"><Svg>{I.x}</Svg></button>
+        </div>
       </header>
 
-      <div className={styles.quick}>
-        {(c?.phone ?? card.phone) && <a href={`tel:${c?.phone ?? card.phone}`}><Svg size={15}>{I.phone}</Svg>Call</a>}
-        {(c?.phone ?? card.phone) && <a href={`sms:${c?.phone ?? card.phone}`}><Svg size={15}>{I.sms}</Svg>Text</a>}
-        {(c?.email ?? card.email) && <a href={`mailto:${c?.email ?? card.email}`}><Svg size={15}>{I.mail}</Svg>Email</a>}
-      </div>
+      <div className={styles.modalBody}>
+        <section className={styles.convo} aria-label="Conversation">
+          <div className={styles.convoHead}><span>Conversation</span>{data && <small>{data.messages.length} messages</small>}</div>
+          <div className={styles.thread}>
+            {!data && !error && <div className={styles.loading}><span /><span /></div>}
+            {data && !data.messages.length && <p className={styles.muted}>No texts or emails with this buyer yet.</p>}
+            {data?.messages.map((m) => <div key={m.id} className={m.direction === "inbound" ? styles.msgIn : styles.msgOut}>
+              <div className={styles.bubble}>{m.body}</div>
+              <small>{when(m.at)}{m.channel !== "SMS" ? ` · ${m.channel.toLowerCase()}` : ""}</small>
+            </div>)}
+            <div ref={threadEnd} />
+          </div>
+          <form className={styles.composer} onSubmit={(e) => { e.preventDefault(); sendText(); }}>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); } }}
+              placeholder={!data ? "Loading…" : c?.dnd ? "Contact is on Do Not Disturb" : c?.phone ? "Text a reply (Enter to send)" : "No phone number on this contact"}
+              disabled={!canText || sending}
+              rows={2}
+            />
+            <button type="submit" disabled={!canText || sending || !draft.trim()} aria-label="Send SMS"><Svg size={17}>{I.send}</Svg></button>
+          </form>
+        </section>
 
-      <label className={styles.stageSelect}>Stage
-        <select value={card.stageId} onChange={(e) => onMove(e.target.value)}>
-          {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-      </label>
-
+        <div className={styles.side}>
       {error && <div className={styles.error}>{error}</div>}
       {!data && !error && <div className={styles.loading}><span /><span /><span /></div>}
 
       {data && c && <>
+        <section className={styles.section}>
+          <div className={styles.sectionHead}><span>Buy box</span>{!editBox && <button type="button" onClick={() => { setBoxForm({ ...data.buyBox }); setEditBox(true); }}>Edit</button>}</div>
+          {editBox ? <form className={styles.form} onSubmit={(e) => {
+            e.preventDefault();
+            act(async () => {
+              const r = await saveBuyerBox(c.id, boxForm);
+              if (!r.ok) return r.error;
+              setData({ ...data, buyBox: r.data });
+              setEditBox(false);
+              return null;
+            });
+          }}>
+            {fields.map((f) => <label key={f.id}>{f.label}<input value={boxForm[f.id] ?? ""} onChange={(e) => setBoxForm({ ...boxForm, [f.id]: e.target.value })} /></label>)}
+            <div className={styles.actions}><button type="submit" disabled={pending}>{pending ? "Saving…" : "Save to GHL"}</button><button type="button" onClick={() => setEditBox(false)}>Cancel</button></div>
+          </form> : filled.length ? <dl className={styles.fields}>
+            {filled.map((f) => <div key={f.id} className={styles.fieldRow}><dt>{f.label}</dt><dd>{data.buyBox[f.id]}</dd></div>)}
+          </dl> : <p className={styles.muted}>No buy box saved in GHL yet.</p>}
+        </section>
+
         <section className={styles.section}>
           <div className={styles.sectionHead}><span>Contact</span>{!editContact && <button type="button" onClick={() => { setContactForm({ firstName: c.firstName ?? "", lastName: c.lastName ?? "", email: c.email ?? "", phone: c.phone ?? "" }); setEditContact(true); }}>Edit</button>}</div>
           {editContact ? <form className={styles.form} onSubmit={(e) => {
@@ -244,25 +306,6 @@ function BuyerCard({
             {c.source && <><dt>Source</dt><dd>{c.source}</dd></>}
             {c.dnd && <><dt>DND</dt><dd className={styles.dnd}>Do Not Disturb</dd></>}
           </dl>}
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHead}><span>Buy box</span>{!editBox && <button type="button" onClick={() => { setBoxForm({ ...data.buyBox }); setEditBox(true); }}>Edit</button>}</div>
-          {editBox ? <form className={styles.form} onSubmit={(e) => {
-            e.preventDefault();
-            act(async () => {
-              const r = await saveBuyerBox(c.id, boxForm);
-              if (!r.ok) return r.error;
-              setData({ ...data, buyBox: r.data });
-              setEditBox(false);
-              return null;
-            });
-          }}>
-            {fields.map((f) => <label key={f.id}>{f.label}<input value={boxForm[f.id] ?? ""} onChange={(e) => setBoxForm({ ...boxForm, [f.id]: e.target.value })} /></label>)}
-            <div className={styles.actions}><button type="submit" disabled={pending}>{pending ? "Saving…" : "Save to GHL"}</button><button type="button" onClick={() => setEditBox(false)}>Cancel</button></div>
-          </form> : filled.length ? <dl className={styles.fields}>
-            {filled.map((f) => <div key={f.id} className={styles.fieldRow}><dt>{f.label}</dt><dd>{data.buyBox[f.id]}</dd></div>)}
-          </dl> : <p className={styles.muted}>No buy box saved in GHL yet.</p>}
         </section>
 
         <section className={styles.section}>
@@ -312,6 +355,8 @@ function BuyerCard({
           {data.notes.map((n) => <article key={n.id} className={styles.note}><p>{n.body}</p>{n.dateAdded && <small>{when(n.dateAdded)}</small>}</article>)}
         </section>
       </>}
-    </aside>
+        </div>
+      </div>
+    </div>
   </div>;
 }

@@ -280,3 +280,10 @@ export async function placeInPipeline(contactId: string, name: string, pipelineI
   }
   return contactDeals(contactId);
 }
+
+/** The contact's GHL conversation (most recent), if they have one. */
+export async function findConversationId(contactId: string): Promise<string | null> {
+  const cfg = ghlConfig();
+  const d = await call<{ conversations?: { id: string }[] }>("GET", `/conversations/search?locationId=${cfg?.locationId}&contactId=${contactId}&limit=1&sort=desc&sortBy=last_message_date`);
+  return d.conversations?.[0]?.id ?? null;
+}

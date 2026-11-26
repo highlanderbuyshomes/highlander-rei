@@ -2,8 +2,8 @@
 
 import { requireAdmin } from "@/lib/session";
 import {
-  addNote, addTags, getBuyBox, getNotes, moveOpportunity, removeTags, saveBuyBox, updateContact,
-  type BuyBoxValues, type GhlContact, type GhlNote,
+  addNote, addTags, findConversationId, getBuyBox, getNotes, getThread, moveOpportunity, removeTags, saveBuyBox, sendSms, updateContact,
+  type BuyBoxValues, type GhlContact, type GhlNote, type GhlThreadMessage,
 } from "@/lib/integrations/ghl-api";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -17,12 +17,22 @@ async function run<T>(fn: () => Promise<T>): Promise<Result<T>> {
   }
 }
 
-export type CardData = { contact: GhlContact; buyBox: BuyBoxValues; notes: GhlNote[] };
+export type CardData = { contact: GhlContact; buyBox: BuyBoxValues; notes: GhlNote[]; messages: GhlThreadMessage[] };
 
 export async function openBuyer(contactId: string): Promise<Result<CardData>> {
   return run(async () => {
-    const [{ contact, buyBox }, notes] = await Promise.all([getBuyBox(contactId), getNotes(contactId)]);
-    return { contact, buyBox, notes };
+    const [{ contact, buyBox }, notes, conversationId] = await Promise.all([getBuyBox(contactId), getNotes(contactId), findConversationId(contactId)]);
+    const messages = conversationId ? await getThread(conversationId) : [];
+    return { contact, buyBox, notes, messages };
+  });
+}
+
+export async function textBuyer(contactId: string, message: string): Promise<Result<null>> {
+  return run(async () => {
+    const text = message.trim();
+    if (!text) throw new Error("Message is empty");
+    await sendSms(contactId, text);
+    return null;
   });
 }
 
