@@ -1,5 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { DEAL_SEARCH_TAG } from "@/lib/search/cached-search";
 import { prisma } from "@/lib/prisma";
 import { syncResoListings } from "@/lib/integrations/reso-sync";
 import { isResoConfigured } from "@/lib/integrations/reso";
@@ -108,6 +110,8 @@ async function handle(req: NextRequest) {
     const result = await syncResoListings(scope, SOURCE, control);
     console.log("[reso/cron] scope:", JSON.stringify(scope), "result:", JSON.stringify({ ...result, errors: result.errors.slice(0, 5) }));
     const rentals = await syncRentals(started);
+    // New listings/sales: cached Deal Search results refresh on next view.
+    revalidateTag(DEAL_SEARCH_TAG, "max");
     return NextResponse.json({ ...result, partial: Boolean(result.resumeUrl), rentals });
   } catch (err) {
     console.error("[reso/cron] failed:", err);

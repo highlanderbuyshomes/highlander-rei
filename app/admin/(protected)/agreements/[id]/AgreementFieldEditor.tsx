@@ -29,13 +29,13 @@ type DragState = {
 type FieldType = "signature" | "initials" | "date" | "text";
 
 const FIELD_META: Record<FieldType, { label: string; color: string; w: number; h: number }> = {
-  signature: { label: "Signature", color: "#1a56db", w: 0.27,  h: 0.044 },
+  signature: { label: "Signature", color: "#237f96", w: 0.27,  h: 0.044 },
   initials:  { label: "Initials",  color: "#6b46c1", w: 0.12,  h: 0.038 },
   date:      { label: "Date",      color: "#3a7a50", w: 0.18,  h: 0.034 },
   text:      { label: "Text",      color: "#B8962E", w: 0.25,  h: 0.034 },
 };
 
-const SIGNER_COLORS = ["#1a56db", "#c0392b", "#6b46c1", "#3a7a50"];
+const SIGNER_COLORS = ["#237f96", "#c0392b", "#6b46c1", "#3a7a50"];
 
 export default function AgreementFieldEditor({
   pdfUrl,
@@ -167,13 +167,13 @@ export default function AgreementFieldEditor({
   const fieldTypes: FieldType[] = ["signature", "initials", "date", "text"];
 
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e1e7ec", borderRadius: "14px", overflow: "hidden", marginBottom: "16px" }}>
+    <div style={{ background: "#ffffff", border: "1px solid #e8e6e1", borderRadius: "14px", overflow: "hidden", marginBottom: "16px" }}>
       {/* Section header */}
       <div style={{ padding: "14px 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}>
+        <div style={{ fontSize: "10px", color: "#6b6b66", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}>
           Signature Field Placement
         </div>
-        <div style={{ fontSize: "11px", color: "#64748b" }}>{fields.length} field{fields.length !== 1 ? "s" : ""}</div>
+        <div style={{ fontSize: "11px", color: "#6b6b66" }}>{fields.length} field{fields.length !== 1 ? "s" : ""}</div>
       </div>
       {/* Explanation banner */}
       <div style={{ margin: "10px 16px 0", padding: "9px 14px", background: "#f0f4fa", border: "1px solid #c8d8f0", borderRadius: "8px", fontSize: "12px", color: "#3a5fa0", lineHeight: 1.5 }}>
@@ -183,7 +183,7 @@ export default function AgreementFieldEditor({
       {/* Toolbar */}
       <div style={{
         margin: "10px 16px",
-        background: "#12161c",
+        background: "#1a1a1a",
         borderRadius: "10px",
         padding: "10px 14px",
         display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap",
@@ -242,13 +242,13 @@ export default function AgreementFieldEditor({
       </div>
 
       {/* Help text */}
-      <div style={{ fontSize: "11px", color: "#64748b", textAlign: "center", padding: "4px 0 8px" }}>
+      <div style={{ fontSize: "11px", color: "#6b6b66", textAlign: "center", padding: "4px 0 8px" }}>
         Click to place · Drag to reposition · Click a field to remove
       </div>
 
       {/* PDF pages */}
       <div style={{ background: "#f0efeb", padding: "16px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", maxHeight: "720px", overflowY: "auto" }}>
-        {loading && <div style={{ fontSize: "13px", color: "#64748b", padding: "40px 0" }}>Loading PDF…</div>}
+        {loading && <div style={{ fontSize: "13px", color: "#6b6b66", padding: "40px 0" }}>Loading PDF…</div>}
 
         {pages.map((dataUrl, pageIndex) => {
           const pageFields = fields.filter(f => f.page === pageIndex + 1);

@@ -491,17 +491,6 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   .form-with-sidebar { grid-template-columns: 1fr; gap: 36px; }
   .form-row-2 { grid-template-columns: 1fr; }
 
-  .admin-header {
-    padding: 0 14px !important;
-  }
-
-  .admin-sidebar {
-    display: none !important;
-  }
-
-  .admin-brand {
-    font-size: 14px !important;
-  }
 
   .agreements-shell {
     flex-direction: column;
@@ -619,118 +608,20 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
   .form-success-card { padding: 36px 20px; }
 }
 
-/* ── ADMIN MOBILE BOTTOM TAB BAR ──────────────────────────── */
-.admin-mobile-drawer-trigger {
-  display: none;
-}
-
-.admin-mobile-drawer-overlay {
-  display: none;
-}
-
 .agreement-field-editor-mobile {
   display: none;
 }
 
 @media (max-width: 900px) {
-  .admin-header {
-    display: none !important;
-  }
 
-  .admin-mobile-drawer-trigger {
-    display: flex;
-    position: fixed;
-    bottom: max(18px, env(safe-area-inset-bottom));
-    left: 20px;
-    z-index: 100;
-    width: 52px;
-    height: 52px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: #2478c5;
-    color: #ffffff;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 12px 30px rgba(15, 23, 32, 0.18);
-  }
 
-  .admin-mobile-drawer-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 32, 0.4);
-    z-index: 110;
-  }
 
-  .admin-mobile-drawer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 78vw;
-    max-width: 300px;
-    background: #ffffff;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    padding: 8px;
-    overflow-y: auto;
-  }
 
-  .admin-mobile-drawer-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 12px 18px;
-  }
 
-  .admin-mobile-drawer a {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 12px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: #475569;
-  }
 
-  .admin-mobile-drawer a.active {
-    color: #1b65aa;
-    font-weight: 600;
-    background: #eaf3ff;
-  }
 
-  .admin-mobile-drawer-divider {
-    height: 1px;
-    background: #e1e7ec;
-    margin: 8px 12px;
-  }
 
-  .admin-mobile-drawer-signout {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 12px 12px;
-    border-radius: 8px;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: #475569;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    text-align: left;
-  }
 
-  /* Push content above tab bar */
-  .admin-content-wrap {
-    min-height: 100vh !important;
-    padding-bottom: 110px;
-    background: #f2f5f8 !important;
-  }
 
   /* Main tabs replace dense desktop sidebars on mobile. */
   .agreements-sidebar,
@@ -958,25 +849,3 @@ p, h1, h2, h3, li, span { transition: color 0.18s; }
 }
 
 button, input, select, textarea { font-family: inherit; }
-
-/* Highlander admin chrome: blue rails, white wordmark and navigation icons. */
-.admin-brand { color: #fff; text-decoration: none; }
-.admin-wordmark { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; font-family: var(--font-body); font-size: 25px; font-weight: 400; line-height: 1; letter-spacing: -.7px; }
-.admin-wordmark > svg { flex-shrink: 0; }
-.admin-wordmark-period { margin-left: 1px; font-weight: 600; }
-@media (max-width: 900px) {
-  .admin-mobile-drawer { background: #2478c5; }
-  .admin-mobile-drawer a { color: #fff; }
-  .admin-mobile-drawer a.active { background: #fff; color: #111; }
-  .admin-mobile-drawer .admin-brand { color: #fff; padding: 0; }
-  .admin-mobile-drawer .admin-wordmark { font-size: 20px; gap: 7px; }
-  .admin-mobile-drawer .admin-wordmark > svg { width: 23px; }
-  .admin-mobile-drawer-signout { color: #fff; }
-  .admin-mobile-drawer-divider { background: #ffffff30; }
-  .admin-mobile-drawer-trigger { background: #2478c5; }
-}
-
-@media (min-width: 901px) {
-  .admin-header .admin-wordmark { gap: 0; }
-  .admin-header .admin-wordmark > svg { width: 64px; padding: 0 18.5px; box-sizing: border-box; }
-}

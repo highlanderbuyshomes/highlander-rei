@@ -1,24 +1,24 @@
-.shell { min-height: calc(100vh - 56px); background: #f8f7f4; color: #111110; padding-bottom: 28px; }
-.header { min-height: 78px; padding: 18px 28px 14px; background: #fff; border-bottom: 1px solid #e8e7e2; }
-.header h1 { margin: 0; font-family: var(--font-body); font-size: 31px; letter-spacing: 1.2px; color: #111110; }
+.shell { min-height: calc(100vh - 56px); background: #fafaf8; color: #1a1a1a; padding-bottom: 28px; }
+.header { min-height: 78px; padding: 18px 28px 14px; background: #fff; border-bottom: 1px solid #e8e6e1; }
+.header h1 { margin: 0; font-family: var(--font-body); font-size: 31px; letter-spacing: 1.2px; color: #1a1a1a; }
 .header p { margin: 4px 0 0; color: #8a8a84; font-size: 12px; }
 
 .content { padding: 24px 28px; }
 
 .statGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
-.statCard { padding: 16px; border: 1px solid #e8e7e2; border-radius: 6px; background: #fff; }
-.statValue { font-size: 24px; font-weight: 800; color: #111110; }
-.statLabel { margin-top: 4px; font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .6px; color: #8a8a84; }
+.statCard { padding: 16px; border: 1px solid #e8e6e1; border-radius: 6px; background: #fff; }
+.statValue { font-size: 24px; font-weight: 800; color: #1a1a1a; }
+.statLabel { margin-top: 4px; font-size: 12.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .6px; color: #8a8a84; }
 
-.wideCard { padding: 16px; border: 1px solid #e8e7e2; border-radius: 6px; background: #fff; margin-bottom: 16px; }
+.wideCard { padding: 16px; border: 1px solid #e8e6e1; border-radius: 6px; background: #fff; margin-bottom: 16px; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.panel { padding: 16px; border: 1px solid #e8e7e2; border-radius: 6px; background: #fff; }
-.panelTitle { margin: 0 0 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8a8a84; }
+.panel { padding: 16px; border: 1px solid #e8e6e1; border-radius: 6px; background: #fff; }
+.panelTitle { margin: 0 0 12px; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8a8a84; }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
 .listRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12.5px; }
-.listRow a { color: #111110; font-weight: 700; text-decoration: none; }
+.listRow a { color: #1a1a1a; font-weight: 700; text-decoration: none; }
 .listRow a:hover { text-decoration: underline; text-decoration-color: rgba(17,17,16,.3); text-underline-offset: 3px; }
 .listMeta { color: #8a8a84; font-size: 11px; white-space: nowrap; }
 .empty { color: #8a8a84; font-size: 12px; }
@@ -29,18 +29,18 @@
 }
 
 /* Sleeker, cooler polish pass — matches Deal Search's treatment */
-.shell { background: #f2f5f8; color: #12161c; }
-.header { background: #fff; border-bottom-color: #e1e7ec; }
-.header h1 { color: #12161c; }
-.header p { color: #64748b; }
+.shell { background: #fafaf8; color: #1a1a1a; }
+.header { background: #fff; border-bottom-color: #e8e6e1; }
+.header h1 { color: #1a1a1a; }
+.header p { color: #6b6b66; }
 .statCard,
 .wideCard,
-.panel { border-color: #dde4ea; box-shadow: 0 1px 2px rgba(15,23,32,.04), 0 10px 24px -14px rgba(15,23,32,.2); }
-.statValue { color: #12161c; font-variant-numeric: tabular-nums; }
+.panel { border-color: #e8e6e1; box-shadow: 0 1px 2px rgba(15,23,32,.04), 0 10px 24px -14px rgba(15,23,32,.2); }
+.statValue { color: #1a1a1a; font-variant-numeric: tabular-nums; }
 .statLabel,
 .panelTitle,
 .listMeta,
-.empty { color: #64748b; }
-.listRow a { color: #12161c; }
+.empty { color: #6b6b66; }
+.listRow a { color: #1a1a1a; }
 .listRow a:hover { text-decoration-color: rgba(18,22,28,.3); }
-.listRow a:focus-visible { outline: 2px solid #12161c; outline-offset: 2px; border-radius: 2px; }
+.listRow a:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; border-radius: 2px; }

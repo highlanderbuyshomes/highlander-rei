@@ -27,11 +27,11 @@ export type PipelineOffer = {
 };
 
 const STAGES: { key: PipelineStage; label: string; nextAction: string; color: string }[] = [
-  { key: "offer_made", label: STAGE_LABELS.offer_made, nextAction: "Confirm seller acceptance", color: "#111110" },
-  { key: "accepted", label: STAGE_LABELS.accepted, nextAction: "Collect all signatures", color: "#111110" },
-  { key: "signed", label: STAGE_LABELS.signed, nextAction: "Coordinate closing", color: "#111110" },
-  { key: "closed", label: STAGE_LABELS.closed, nextAction: "Ask for a referral", color: "#111110" },
-  { key: "referral", label: STAGE_LABELS.referral, nextAction: "Nurture the relationship", color: "#111110" },
+  { key: "offer_made", label: STAGE_LABELS.offer_made, nextAction: "Confirm seller acceptance", color: "#1a1a1a" },
+  { key: "accepted", label: STAGE_LABELS.accepted, nextAction: "Collect all signatures", color: "#1a1a1a" },
+  { key: "signed", label: STAGE_LABELS.signed, nextAction: "Coordinate closing", color: "#1a1a1a" },
+  { key: "closed", label: STAGE_LABELS.closed, nextAction: "Ask for a referral", color: "#1a1a1a" },
+  { key: "referral", label: STAGE_LABELS.referral, nextAction: "Nurture the relationship", color: "#1a1a1a" },
 ];
 
 const TYPE_LABELS: Record<string, string> = {
