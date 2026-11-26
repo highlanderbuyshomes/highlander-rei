@@ -187,7 +187,7 @@ export async function getPipelineStages(pipelineId: string): Promise<{ name: str
 }
 
 type RawOpp = {
-  id: string; name?: string; pipelineStageId: string; contactId: string; monetaryValue?: number; status?: string; updatedAt?: string;
+  id: string; name?: string; pipelineId?: string; pipelineStageId: string; contactId: string; monetaryValue?: number; status?: string; updatedAt?: string;
   contact?: { name?: string; companyName?: string; phone?: string; email?: string; tags?: string[] };
 };
 
@@ -241,4 +241,42 @@ export async function getBuyBox(contactId: string): Promise<{ contact: GhlContac
 export async function saveBuyBox(contactId: string, values: BuyBoxValues): Promise<void> {
   const customFields = BUY_BOX_FIELDS.map((f) => ({ id: f.id, field_value: (values[f.id] ?? "").trim() }));
   await call("PUT", `/contacts/${contactId}`, { customFields });
+}
+
+// ── Any pipeline (Conversations → "Add to pipeline") ─────────────────
+
+export type Pipeline = { id: string; name: string; stages: PipelineStage[] };
+export type ContactDeal = { id: string; pipelineId: string; stageId: string; status: string };
+
+export async function listPipelines(): Promise<Pipeline[]> {
+  const cfg = ghlConfig();
+  const d = await call<{ pipelines?: { id: string; name: string; stages: { id: string; name: string }[] }[] }>("GET", `/opportunities/pipelines?locationId=${cfg?.locationId}`);
+  return (d.pipelines ?? []).map((p) => ({ id: p.id, name: p.name, stages: p.stages.map((s) => ({ id: s.id, name: s.name })) }));
+}
+
+export async function contactDeals(contactId: string): Promise<ContactDeal[]> {
+  const cfg = ghlConfig();
+  const d = await call<{ opportunities?: RawOpp[] }>("GET", `/opportunities/search?location_id=${cfg?.locationId}&contact_id=${contactId}&limit=50`);
+  return (d.opportunities ?? []).map((o) => ({ id: o.id, pipelineId: o.pipelineId ?? "", stageId: o.pipelineStageId, status: o.status ?? "open" }));
+}
+
+/**
+ * Puts the contact in a pipeline stage: moves their existing opportunity in
+ * that pipeline, or creates one (named after the contact) if they have none.
+ */
+export async function placeInPipeline(contactId: string, name: string, pipelineId: string, stageId: string): Promise<ContactDeal[]> {
+  const existing = (await contactDeals(contactId)).find((d) => d.pipelineId === pipelineId);
+  if (existing) {
+    await call("PUT", `/opportunities/${existing.id}`, { pipelineId, pipelineStageId: stageId, status: "open" });
+  } else {
+    await call("POST", "/opportunities/", {
+      locationId: ghlConfig()?.locationId,
+      contactId,
+      pipelineId,
+      pipelineStageId: stageId,
+      name: name || "New opportunity",
+      status: "open",
+    });
+  }
+  return contactDeals(contactId);
 }
