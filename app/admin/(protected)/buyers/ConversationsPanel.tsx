@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { changeTags, createNote, loadThread, saveContact, sendReply, allTags, type ThreadData } from "./inbox-actions";
+import { addToPipeline, changeTags, createNote, loadThread, pipelinesFor, saveContact, sendReply, allTags, type ThreadData } from "./inbox-actions";
+import type { ContactDeal, Pipeline } from "@/lib/integrations/ghl-api";
 import styles from "./inbox.module.css";
 
 type Conversation = {
@@ -351,6 +352,8 @@ function ContactPanel({
       </dl>}
     </section>
 
+    <PipelinePicker contactId={c.id} name={fullName} />
+
     <section className={styles.card}>
       <div className={styles.cardHead}><span>Tags</span><small>{c.tags.length}</small></div>
       <div className={styles.tags}>
@@ -375,4 +378,84 @@ function ContactPanel({
       </div>
     </section>
   </aside>;
+}
+
+const DEFAULT_PIPELINE = "Investors";
+
+/** Shows which GHL pipelines the lead is in and adds/moves them to a stage. */
+function PipelinePicker({ contactId, name }: { contactId: string; name: string }) {
+  const [pipelines, setPipelines] = useState<Pipeline[] | null>(null);
+  const [deals, setDeals] = useState<ContactDeal[]>([]);
+  const [pipelineId, setPipelineId] = useState("");
+  const [stageId, setStageId] = useState("");
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    pipelinesFor(contactId).then((r) => {
+      if (!live) return;
+      if (!r.ok) return setError(r.error);
+      setPipelines(r.data.pipelines);
+      setDeals(r.data.deals);
+      const first = r.data.pipelines.find((p) => p.name === DEFAULT_PIPELINE) ?? r.data.pipelines[0];
+      if (first) {
+        setPipelineId(first.id);
+        const current = r.data.deals.find((d) => d.pipelineId === first.id);
+        setStageId(current?.stageId ?? first.stages[0]?.id ?? "");
+      }
+    });
+    return () => { live = false; };
+  }, [contactId]);
+
+  const pipeline = pipelines?.find((p) => p.id === pipelineId);
+  const existing = deals.find((d) => d.pipelineId === pipelineId);
+  const label = (d: ContactDeal) => {
+    const p = pipelines?.find((x) => x.id === d.pipelineId);
+    return `${p?.name ?? "Pipeline"} · ${p?.stages.find((s) => s.id === d.stageId)?.name ?? "—"}`;
+  };
+
+  function choosePipeline(id: string) {
+    setPipelineId(id);
+    setSaved(false);
+    const p = pipelines?.find((x) => x.id === id);
+    setStageId(deals.find((d) => d.pipelineId === id)?.stageId ?? p?.stages[0]?.id ?? "");
+  }
+
+  function submit() {
+    setError(null);
+    setSaved(false);
+    start(async () => {
+      const r = await addToPipeline(contactId, name, pipelineId, stageId);
+      if (!r.ok) return setError(r.error);
+      setDeals(r.data);
+      setSaved(true);
+    });
+  }
+
+  return <section className={styles.card}>
+    <div className={styles.cardHead}><span>Pipeline</span></div>
+    {error && <div className={styles.error}>{error}</div>}
+    {!pipelines && !error && <span className={styles.muted}>Loading…</span>}
+    {pipelines && <>
+      <div className={styles.tags}>
+        {deals.length ? deals.map((d) => <span key={d.id} className={styles.tag} style={{ paddingRight: 9 }}>{label(d)}</span>) : <span className={styles.muted}>Not in a pipeline yet</span>}
+      </div>
+      <div className={styles.pipeRow}>
+        <select value={pipelineId} onChange={(e) => choosePipeline(e.target.value)} aria-label="Pipeline">
+          {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <select value={stageId} onChange={(e) => { setStageId(e.target.value); setSaved(false); }} aria-label="Stage">
+          {pipeline?.stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+      <div className={styles.formActions}>
+        <button type="button" onClick={submit} disabled={pending || !stageId || (existing?.stageId === stageId && existing.status === "open")}>
+          {pending ? "Saving…" : existing ? "Move to stage" : `Add to ${pipeline?.name ?? "pipeline"}`}
+        </button>
+        {saved && <span className={styles.muted}>Saved in GHL</span>}
+      </div>
+    </>}
+  </section>;
 }

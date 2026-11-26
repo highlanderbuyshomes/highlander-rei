@@ -105,6 +105,9 @@
 .formActions button[type="submit"], .noteAdd button { border-color: var(--hl-ink); background: var(--hl-ink); color: #fff; }
 .formActions button:disabled, .noteAdd button:disabled { opacity: 0.5; cursor: default; }
 
+.pipeRow { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pipeRow select { width: 100%; padding: 8px 9px; border: 1px solid var(--hl-line-2); border-radius: 9px; background: #fff; color: var(--hl-ink); font: 13px var(--font-body); }
+.formActions { align-items: center; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 9px; border: 1px solid #cfe9f0; border-radius: 999px; background: var(--hl-accent-soft); color: #1d6b7f; font-size: 12px; font-weight: 500; }
 .tag button { display: grid; place-items: center; width: 18px; height: 18px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }

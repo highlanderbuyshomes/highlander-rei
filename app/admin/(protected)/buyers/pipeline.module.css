@@ -43,7 +43,7 @@
 .error { margin-bottom: 10px; padding: 8px 11px; border: 1px solid #f1d5cf; border-radius: 9px; background: #fdf3f1; color: #a5452f; font-size: 12.5px; }
 
 /* ── Contact card drawer ──────────────────────────────── */
-.overlay { position: fixed; inset: 0; z-index: 80; display: flex; justify-content: flex-end; background: rgba(17, 17, 17, 0.28); animation: fade 160ms ease-out; }
+.overlay { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px; background: rgba(17, 17, 17, 0.34); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: fade 160ms ease-out; }
 .drawer { display: flex; flex-direction: column; gap: 12px; width: min(440px, 100vw); height: 100%; overflow-y: auto; padding: 18px; background: var(--hl-canvas); box-shadow: -24px 0 48px -24px rgba(0, 0, 0, 0.35); animation: slide 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes fade { from { opacity: 0; } }
 @keyframes slide { from { transform: translateX(24px); opacity: 0.6; } }
@@ -103,4 +103,41 @@
   .pageHeader { flex-direction: column; align-items: flex-start; }
   .board { grid-auto-columns: 82vw; scroll-snap-type: x mandatory; }
   .column { scroll-snap-align: start; }
+}
+
+/* Floating buyer card: conversation | buy box + details */
+.modal { display: grid; grid-template-rows: auto minmax(0, 1fr); width: min(1120px, 100%); height: min(820px, calc(100vh - 48px)); overflow: hidden; border: 1px solid var(--hl-line); border-radius: 18px; background: var(--hl-canvas); box-shadow: 0 40px 80px -24px rgba(0, 0, 0, 0.45); animation: pop 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.985); } }
+.modalHead { display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 18px; border-bottom: 1px solid var(--hl-line); background: #fff; }
+.headActions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.headActions > a:not(.iconBtn) { display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; border: 1px solid var(--hl-line); border-radius: 10px; color: var(--hl-ink); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.headActions > a:not(.iconBtn):hover { border-color: var(--hl-accent-ink); color: var(--hl-accent-ink); }
+.headActions select { padding: 8px 10px; border: 1px solid var(--hl-line-2); border-radius: 10px; background: #fff; color: var(--hl-ink); font: 600 13px var(--font-body); }
+.modalBody { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); min-height: 0; }
+.convo { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--hl-line); }
+.convoHead { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 18px 4px; }
+.convoHead span { font-size: 13px; font-weight: 600; }
+.convoHead small { color: var(--hl-faint); font-size: 12px; }
+.thread { display: flex; flex: 1; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; padding: 10px 18px 16px; }
+.msgIn, .msgOut { display: grid; gap: 3px; max-width: 82%; }
+.msgIn { align-self: flex-start; }
+.msgOut { align-self: flex-end; justify-items: end; }
+.bubble { padding: 10px 13px; border-radius: 16px; font-size: 14px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msgIn .bubble { border: 1px solid var(--hl-line); border-bottom-left-radius: 5px; background: #fff; }
+.msgOut .bubble { border-bottom-right-radius: 5px; background: var(--hl-ink); color: #fff; }
+.msgIn small, .msgOut small { padding: 0 4px; color: var(--hl-faint); font-size: 11px; }
+.composer { display: flex; align-items: flex-end; gap: 8px; margin: 0 14px 14px; padding: 6px 6px 6px 12px; border: 1px solid var(--hl-line-2); border-radius: 14px; background: #fff; }
+.composer:focus-within { border-color: var(--hl-accent-ink); box-shadow: 0 0 0 3px rgba(75, 185, 212, 0.18); }
+.composer textarea { flex: 1; min-height: 40px; max-height: 140px; padding: 9px 0; border: 0 !important; outline: 0; resize: vertical; background: transparent; color: var(--hl-ink); font: 14px/1.4 var(--font-body); box-shadow: none !important; }
+.composer button { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border: 0; border-radius: 10px; background: var(--hl-accent); color: var(--hl-night); cursor: pointer; }
+.composer button:disabled { background: var(--hl-cream); color: var(--hl-faint); cursor: default; }
+.side { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; padding: 14px; }
+
+@media (max-width: 860px) {
+  .overlay { padding: 0; }
+  .modal { height: 100vh; border-radius: 0; }
+  .modalBody { grid-template-columns: 1fr; overflow-y: auto; }
+  .convo { min-height: 60vh; border-right: 0; border-bottom: 1px solid var(--hl-line); }
+  .side { overflow: visible; }
+  .headActions > a span { display: none; }
 }

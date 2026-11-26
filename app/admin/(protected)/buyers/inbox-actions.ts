@@ -4,7 +4,8 @@ import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import {
   addNote, addTags, getContact, getNotes, getThread, locationTags, markRead, removeTags, sendSms, updateContact,
-  type GhlContact, type GhlNote, type GhlThreadMessage,
+  contactDeals, listPipelines, placeInPipeline,
+  type ContactDeal, type GhlContact, type GhlNote, type GhlThreadMessage, type Pipeline,
 } from "@/lib/integrations/ghl-api";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -96,4 +97,15 @@ export async function saveContact(
 
 export async function allTags(): Promise<Result<string[]>> {
   return run(locationTags);
+}
+
+export async function pipelinesFor(contactId: string): Promise<Result<{ pipelines: Pipeline[]; deals: ContactDeal[] }>> {
+  return run(async () => {
+    const [pipelines, deals] = await Promise.all([listPipelines(), contactDeals(contactId)]);
+    return { pipelines, deals };
+  });
+}
+
+export async function addToPipeline(contactId: string, name: string, pipelineId: string, stageId: string): Promise<Result<ContactDeal[]>> {
+  return run(() => placeInPipeline(contactId, name, pipelineId, stageId));
 }
